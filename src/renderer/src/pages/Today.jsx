@@ -44,6 +44,11 @@ export default function Today() {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && fullScreenSectionId) {
         setFullScreenSectionId(null)
+        // Set focus back inside the editor shortly after exiting
+        setTimeout(() => {
+          const editorShell = document.querySelector('.section-card:not(.fullscreen-active-parent) .cm-content')
+          if (editorShell) editorShell.focus()
+        }, 50)
       }
     }
     window.addEventListener('keydown', handleKeyDown)

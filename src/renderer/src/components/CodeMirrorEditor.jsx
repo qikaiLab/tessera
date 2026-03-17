@@ -156,7 +156,17 @@ const CodeMirrorEditor = forwardRef(function CodeMirrorEditor(
     const view = new EditorView({ state, parent: containerRef.current })
     viewRef.current = view
 
-    return () => view.destroy()
+    const handleToggleFullScreen = useCallback(() => {
+    if (onToggleFullScreen) {
+      onToggleFullScreen()
+      // Give React a tick to render the new CSS position, then focus
+      setTimeout(() => {
+        viewRef.current?.focus()
+      }, 50)
+    }
+  }, [onToggleFullScreen])
+
+  return () => view.destroy()
   }, []) // Only create once
 
   // Sync external value changes (e.g. date navigation)
@@ -210,7 +220,7 @@ const CodeMirrorEditor = forwardRef(function CodeMirrorEditor(
           {onToggleFullScreen && (
             <button
               className="btn btn-ghost btn-xs btn-icon"
-              onClick={onToggleFullScreen}
+              onClick={handleToggleFullScreen}
               title={isFullScreen ? '退出全屏 (Esc)' : '全屏输入'}
             >
               {isFullScreen ? '↙' : '↗'}
