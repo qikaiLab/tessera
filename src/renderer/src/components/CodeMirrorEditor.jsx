@@ -156,7 +156,10 @@ const CodeMirrorEditor = forwardRef(function CodeMirrorEditor(
     const view = new EditorView({ state, parent: containerRef.current })
     viewRef.current = view
 
-    const handleToggleFullScreen = useCallback(() => {
+    return () => view.destroy()
+  }, []) // Only create once
+
+  const handleToggleFullScreen = useCallback(() => {
     if (onToggleFullScreen) {
       onToggleFullScreen()
       // Give React a tick to render the new CSS position, then focus
@@ -165,9 +168,6 @@ const CodeMirrorEditor = forwardRef(function CodeMirrorEditor(
       }, 50)
     }
   }, [onToggleFullScreen])
-
-  return () => view.destroy()
-  }, []) // Only create once
 
   // Sync external value changes (e.g. date navigation)
   useEffect(() => {
