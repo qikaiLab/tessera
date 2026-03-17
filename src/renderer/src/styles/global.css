@@ -522,6 +522,18 @@ body {
 }
 .section-card:hover { border-color: var(--border-hover); }
 
+/* Break the containing block when an inner element goes fullscreen */
+.section-card.fullscreen-active-parent {
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+  perspective: none !important;
+  contain: none !important;
+  backdrop-filter: none !important;
+  will-change: auto !important;
+  z-index: 1000;
+}
+
 .section-card-header {
   display: flex;
   align-items: center;

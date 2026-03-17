@@ -268,7 +268,7 @@ export default function Today() {
 function SectionCard({ section, value, onChange, animationDelay, isFullScreen, onToggleFullScreen, onSave }) {
   return (
     <div
-      className="section-card"
+      className={`section-card ${isFullScreen ? 'fullscreen-active-parent' : ''}`}
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div className="section-card-header">
