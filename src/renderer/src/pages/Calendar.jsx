@@ -16,10 +16,9 @@ const VIEW_LABELS = { month: '月', week: '周', year: '年' }
 
 export default function Calendar() {
   const navigate = useNavigate()
-  const { datesWithData } = useApp()
+  const { datesWithData, selectedDate, setSelectedDate } = useApp()
   const [view, setView] = useState('month')
   const [cursor, setCursor] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState(new Date())
   const [countdowns, setCountdowns] = useState(() => {
     try {
       const saved = localStorage.getItem('mototrace_countdowns')
@@ -45,7 +44,7 @@ export default function Calendar() {
 
   const handleDayClick = (date) => {
     setSelectedDate(date)
-    navigate(`/today/${format(date, 'yyyy-MM-dd')}`)
+    navigate('/today')
   }
 
   const getCountdownsForDate = (date) => {

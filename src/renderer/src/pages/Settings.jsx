@@ -18,6 +18,7 @@ export default function Settings() {
   const [newSectionType, setNewSectionType] = useState('text')
   const [newSectionName, setNewSectionName] = useState('')
   const [newSectionUnit, setNewSectionUnit] = useState('')
+  const [deleteModalState, setDeleteModalState] = useState({ isOpen: false, sec: null, hasData: false, checking: false })
 
   useEffect(() => { loadBackups() }, [])
 
@@ -60,11 +61,32 @@ export default function Settings() {
     showToast('已添加新数据版块', 'success')
   }
 
-  const deleteSection = async (id) => {
+  const handleDeleteClick = async (id) => {
     const sec = sections.find(s => s.id === id)
-    if (!confirm(`确定要删除版块「${sec.name}」吗？\n注意：如果已有旧数据依赖此版块，您应该将其[取消常驻]而不是删除，否则查看旧数据时将无法显示其名称。`)) return
-    await saveSections(sections.filter(s => s.id !== id))
-    showToast('已删除', 'info')
+    if (!sec) return
+    
+    setDeleteModalState({ isOpen: true, sec, hasData: false, checking: true })
+    
+    // Check historical data
+    let foundData = false
+    for (const dStr of datesWithData) {
+      const dayData = await readDayData(dStr)
+      const val = dayData[id]?.value
+      if (val !== undefined && val !== null && val !== '') {
+        foundData = true
+        break
+      }
+    }
+    setDeleteModalState({ isOpen: true, sec, hasData: foundData, checking: false })
+  }
+
+  const confirmDelete = async () => {
+    const { sec } = deleteModalState
+    if (sec) {
+      await saveSections(sections.filter(s => s.id !== sec.id))
+      showToast('已删除版块', 'success')
+    }
+    setDeleteModalState({ isOpen: false, sec: null, hasData: false, checking: false })
   }
 
   const toggleResident = async (id) => {
@@ -191,7 +213,7 @@ export default function Settings() {
                     key={sec.id}
                     section={sec}
                     onToggleResident={() => toggleResident(sec.id)}
-                    onDelete={() => deleteSection(sec.id)}
+                    onDelete={() => handleDeleteClick(sec.id)}
                   />
                 ))}
               </div>
@@ -289,6 +311,49 @@ export default function Settings() {
         </div>
 
       </div>
+
+      {/* Delete Modal */}
+      {deleteModalState.isOpen && (
+        <div className="modal-overlay" onClick={() => setDeleteModalState({ isOpen: false })}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <div className="modal-header">
+              <span className="modal-title">删除版块确认</span>
+              <button className="btn btn-ghost btn-icon" onClick={() => setDeleteModalState({ isOpen: false })}>✕</button>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              {deleteModalState.checking ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="loading-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+                  <span>正在检查历史记录...</span>
+                </div>
+              ) : deleteModalState.hasData ? (
+                <div style={{ color: 'var(--text-primary)', lineHeight: 1.6 }}>
+                  <p style={{ color: 'var(--error)', fontWeight: 'bold', marginBottom: 8 }}>无法删除此版块！</p>
+                  <p>我们在您的历史记录中发现了属于 <b>{deleteModalState.sec?.name}</b> 的数据。</p>
+                  <p style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: 13 }}>
+                    为了保证历史数据的完整性，包含已有记录的版块禁止被删除。如果您不想在今日记录中看到它，请将其 <b>「取消常驻」</b>。
+                  </p>
+                </div>
+              ) : (
+                <div style={{ color: 'var(--text-primary)', lineHeight: 1.6 }}>
+                  <p>确定要删除版块 <b>{deleteModalState.sec?.name}</b> 吗？</p>
+                  <p style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: 13 }}>此版块没有关联的历史数据，可以安全删除。删除后无法恢复。</p>
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-ghost" onClick={() => setDeleteModalState({ isOpen: false })}>
+                {deleteModalState.hasData ? '知道了' : '取消'}
+              </button>
+              {!deleteModalState.checking && !deleteModalState.hasData && (
+                <button className="btn btn-primary" style={{ background: 'var(--error)' }} onClick={confirmDelete}>
+                  确定删除
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

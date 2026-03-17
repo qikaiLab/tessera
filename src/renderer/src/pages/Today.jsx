@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
 import { format, parseISO, addDays, subDays, isToday, isValid } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
@@ -16,46 +15,40 @@ const STATUS = {
 }
 
 export default function Today() {
-  const { date: paramDate } = useParams()
-  const navigate = useNavigate()
-  const { sections, readDayData, writeDayData, refreshDates } = useApp()
+  const { sections, readDayData, writeDayData, refreshDates, selectedDate, setSelectedDate, showToast } = useApp()
 
-  const [currentDate, setCurrentDate] = useState(() => {
-    if (paramDate) {
-      const parsed = parseISO(paramDate)
-      return isValid(parsed) ? parsed : new Date()
-    }
-    return new Date()
-  })
   const [data, setData] = useState({})
   const [saveStatus, setSaveStatus] = useState(STATUS.IDLE)
   const [loading, setLoading] = useState(true)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [jumpInput, setJumpInput] = useState('')
+  const [fullScreenSectionId, setFullScreenSectionId] = useState(null)
   const saveTimerRef = useRef(null)
   const pendingDataRef = useRef(null)
 
-  const dateStr = format(currentDate, 'yyyy-MM-dd')
+  const dateStr = format(selectedDate, 'yyyy-MM-dd')
 
   // Load data when date changes
   useEffect(() => {
     setLoading(true)
     setSaveStatus(STATUS.IDLE)
+    setFullScreenSectionId(null) // Exit full screen on date change
     readDayData(dateStr).then(d => {
       setData(d)
       setLoading(false)
     })
   }, [dateStr, readDayData])
 
-  // Sync URL
+  // Global escape key for fullscreen
   useEffect(() => {
-    const urlDate = paramDate || ''
-    const formatted = format(currentDate, 'yyyy-MM-dd')
-    if (isToday(currentDate) && !paramDate) return
-    if (urlDate !== formatted) {
-      navigate(`/today/${formatted}`, { replace: true })
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && fullScreenSectionId) {
+        setFullScreenSectionId(null)
+      }
     }
-  }, [currentDate, paramDate, navigate])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [fullScreenSectionId])
 
   const scheduleSave = useCallback((newData) => {
     pendingDataRef.current = newData
@@ -73,6 +66,26 @@ export default function Today() {
       }
     }, 800)
   }, [dateStr, writeDayData, refreshDates])
+
+  const handleManualSave = useCallback(() => {
+    if (pendingDataRef.current) {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      setSaveStatus(STATUS.SAVING)
+      writeDayData(dateStr, pendingDataRef.current).then(result => {
+        if (result.ok) {
+          setSaveStatus(STATUS.SAVED)
+          refreshDates()
+          showToast('已保存更改', 'success', 2000)
+          setTimeout(() => setSaveStatus(STATUS.IDLE), 2000)
+        } else {
+          setSaveStatus(STATUS.FAILED)
+          showToast('保存失败', 'error')
+        }
+      })
+    } else {
+      showToast('暂无需要保存的更改', 'info', 1000)
+    }
+  }, [dateStr, writeDayData, refreshDates, showToast])
 
   const handleChange = useCallback((sectionId, value) => {
     setData(prev => {
@@ -95,9 +108,7 @@ export default function Today() {
         writeDayData(dateStr, pendingDataRef.current)
       }
     }
-    setCurrentDate(date)
-    if (isToday(date)) navigate('/today')
-    else navigate(`/today/${format(date, 'yyyy-MM-dd')}`)
+    setSelectedDate(date)
   }
 
   const visibleSections = sections.filter(sec => {
@@ -120,8 +131,8 @@ export default function Today() {
   })
 
   const formatDateDisplay = () => {
-    if (isToday(currentDate)) return '今日'
-    return format(currentDate, 'MM月dd日 EEEE', { locale: zhCN })
+    if (isToday(selectedDate)) return '今日'
+    return format(selectedDate, 'MM月dd日 EEEE', { locale: zhCN })
   }
 
   const handleJump = (e) => {
@@ -147,13 +158,13 @@ export default function Today() {
       {/* Header */}
       <div className="today-header">
         <div className="today-nav">
-          <button className="btn btn-ghost btn-icon" onClick={() => goTo(subDays(currentDate, 1))} title="前一天">
+          <button className="btn btn-ghost btn-icon" onClick={() => goTo(subDays(selectedDate, 1))} title="前一天">
             ←
           </button>
           <div className="today-date-group">
             <div className="today-date" onClick={() => setShowDatePicker(v => !v)}>
               <span className="today-date-main">{formatDateDisplay()}</span>
-              <span className="today-date-sub">{format(currentDate, 'yyyy年MM月dd日')}</span>
+              <span className="today-date-sub">{format(selectedDate, 'yyyy年MM月dd日')}</span>
             </div>
             {showDatePicker && (
               <form className="date-jump-form" onSubmit={handleJump}>
@@ -171,15 +182,15 @@ export default function Today() {
           </div>
           <button
             className="btn btn-ghost btn-icon"
-            onClick={() => goTo(addDays(currentDate, 1))}
-            disabled={isToday(currentDate)}
+            onClick={() => goTo(addDays(selectedDate, 1))}
+            disabled={isToday(selectedDate)}
             title="后一天"
           >
             →
           </button>
         </div>
         <div className="today-header-right">
-          {!isToday(currentDate) && (
+          {!isToday(selectedDate) && (
             <button className="btn btn-ghost btn-sm" onClick={() => goTo(new Date())}>
               回到今日
             </button>
@@ -224,6 +235,9 @@ export default function Today() {
                 value={data[sec.id]?.value ?? (sec.type === 'text' ? '' : '')}
                 onChange={(val) => handleChange(sec.id, val)}
                 animationDelay={i * 50}
+                isFullScreen={fullScreenSectionId === sec.id}
+                onToggleFullScreen={() => setFullScreenSectionId(prev => prev === sec.id ? null : sec.id)}
+                onSave={handleManualSave}
               />
             ))}
           </div>
@@ -251,7 +265,7 @@ export default function Today() {
   )
 }
 
-function SectionCard({ section, value, onChange, animationDelay }) {
+function SectionCard({ section, value, onChange, animationDelay, isFullScreen, onToggleFullScreen, onSave }) {
   return (
     <div
       className="section-card"
@@ -269,7 +283,10 @@ function SectionCard({ section, value, onChange, animationDelay }) {
             value={value}
             onChange={onChange}
             placeholder={`记录你的${section.name}...`}
-            minHeight="120px"
+            minHeight={isFullScreen ? "60vh" : "120px"}
+            isFullScreen={isFullScreen}
+            onToggleFullScreen={onToggleFullScreen}
+            onSave={onSave}
           />
         ) : (
           <NumberInput

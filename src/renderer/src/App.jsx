@@ -55,7 +55,6 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Today />} />
             <Route path="/today" element={<Today />} />
-            <Route path="/today/:date" element={<Today />} />
             <Route path="/timeline" element={<Timeline />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/analytics" element={<Analytics />} />
@@ -79,7 +78,7 @@ function Sidebar() {
   const { theme, toggleTheme } = useApp()
 
   const navItems = [
-    { to: '/today', icon: '◎', label: '今日记录', exact: true },
+    { to: '/today', icon: '◎', label: '记录', exact: false },
     { to: '/timeline', icon: '☰', label: '时间线' },
     { to: '/calendar', icon: '⊞', label: '日历' },
     { to: '/analytics', icon: '∑', label: '数据分析' },

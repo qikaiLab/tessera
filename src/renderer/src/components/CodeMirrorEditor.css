@@ -1,13 +1,138 @@
+.cm-editor-shell {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.cm-editor-shell:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.cm-toolbar {
+  display: flex;
+  gap: 12px;
+  padding: 6px 12px;
+  background: var(--bg-surface-2);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.cm-toolbar-group {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.cm-toolbar-group:not(:last-child)::after {
+  content: '';
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+  margin-left: 10px;
+}
+
+.cm-tb-btn {
+  background: transparent;
+  border: none;
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--text-secondary);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cm-tb-btn:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
 .cm-editor-wrapper {
   width: 100%;
+  flex: 1;
   background: transparent;
-  border-radius: var(--radius-md);
 }
 
 .cm-editor-wrapper .cm-editor {
   background: transparent !important;
+  height: 100%;
 }
 
 .cm-editor.cm-focused {
   outline: none !important;
+}
+
+.cm-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 12px;
+  background: var(--bg-surface-2);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cm-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.font-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+}
+
+.font-size-label {
+  display: inline-block;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* Scoped Immersive Overlay (Fullscreen Mode) */
+.fullscreen-mode {
+  position: fixed;
+  top: 0;
+  left: 200px; /* offset sidebar width */
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  border-radius: 0;
+  border: none;
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.fullscreen-mode .cm-toolbar {
+  background: transparent;
+  padding: 12px 20px;
+}
+
+.fullscreen-mode .cm-editor-wrapper {
+  padding: 20px 10%;
+}
+
+.fullscreen-mode .cm-editor-wrapper .cm-content {
+  line-height: 2;
+}
+
+.fullscreen-mode .cm-footer {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 8px 20px;
 }

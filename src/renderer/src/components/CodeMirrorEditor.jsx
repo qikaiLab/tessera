@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
-import { EditorState, Compartment } from '@codemirror/state'
-import { EditorView, keymap, placeholder, lineNumbers, drawSelection } from '@codemirror/view'
+import React, { useEffect, useRef, useImperativeHandle, forwardRef, useState, useCallback } from 'react'
+import { EditorState } from '@codemirror/state'
+import { EditorView, keymap, placeholder, drawSelection } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
@@ -28,7 +28,6 @@ const buildHighlightStyle = () => HighlightStyle.define([
 const buildTheme = () => EditorView.theme({
   '&': {
     height: '100%',
-    fontSize: '14px',
     fontFamily: "'Inter', -apple-system, sans-serif",
   },
   '.cm-content': {
@@ -52,13 +51,29 @@ const buildTheme = () => EditorView.theme({
   '&.cm-focused .cm-selectionBackground': { background: 'var(--accent-light) !important' },
 })
 
+function countWords(text) {
+  if (!text) return 0
+  return text.replace(/\s+/g, '').length
+}
+
 const CodeMirrorEditor = forwardRef(function CodeMirrorEditor(
-  { value = '', onChange, placeholder: ph = '开始记录...', minHeight = '120px', readOnly = false },
+  { value = '', onChange, placeholder: ph = '开始记录...', minHeight = '120px', readOnly = false, isFullScreen, onToggleFullScreen, onSave },
   ref
 ) {
   const containerRef = useRef(null)
   const viewRef = useRef(null)
   const onChangeRef = useRef(onChange)
+  const [wordCount, setWordCount] = useState(() => countWords(value))
+  const wordCountTimerRef = useRef(null)
+  
+  // Font size setting (persisted locally context for UI simplicity)
+  const [fontSize, setFontSize] = useState(() => {
+    return parseInt(localStorage.getItem('mototrace_font_size') || '14', 10)
+  })
+
+  useEffect(() => {
+    localStorage.setItem('mototrace_font_size', fontSize)
+  }, [fontSize])
 
   useEffect(() => { onChangeRef.current = onChange }, [onChange])
 
@@ -72,15 +87,51 @@ const CodeMirrorEditor = forwardRef(function CodeMirrorEditor(
     }
   }))
 
+  const insertMarkdown = (prefix, suffix = '') => {
+    const view = viewRef.current
+    if (!view) return
+    const { state, dispatch } = view
+    const selection = state.selection.main
+    const selectedText = state.doc.sliceString(selection.from, selection.to)
+    
+    // If inserting list or quote, it should go at start of line
+    if (prefix.match(/^(\* |1\. |> |---)/)) {
+      const line = state.doc.lineAt(selection.from)
+      dispatch({
+        changes: { from: line.from, insert: prefix },
+        selection: { anchor: selection.from + prefix.length, head: selection.to + prefix.length }
+      })
+    } else {
+      dispatch({
+        changes: { from: selection.from, to: selection.to, insert: `${prefix}${selectedText}${suffix}` },
+        selection: { anchor: selection.from + prefix.length, head: selection.to + prefix.length + selectedText.length }
+      })
+    }
+    view.focus()
+  }
+
   useEffect(() => {
     if (!containerRef.current) return
+
+    const keymapWithSave = keymap.of([
+      {
+        key: 'Mod-s',
+        run: () => {
+          if (onSave) onSave()
+          return true
+        }
+      },
+      ...defaultKeymap,
+      ...historyKeymap,
+      indentWithTab
+    ])
 
     const state = EditorState.create({
       doc: value,
       extensions: [
         history(),
         drawSelection(),
-        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+        keymapWithSave,
         markdown({ base: markdownLanguage, codeLanguages: languages }),
         syntaxHighlighting(buildHighlightStyle()),
         buildTheme(),
@@ -88,8 +139,15 @@ const CodeMirrorEditor = forwardRef(function CodeMirrorEditor(
         placeholder(ph),
         EditorView.editable.of(!readOnly),
         EditorView.updateListener.of(update => {
-          if (update.docChanged && onChangeRef.current) {
-            onChangeRef.current(update.state.doc.toString())
+          if (update.docChanged) {
+            const str = update.state.doc.toString()
+            if (onChangeRef.current) onChangeRef.current(str)
+            
+            // Debounced word count
+            if (wordCountTimerRef.current) clearTimeout(wordCountTimerRef.current)
+            wordCountTimerRef.current = setTimeout(() => {
+              setWordCount(countWords(str))
+            }, 500)
           }
         }),
       ]
@@ -108,15 +166,59 @@ const CodeMirrorEditor = forwardRef(function CodeMirrorEditor(
     const current = view.state.doc.toString()
     if (current !== value) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value || '' } })
+      setWordCount(countWords(value))
     }
   }, [value])
 
   return (
-    <div
-      ref={containerRef}
-      className="cm-editor-wrapper"
-      style={{ minHeight }}
-    />
+    <div className={`cm-editor-shell ${isFullScreen ? 'fullscreen-mode' : ''}`}>
+      <div className="cm-toolbar">
+        <div className="cm-toolbar-group">
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('**', '**')} title="加粗"><b>B</b></button>
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('*', '*')} title="斜体"><i>I</i></button>
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('~~', '~~')} title="删除线"><s>S</s></button>
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('<u>', '</u>')} title="下划线"><u>U</u></button>
+        </div>
+        <div className="cm-toolbar-group">
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('> ')} title="引用">”</button>
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('\n---\n')} title="分割线">—</button>
+        </div>
+        <div className="cm-toolbar-group">
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('- [ ] ')} title="待办列表">☑</button>
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('* ')} title="无序列表">•</button>
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('1. ')} title="有序列表">1.</button>
+        </div>
+        <div className="cm-toolbar-group">
+          <button className="cm-tb-btn" onClick={() => insertMarkdown('\n| 标题 | 标题 |\n| --- | --- |\n| 内容 | 内容 |\n')} title="插入表格">⊞</button>
+        </div>
+      </div>
+      
+      <div
+        ref={containerRef}
+        className="cm-editor-wrapper"
+        style={{ minHeight, fontSize: `${fontSize}px` }}
+      />
+
+      <div className="cm-footer">
+        <span className="cm-word-count">{wordCount} 字</span>
+        <div className="cm-footer-actions">
+          <span className="font-size-controls">
+            <button className="btn btn-ghost btn-xs" onClick={() => setFontSize(Math.max(12, fontSize - 1))}>A-</button>
+            <span className="font-size-label">{fontSize}</span>
+            <button className="btn btn-ghost btn-xs" onClick={() => setFontSize(Math.min(24, fontSize + 1))}>A+</button>
+          </span>
+          {onToggleFullScreen && (
+            <button
+              className="btn btn-ghost btn-xs btn-icon"
+              onClick={onToggleFullScreen}
+              title={isFullScreen ? '退出全屏 (Esc)' : '全屏输入'}
+            >
+              {isFullScreen ? '↙' : '↗'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 })
 

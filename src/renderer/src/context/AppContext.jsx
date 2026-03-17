@@ -9,6 +9,7 @@ export function AppProvider({ children }) {
   const [toasts, setToasts] = useState([])
   const [dataDir, setDataDir] = useState('')
   const [isInitialized, setIsInitialized] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(new Date())
 
   // Initialize
   useEffect(() => {
@@ -113,6 +114,7 @@ export function AppProvider({ children }) {
       toasts, showToast,
       dataDir, setDataDir,
       isInitialized,
+      selectedDate, setSelectedDate,
       readDayData, writeDayData
     }}>
       {children}

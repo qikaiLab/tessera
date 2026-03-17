@@ -34,7 +34,7 @@ function getSnippet(text, query, maxLen = 120) {
 
 export default function Timeline() {
   const navigate = useNavigate()
-  const { sections, datesWithData, readDayData } = useApp()
+  const { sections, datesWithData, readDayData, setSelectedDate } = useApp()
   const [query, setQuery] = useState('')
   const [filterSection, setFilterSection] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
@@ -119,7 +119,8 @@ export default function Timeline() {
   }, [datesWithData, loadedDates, filterSection, query, dateFrom, dateTo, sections])
 
   const handleCardClick = (dateStr) => {
-    navigate(`/today/${dateStr}`)
+    setSelectedDate(parseISO(dateStr))
+    navigate('/today')
   }
 
   return (

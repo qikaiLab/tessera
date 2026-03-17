@@ -43,6 +43,7 @@ function createWindow() {
   ensureDir(path.join(dataDir, 'backups'))
 
   mainWindow = new BrowserWindow({
+    icon: path.join(__dirname, '../../logo.ico'),
     width: 1280,
     height: 800,
     minWidth: 900,
