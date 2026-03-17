@@ -12,11 +12,11 @@
 .cm-toolbar {
   display: flex;
   gap: 12px;
-  padding: 0 0 8px 0;
+  padding: 8px 16px;
   background: transparent;
-  border-bottom: 1px dashed var(--border);
+  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .cm-toolbar-group {
@@ -74,12 +74,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0 0 0;
+  padding: 8px 16px;
   background: transparent;
   border-top: 1px dashed var(--border);
   font-size: 11px;
   color: var(--text-muted);
-  margin-top: 8px;
+  margin-top: 0;
 }
 
 .cm-footer-actions {

@@ -277,7 +277,7 @@ function SectionCard({ section, value, onChange, animationDelay, isFullScreen, o
           {section.resident ? '常驻' : '激发'}
         </span>
       </div>
-      <div className="section-card-body">
+      <div className={`section-card-body ${section.type === 'text' ? 'text-editor-body' : ''}`}>
         {section.type === 'text' ? (
           <CodeMirrorEditor
             value={value}
