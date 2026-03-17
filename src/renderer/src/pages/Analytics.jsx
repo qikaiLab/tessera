@@ -1,0 +1,429 @@
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import {
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts'
+import { format, parseISO, subDays, eachDayOfInterval, startOfDay } from 'date-fns'
+import { useApp } from '../context/AppContext'
+import './Analytics.css'
+
+const CHART_TYPES = [
+  { id: 'line', label: '折线图', icon: '📈' },
+  { id: 'bar', label: '柱状图', icon: '📊' },
+  { id: 'pie', label: '饼图', icon: '🍩' },
+  { id: 'heatmap', label: '热力图', icon: '🗓' }
+]
+
+const DATE_RANGES = [
+  { id: '7', label: '近7天' },
+  { id: '30', label: '近30天' },
+  { id: '90', label: '近90天' },
+  { id: '365', label: '近一年' },
+  { id: 'all', label: '全部' }
+]
+
+const PALETTE = ['#7c6aff', '#34d399', '#f87171', '#fbbf24', '#60a5fa', '#f472b6']
+
+function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
+
+function defaultCard(idx) {
+  return {
+    id: generateId(),
+    title: `图表 ${idx + 1}`,
+    type: 'bar',
+    bindings: [],
+    dateRange: '30',
+    dateFrom: '',
+    dateTo: ''
+  }
+}
+
+export default function Analytics() {
+  const { sections, datesWithData } = useApp()
+  const [cards, setCards] = useState(() => {
+    try {
+      const s = localStorage.getItem('mototrace_analytics')
+      return s ? JSON.parse(s) : []
+    } catch { return [] }
+  })
+  const [editingCard, setEditingCard] = useState(null)
+  const [loadedData, setLoadedData] = useState({})
+
+  useEffect(() => {
+    localStorage.setItem('mototrace_analytics', JSON.stringify(cards))
+  }, [cards])
+
+  useEffect(() => {
+    if (!datesWithData.length) return
+    const fetchAll = async () => {
+      const result = {}
+      for (const d of datesWithData) {
+        const [y, m, day] = d.split('-')
+        const r = await window.api.fs.readFile(`${y}/${m}/${day}.json`)
+        if (r.ok) { try { result[d] = JSON.parse(r.data) } catch {} }
+      }
+      setLoadedData(result)
+    }
+    fetchAll()
+  }, [datesWithData])
+
+  const addCard = () => {
+    const card = defaultCard(cards.length)
+    setCards(prev => [...prev, card])
+    setEditingCard(card.id)
+  }
+
+  const updateCard = (id, updates) => {
+    setCards(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c))
+  }
+
+  const deleteCard = (id) => setCards(prev => prev.filter(c => c.id !== id))
+
+  const duplicateCard = (id) => {
+    const src = cards.find(c => c.id === id)
+    if (!src) return
+    setCards(prev => [...prev, { ...src, id: generateId(), title: src.title + ' 副本' }])
+  }
+
+  return (
+    <div className="analytics-page">
+      <div className="page-header">
+        <span className="page-title">数据分析</span>
+        <button className="btn btn-primary btn-sm" onClick={addCard}>⊕ 新建图表</button>
+      </div>
+      <div className="page-content analytics-content">
+        {cards.length === 0 ? (
+          <div className="empty-state" style={{ height: '70%' }}>
+            <span className="empty-state-icon">∑</span>
+            <p className="empty-state-title">还没有图表</p>
+            <p className="empty-state-desc">点击「新建图表」创建你的第一个数据可视化卡片</p>
+            <button className="btn btn-primary" onClick={addCard}>创建图表</button>
+          </div>
+        ) : (
+          <div className="analytics-grid">
+            {cards.map(card => (
+              <AnalyticsCard
+                key={card.id}
+                card={card}
+                sections={sections}
+                loadedData={loadedData}
+                datesWithData={datesWithData}
+                isEditing={editingCard === card.id}
+                onEdit={() => setEditingCard(editingCard === card.id ? null : card.id)}
+                onUpdate={(u) => updateCard(card.id, u)}
+                onDelete={() => deleteCard(card.id)}
+                onDuplicate={() => duplicateCard(card.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function getDateRange(card, datesWithData) {
+  if (card.dateRange === 'all') return datesWithData
+  if (card.dateRange === 'custom' && card.dateFrom && card.dateTo) {
+    return datesWithData.filter(d => d >= card.dateFrom && d <= card.dateTo)
+  }
+  const days = parseInt(card.dateRange)
+  const cutoff = format(subDays(new Date(), days), 'yyyy-MM-dd')
+  return datesWithData.filter(d => d >= cutoff)
+}
+
+function buildChartData(card, sections, loadedData, datesWithData) {
+  const dates = getDateRange(card, datesWithData).sort()
+  const bindings = card.bindings || []
+
+  if (card.type === 'pie') {
+    return bindings.map((b, i) => {
+      const sec = sections.find(s => s.id === b.sectionId)
+      if (!sec) return null
+      let total = 0
+      for (const d of dates) {
+        const entry = loadedData[d]?.[b.sectionId]
+        if (entry) {
+          if (b.metric === 'wordcount') {
+            total += (entry.value || '').toString().replace(/\s+/g, '').length
+          } else {
+            total += parseFloat(entry.value) || 0
+          }
+        }
+      }
+      return { name: sec.name, value: parseFloat(total.toFixed(2)), fill: PALETTE[i % PALETTE.length] }
+    }).filter(Boolean)
+  }
+
+  if (card.type === 'heatmap') {
+    return dates.map(d => {
+      const total = bindings.reduce((acc, b) => {
+        const entry = loadedData[d]?.[b.sectionId]
+        if (!entry) return acc
+        if (b.metric === 'wordcount') return acc + (entry.value || '').toString().replace(/\s+/g, '').length
+        return acc + (parseFloat(entry.value) || 0)
+      }, 0)
+      return { date: d, value: total }
+    })
+  }
+
+  return dates.map(d => {
+    const point = { date: format(parseISO(d), 'MM/dd') }
+    bindings.forEach(b => {
+      const sec = sections.find(s => s.id === b.sectionId)
+      if (!sec) return
+      const entry = loadedData[d]?.[b.sectionId]
+      let val = 0
+      if (entry) {
+        if (b.metric === 'wordcount') val = (entry.value || '').toString().replace(/\s+/g, '').length
+        else val = parseFloat(entry.value) || 0
+      }
+      point[sec.name] = val
+    })
+    return point
+  })
+}
+
+function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, onEdit, onUpdate, onDelete, onDuplicate }) {
+  const chartData = useMemo(
+    () => buildChartData(card, sections, loadedData, datesWithData),
+    [card, sections, loadedData, datesWithData]
+  )
+
+  const bindings = card.bindings || []
+
+  return (
+    <div className={`analytics-card card ${isEditing ? 'editing' : ''}`}>
+      <div className="analytics-card-header">
+        <input
+          className="analytics-card-title"
+          value={card.title}
+          onChange={e => onUpdate({ title: e.target.value })}
+        />
+        <div className="analytics-card-actions">
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onEdit} title="配置">
+            {isEditing ? '✕' : '⚙'}
+          </button>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onDuplicate} title="复制">⧉</button>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onDelete} title="删除" style={{ color: 'var(--error)' }}>🗑</button>
+        </div>
+      </div>
+
+      {isEditing && (
+        <CardEditor
+          card={card}
+          sections={sections}
+          onUpdate={onUpdate}
+        />
+      )}
+
+      <div className="analytics-chart-area">
+        {chartData.length === 0 || bindings.length === 0 ? (
+          <div className="chart-empty">
+            <p>绑定数据版块后显示图表</p>
+          </div>
+        ) : (
+          <ChartRenderer card={card} data={chartData} sections={sections} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CardEditor({ card, sections, onUpdate }) {
+  const addBinding = () => {
+    const sec = sections[0]
+    if (!sec) return
+    onUpdate({ bindings: [...(card.bindings || []), { sectionId: sec.id, metric: sec.type === 'text' ? 'wordcount' : 'value' }] })
+  }
+
+  const updateBinding = (i, updates) => {
+    const next = [...(card.bindings || [])]
+    next[i] = { ...next[i], ...updates }
+    onUpdate({ bindings: next })
+  }
+
+  const removeBinding = (i) => {
+    onUpdate({ bindings: (card.bindings || []).filter((_, idx) => idx !== i) })
+  }
+
+  return (
+    <div className="card-editor">
+      {/* Chart type */}
+      <div className="editor-row">
+        <label className="editor-label">图表类型</label>
+        <div className="chart-type-selector">
+          {CHART_TYPES.map(t => (
+            <button
+              key={t.id}
+              className={`chart-type-btn ${card.type === t.id ? 'active' : ''}`}
+              onClick={() => onUpdate({ type: t.id })}
+            >
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Date range */}
+      <div className="editor-row">
+        <label className="editor-label">时间范围</label>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {DATE_RANGES.map(r => (
+            <button
+              key={r.id}
+              className={`btn btn-sm ${card.dateRange === r.id ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => onUpdate({ dateRange: r.id })}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bindings */}
+      <div className="editor-row">
+        <label className="editor-label">数据绑定</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {(card.bindings || []).map((b, i) => {
+            const sec = sections.find(s => s.id === b.sectionId)
+            return (
+              <div key={i} className="binding-row">
+                <select
+                  className="input"
+                  style={{ flex: 1 }}
+                  value={b.sectionId}
+                  onChange={e => {
+                    const s = sections.find(s => s.id === e.target.value)
+                    updateBinding(i, { sectionId: e.target.value, metric: s?.type === 'text' ? 'wordcount' : 'value' })
+                  }}
+                >
+                  {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                <select
+                  className="input"
+                  style={{ width: 110 }}
+                  value={b.metric}
+                  onChange={e => updateBinding(i, { metric: e.target.value })}
+                >
+                  <option value="value">数值</option>
+                  <option value="wordcount">字数</option>
+                </select>
+                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => removeBinding(i)}>✕</button>
+              </div>
+            )
+          })}
+          {sections.length > 0 && (
+            <button className="btn btn-ghost btn-sm" onClick={addBinding}>⊕ 添加数据</button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const TooltipStyle = {
+  contentStyle: {
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '12px',
+    color: 'var(--text-primary)'
+  },
+  labelStyle: { color: 'var(--text-secondary)' }
+}
+
+function ChartRenderer({ card, data, sections }) {
+  const keys = sections
+    .filter(s => (card.bindings || []).some(b => b.sectionId === s.id))
+    .map(s => s.name)
+
+  if (card.type === 'line') {
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+          <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
+          <Tooltip {...TooltipStyle} />
+          {keys.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+          {keys.map((k, i) => (
+            <Line key={k} type="monotone" dataKey={k} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  if (card.type === 'bar') {
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+          <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
+          <Tooltip {...TooltipStyle} />
+          {keys.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+          {keys.map((k, i) => (
+            <Bar key={k} dataKey={k} fill={PALETTE[i % PALETTE.length]} radius={[3, 3, 0, 0]} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  if (card.type === 'pie') {
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={90}
+            paddingAngle={3}
+            dataKey="value"
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            labelLine={false}
+          >
+            {data.map((entry, i) => (
+              <Cell key={i} fill={entry.fill} />
+            ))}
+          </Pie>
+          <Tooltip {...TooltipStyle} />
+        </PieChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  if (card.type === 'heatmap') {
+    return <Heatmap data={data} />
+  }
+
+  return null
+}
+
+function Heatmap({ data }) {
+  if (!data.length) return null
+  const max = Math.max(...data.map(d => d.value), 1)
+
+  const getColor = (v) => {
+    const intensity = v / max
+    return `rgba(124, 106, 255, ${Math.max(0.05, intensity)})`
+  }
+
+  return (
+    <div className="heatmap">
+      {data.map((d, i) => (
+        <div
+          key={i}
+          className="heatmap-cell"
+          style={{ background: getColor(d.value) }}
+          title={`${d.date}: ${d.value}`}
+        />
+      ))}
+    </div>
+  )
+}

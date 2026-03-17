@@ -1,0 +1,13 @@
+.cm-editor-wrapper {
+  width: 100%;
+  background: transparent;
+  border-radius: var(--radius-md);
+}
+
+.cm-editor-wrapper .cm-editor {
+  background: transparent !important;
+}
+
+.cm-editor.cm-focused {
+  outline: none !important;
+}
