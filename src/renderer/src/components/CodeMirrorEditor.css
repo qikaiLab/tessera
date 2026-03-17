@@ -1,25 +1,22 @@
 .cm-editor-shell {
   display: flex;
   flex-direction: column;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   transition: all 0.2s ease;
 }
 
-.cm-editor-shell:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-light);
-}
+
 
 .cm-toolbar {
   display: flex;
   gap: 12px;
-  padding: 6px 12px;
-  background: var(--bg-surface-2);
-  border-bottom: 1px solid var(--border);
+  padding: 0 0 8px 0;
+  background: transparent;
+  border-bottom: 1px dashed var(--border);
   flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
 .cm-toolbar-group {
@@ -61,6 +58,7 @@
   width: 100%;
   flex: 1;
   background: transparent;
+  padding: 0;
 }
 
 .cm-editor-wrapper .cm-editor {
@@ -76,11 +74,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 12px;
-  background: var(--bg-surface-2);
-  border-top: 1px solid var(--border);
+  padding: 8px 0 0 0;
+  background: transparent;
+  border-top: 1px dashed var(--border);
   font-size: 11px;
   color: var(--text-muted);
+  margin-top: 8px;
 }
 
 .cm-footer-actions {
@@ -93,8 +92,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--bg-surface);
-  border-radius: var(--radius-sm);
+  background: transparent;
   padding: 2px 4px;
 }
 
@@ -122,6 +120,8 @@
 .fullscreen-mode .cm-toolbar {
   background: transparent;
   padding: 12px 20px;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .fullscreen-mode .cm-editor-wrapper {
@@ -135,4 +135,6 @@
 .fullscreen-mode .cm-footer {
   background: rgba(0, 0, 0, 0.5);
   padding: 8px 20px;
+  margin-top: 0;
+  border-top: none;
 }
