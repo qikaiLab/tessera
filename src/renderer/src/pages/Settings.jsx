@@ -10,7 +10,7 @@ import JSZip from 'jszip'
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
 
 export default function Settings() {
-  const { sections, saveSections, dataDir, setDataDir, showToast, refreshDates } = useApp()
+  const { sections, saveSections, dataDir, setDataDir, showToast, refreshDates, datesWithData, readDayData } = useApp()
   const [backups, setBackups] = useState([])
   const [backingUp, setBackingUp] = useState(false)
   const [exporting, setExporting] = useState(false)
