@@ -105,7 +105,7 @@
 /* Scoped Immersive Overlay (Fullscreen Mode) */
 .fullscreen-mode {
   position: fixed;
-  top: 0;
+  top: 40px; /* offset titlebar height */
   left: 200px; /* offset sidebar width */
   right: 0;
   bottom: 0;
@@ -119,15 +119,13 @@
 
 .fullscreen-mode .cm-toolbar {
   background: transparent;
-  padding: 12px 20px;
+  padding: 16px 40px 12px 40px;
   margin-bottom: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .fullscreen-mode .cm-editor-wrapper {
-  padding: 40px 0;
-  max-width: 900px;
-  margin: 0 auto;
+  padding: 24px 24px;
 }
 
 .fullscreen-mode .cm-editor-wrapper .cm-content {
@@ -136,7 +134,7 @@
 
 .fullscreen-mode .cm-footer {
   background: rgba(0, 0, 0, 0.5);
-  padding: 8px 20px;
+  padding: 12px 40px;
   margin-top: 0;
   border-top: none;
 }
