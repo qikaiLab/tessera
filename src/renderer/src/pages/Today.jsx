@@ -188,18 +188,21 @@ export default function Today() {
           <button
             className="btn btn-ghost btn-icon"
             onClick={() => goTo(addDays(selectedDate, 1))}
-            disabled={isToday(selectedDate)}
             title="后一天"
           >
             →
           </button>
-        </div>
-        <div className="today-header-right">
           {!isToday(selectedDate) && (
-            <button className="btn btn-ghost btn-sm" onClick={() => goTo(new Date())}>
-              回到今日
+            <button 
+              className="btn btn-primary btn-sm" 
+              style={{ marginLeft: 8, borderRadius: 'var(--radius-full)' }} 
+              onClick={() => goTo(new Date())}
+            >
+              ✦ 回到今日
             </button>
           )}
+        </div>
+        <div className="today-header-right">
           {statusLabel && (
             <span className={`save-status ${statusLabel.cls}`}>
               {saveStatus === STATUS.SAVING && <span className="status-dot saving" />}
