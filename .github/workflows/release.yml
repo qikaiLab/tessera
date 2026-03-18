@@ -25,10 +25,9 @@ jobs:
       - name: Align package.json version with Git Tag
         shell: bash
         run: |
-          # Extract version without 'v' prefix from GITHUB_REF_NAME
-          VERSION=${GITHUB_REF_NAME#v}
-          echo "Extracted version: $VERSION"
-          # Update package.json version to match the tag
+          # Extract version from GITHUB_REF_NAME (removes 'v' prefix)
+          VERSION=$(echo $GITHUB_REF_NAME | sed 's/^v//')
+          echo "Syncing package.json to version: $VERSION"
           npm version $VERSION --no-git-tag-version --allow-same-version
           
       - name: Install Dependencies
@@ -36,6 +35,8 @@ jobs:
         
       - name: Build Application
         run: npm run dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
       - name: Publish Release to GitHub
         uses: softprops/action-gh-release@v2
