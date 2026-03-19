@@ -3,8 +3,17 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
-import { format, parseISO, subDays, eachDayOfInterval, startOfDay } from 'date-fns'
+import { format, subDays, eachDayOfInterval, parseISO } from 'date-fns'
 import { useApp } from '../context/AppContext'
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor,
+  useSensor, useSensors
+} from '@dnd-kit/core'
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates,
+  rectSortingStrategy, useSortable
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import './Analytics.css'
 
 const CHART_TYPES = [
@@ -48,6 +57,7 @@ export default function Analytics() {
   })
   const [editingCard, setEditingCard] = useState(null)
   const [loadedData, setLoadedData] = useState({})
+  const [deleteConfirm, setDeleteConfirm] = useState(null) // card id pending deletion
 
   useEffect(() => {
     localStorage.setItem('mototrace_analytics', JSON.stringify(cards))
@@ -67,6 +77,23 @@ export default function Analytics() {
     fetchAll()
   }, [datesWithData])
 
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event
+    if (active.id !== over?.id) {
+      setCards(prev => {
+        const oldIndex = prev.findIndex(c => c.id === active.id)
+        const newIndex = prev.findIndex(c => c.id === over.id)
+        return arrayMove(prev, oldIndex, newIndex)
+      })
+    }
+  }
+
   const addCard = () => {
     const card = defaultCard(cards.length)
     setCards(prev => [...prev, card])
@@ -77,7 +104,18 @@ export default function Analytics() {
     setCards(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c))
   }
 
-  const deleteCard = (id) => setCards(prev => prev.filter(c => c.id !== id))
+  // Task 6: delete with confirmation
+  const requestDelete = (id) => setDeleteConfirm(id)
+
+  const confirmDelete = () => {
+    if (deleteConfirm) {
+      setCards(prev => prev.filter(c => c.id !== deleteConfirm))
+      if (editingCard === deleteConfirm) setEditingCard(null)
+    }
+    setDeleteConfirm(null)
+  }
+
+  const cancelDelete = () => setDeleteConfirm(null)
 
   const duplicateCard = (id) => {
     const src = cards.find(c => c.id === id)
@@ -100,27 +138,54 @@ export default function Analytics() {
             <button className="btn btn-primary" onClick={addCard}>创建图表</button>
           </div>
         ) : (
-          <div className="analytics-grid">
-            {cards.map(card => (
-              <AnalyticsCard
-                key={card.id}
-                card={card}
-                sections={sections}
-                loadedData={loadedData}
-                datesWithData={datesWithData}
-                isEditing={editingCard === card.id}
-                onEdit={() => setEditingCard(editingCard === card.id ? null : card.id)}
-                onUpdate={(u) => updateCard(card.id, u)}
-                onDelete={() => deleteCard(card.id)}
-                onDuplicate={() => duplicateCard(card.id)}
-              />
-            ))}
-          </div>
+          // Task 7: DnD sortable wrapper
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={cards.map(c => c.id)} strategy={rectSortingStrategy}>
+              <div className="analytics-grid">
+                {cards.map(card => (
+                  <SortableCard
+                    key={card.id}
+                    card={card}
+                    sections={sections}
+                    loadedData={loadedData}
+                    datesWithData={datesWithData}
+                    isEditing={editingCard === card.id}
+                    onEdit={() => setEditingCard(editingCard === card.id ? null : card.id)}
+                    onUpdate={(u) => updateCard(card.id, u)}
+                    onDelete={() => requestDelete(card.id)}
+                    onDuplicate={() => duplicateCard(card.id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
+
+      {/* Task 6: Delete confirmation modal */}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={cancelDelete}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <div className="modal-header">
+              <span className="modal-title">删除图表</span>
+              <button className="btn btn-ghost btn-icon" onClick={cancelDelete}>✕</button>
+            </div>
+            <div style={{ marginBottom: 20, color: 'var(--text-primary)', lineHeight: 1.6 }}>
+              <p>确定要删除图表 <b>「{cards.find(c => c.id === deleteConfirm)?.title}」</b> 吗？</p>
+              <p style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: 13 }}>此操作无法撤销。</p>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-ghost" onClick={cancelDelete}>取消</button>
+              <button className="btn btn-primary" style={{ background: 'var(--error)' }} onClick={confirmDelete}>确定删除</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
+// ─── Date Range ───────────────────────────────────────────────────────────────
 
 function getDateRange(card, datesWithData) {
   if (card.dateRange === 'all') return datesWithData
@@ -131,6 +196,16 @@ function getDateRange(card, datesWithData) {
   const cutoff = format(subDays(new Date(), days), 'yyyy-MM-dd')
   return datesWithData.filter(d => d >= cutoff)
 }
+
+// Generate all calendar days in range (for heatmap)
+function getAllDaysInRange(card) {
+  const days = card.dateRange === 'all' ? 365 : parseInt(card.dateRange) || 30
+  const end = new Date()
+  const start = subDays(end, days - 1)
+  return eachDayOfInterval({ start, end }).map(d => format(d, 'yyyy-MM-dd'))
+}
+
+// ─── Chart Data Builder ───────────────────────────────────────────────────────
 
 function buildChartData(card, sections, loadedData, datesWithData) {
   const dates = getDateRange(card, datesWithData).sort()
@@ -156,14 +231,18 @@ function buildChartData(card, sections, loadedData, datesWithData) {
   }
 
   if (card.type === 'heatmap') {
-    return dates.map(d => {
-      const total = bindings.reduce((acc, b) => {
-        const entry = loadedData[d]?.[b.sectionId]
-        if (!entry) return acc
-        if (b.metric === 'wordcount') return acc + (entry.value || '').toString().replace(/\s+/g, '').length
-        return acc + (parseFloat(entry.value) || 0)
-      }, 0)
-      return { date: d, value: total }
+    // Task 5.2: show all days in range, not just days with data
+    const allDays = card.dateRange === 'all' ? dates : getAllDaysInRange(card)
+    const b = bindings[0]
+    if (!b) return allDays.map(d => ({ date: d, value: 0 }))
+    return allDays.map(d => {
+      const entry = loadedData[d]?.[b.sectionId]
+      let val = 0
+      if (entry) {
+        if (b.metric === 'wordcount') val = (entry.value || '').toString().replace(/\s+/g, '').length
+        else val = parseFloat(entry.value) || 0
+      }
+      return { date: d, value: val }
     })
   }
 
@@ -184,7 +263,26 @@ function buildChartData(card, sections, loadedData, datesWithData) {
   })
 }
 
-function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, onEdit, onUpdate, onDelete, onDuplicate }) {
+// ─── Sortable Card Wrapper (Task 7) ──────────────────────────────────────────
+
+function SortableCard(props) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.card.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : 1,
+    opacity: isDragging ? 0.85 : 1,
+  }
+  return (
+    <div ref={setNodeRef} style={style}>
+      <AnalyticsCard {...props} dragHandleProps={{ ...attributes, ...listeners }} />
+    </div>
+  )
+}
+
+// ─── Analytics Card ───────────────────────────────────────────────────────────
+
+function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, onEdit, onUpdate, onDelete, onDuplicate, dragHandleProps }) {
   const chartData = useMemo(
     () => buildChartData(card, sections, loadedData, datesWithData),
     [card, sections, loadedData, datesWithData]
@@ -192,9 +290,25 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, o
 
   const bindings = card.bindings || []
 
+  // Task 5.3: get heatmap color from section palette index
+  const heatmapColor = useMemo(() => {
+    if (card.type !== 'heatmap' || !bindings[0]) return PALETTE[0]
+    const idx = sections.findIndex(s => s.id === bindings[0].sectionId)
+    return PALETTE[Math.max(0, idx) % PALETTE.length]
+  }, [card.type, bindings, sections])
+
   return (
     <div className={`analytics-card card ${isEditing ? 'editing' : ''}`}>
       <div className="analytics-card-header">
+        {/* Drag handle */}
+        <span
+          {...dragHandleProps}
+          className="analytics-drag-handle"
+          title="拖拽排序"
+          style={{ cursor: 'grab', fontSize: 16, color: 'var(--text-muted)', marginRight: 6, userSelect: 'none' }}
+        >
+          ☷
+        </span>
         <input
           className="analytics-card-title"
           value={card.title}
@@ -223,23 +337,33 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, o
             <p>绑定数据版块后显示图表</p>
           </div>
         ) : (
-          <ChartRenderer card={card} data={chartData} sections={sections} />
+          <ChartRenderer card={card} data={chartData} sections={sections} heatmapColor={heatmapColor} />
         )}
       </div>
     </div>
   )
 }
 
+// ─── Card Editor ──────────────────────────────────────────────────────────────
+
 function CardEditor({ card, sections, onUpdate }) {
+  const isHeatmap = card.type === 'heatmap'
+  const hasMaxBindings = isHeatmap && (card.bindings || []).length >= 1 // Task 5.1: heatmap max 1
+
   const addBinding = () => {
     const sec = sections[0]
     if (!sec) return
-    onUpdate({ bindings: [...(card.bindings || []), { sectionId: sec.id, metric: sec.type === 'text' ? 'wordcount' : 'value' }] })
+    // Task 3: auto-lock metric based on section type
+    const metric = sec.type === 'text' ? 'wordcount' : 'value'
+    onUpdate({ bindings: [...(card.bindings || []), { sectionId: sec.id, metric }] })
   }
 
-  const updateBinding = (i, updates) => {
+  const updateBinding = (i, sectionId) => {
+    const sec = sections.find(s => s.id === sectionId)
+    if (!sec) return
+    const metric = sec.type === 'text' ? 'wordcount' : 'value'
     const next = [...(card.bindings || [])]
-    next[i] = { ...next[i], ...updates }
+    next[i] = { sectionId, metric }
     onUpdate({ bindings: next })
   }
 
@@ -257,7 +381,7 @@ function CardEditor({ card, sections, onUpdate }) {
             <button
               key={t.id}
               className={`chart-type-btn ${card.type === t.id ? 'active' : ''}`}
-              onClick={() => onUpdate({ type: t.id })}
+              onClick={() => onUpdate({ type: t.id, bindings: [] })}
             >
               <span>{t.icon}</span>
               <span>{t.label}</span>
@@ -284,37 +408,38 @@ function CardEditor({ card, sections, onUpdate }) {
 
       {/* Bindings */}
       <div className="editor-row">
-        <label className="editor-label">数据绑定</label>
+        <label className="editor-label">
+          数据绑定
+          {isHeatmap && <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>（热力图仅支持1个数据源）</span>}
+        </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {(card.bindings || []).map((b, i) => {
             const sec = sections.find(s => s.id === b.sectionId)
+            // Task 3: show metric as read-only badge
+            const metricLabel = b.metric === 'wordcount' ? '字数' : '数值'
             return (
               <div key={i} className="binding-row">
                 <select
                   className="input"
                   style={{ flex: 1 }}
                   value={b.sectionId}
-                  onChange={e => {
-                    const s = sections.find(s => s.id === e.target.value)
-                    updateBinding(i, { sectionId: e.target.value, metric: s?.type === 'text' ? 'wordcount' : 'value' })
-                  }}
+                  onChange={e => updateBinding(i, e.target.value)}
                 >
                   {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
-                <select
-                  className="input"
-                  style={{ width: 110 }}
-                  value={b.metric}
-                  onChange={e => updateBinding(i, { metric: e.target.value })}
+                {/* Task 3: metric locked badge (no manual selection) */}
+                <span
+                  className="btn btn-sm btn-secondary"
+                  style={{ width: 60, textAlign: 'center', pointerEvents: 'none', opacity: 0.75 }}
                 >
-                  <option value="value">数值</option>
-                  <option value="wordcount">字数</option>
-                </select>
+                  {metricLabel}
+                </span>
                 <button className="btn btn-ghost btn-icon btn-sm" onClick={() => removeBinding(i)}>✕</button>
               </div>
             )
           })}
-          {sections.length > 0 && (
+          {/* Task 5.1: hide add button when heatmap already has 1 binding */}
+          {sections.length > 0 && !hasMaxBindings && (
             <button className="btn btn-ghost btn-sm" onClick={addBinding}>⊕ 添加数据</button>
           )}
         </div>
@@ -322,6 +447,8 @@ function CardEditor({ card, sections, onUpdate }) {
     </div>
   )
 }
+
+// ─── Chart Renderer ───────────────────────────────────────────────────────────
 
 const TooltipStyle = {
   contentStyle: {
@@ -334,10 +461,16 @@ const TooltipStyle = {
   labelStyle: { color: 'var(--text-secondary)' }
 }
 
-function ChartRenderer({ card, data, sections }) {
+function ChartRenderer({ card, data, sections, heatmapColor }) {
   const keys = sections
     .filter(s => (card.bindings || []).some(b => b.sectionId === s.id))
     .map(s => s.name)
+
+  // Task 4: determine Y-axis display mode
+  // 1 binding => single left Y-axis
+  // 2 bindings => dual Y-axis (left + right)
+  // 3+ bindings => no Y-axis, only legend
+  const yMode = keys.length <= 1 ? 'single' : keys.length === 2 ? 'dual' : 'none'
 
   if (card.type === 'line') {
     return (
@@ -345,11 +478,28 @@ function ChartRenderer({ card, data, sections }) {
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-          <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
+          {yMode === 'single' && (
+            <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
+          )}
+          {yMode === 'dual' && (
+            <>
+              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: PALETTE[0] }} width={40} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: PALETTE[1] }} width={40} />
+            </>
+          )}
           <Tooltip {...TooltipStyle} />
-          {keys.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+          {(yMode === 'dual' || yMode === 'none' || keys.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
           {keys.map((k, i) => (
-            <Line key={k} type="monotone" dataKey={k} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line
+              key={k}
+              type="monotone"
+              dataKey={k}
+              stroke={PALETTE[i % PALETTE.length]}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4 }}
+              yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : yMode === 'single' ? 'left' : undefined}
+            />
           ))}
         </LineChart>
       </ResponsiveContainer>
@@ -362,11 +512,25 @@ function ChartRenderer({ card, data, sections }) {
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-          <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
+          {yMode === 'single' && (
+            <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
+          )}
+          {yMode === 'dual' && (
+            <>
+              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: PALETTE[0] }} width={40} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: PALETTE[1] }} width={40} />
+            </>
+          )}
           <Tooltip {...TooltipStyle} />
-          {keys.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+          {(yMode === 'dual' || yMode === 'none' || keys.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
           {keys.map((k, i) => (
-            <Bar key={k} dataKey={k} fill={PALETTE[i % PALETTE.length]} radius={[3, 3, 0, 0]} />
+            <Bar
+              key={k}
+              dataKey={k}
+              fill={PALETTE[i % PALETTE.length]}
+              radius={[3, 3, 0, 0]}
+              yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : yMode === 'single' ? 'left' : undefined}
+            />
           ))}
         </BarChart>
       </ResponsiveContainer>
@@ -399,19 +563,24 @@ function ChartRenderer({ card, data, sections }) {
   }
 
   if (card.type === 'heatmap') {
-    return <Heatmap data={data} />
+    return <Heatmap data={data} color={heatmapColor} />
   }
 
   return null
 }
 
-function Heatmap({ data }) {
+// ─── Heatmap ──────────────────────────────────────────────────────────────────
+
+function Heatmap({ data, color }) {
   if (!data.length) return null
   const max = Math.max(...data.map(d => d.value), 1)
 
+  // Task 5.3: use the section's palette color; Task 5.2: gray for 0
   const getColor = (v) => {
+    if (v === 0) return 'rgba(128,128,128,0.15)'
     const intensity = v / max
-    return `rgba(124, 106, 255, ${Math.max(0.05, intensity)})`
+    // Parse hex color and apply opacity
+    return hexToRgba(color, Math.max(0.15, intensity))
   }
 
   return (
@@ -426,4 +595,11 @@ function Heatmap({ data }) {
       ))}
     </div>
   )
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha.toFixed(2)})`
 }

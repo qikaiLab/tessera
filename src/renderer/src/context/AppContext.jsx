@@ -98,9 +98,17 @@ export function AppProvider({ children }) {
     const filePath = `${year}/${month}/${day}.json`
     const result = await window.api.fs.writeFile(filePath, JSON.stringify(data, null, 2))
     if (result.ok) {
-      // Update dates index if needed
-      if (!datesWithData.includes(dateStr)) {
-        setDatesWithData(prev => [...prev, dateStr])
+      // Check if the day has any real content
+      const hasRealContent = Object.values(data).some(
+        entry => entry?.value !== undefined && entry?.value !== null && entry?.value !== ''
+      )
+      if (hasRealContent) {
+        if (!datesWithData.includes(dateStr)) {
+          setDatesWithData(prev => [...prev, dateStr])
+        }
+      } else {
+        // All content deleted — remove date from index so calendar dot disappears
+        setDatesWithData(prev => prev.filter(d => d !== dateStr))
       }
     }
     return result
