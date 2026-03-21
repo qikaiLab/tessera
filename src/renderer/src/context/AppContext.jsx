@@ -61,11 +61,6 @@ export function AppProvider({ children }) {
     await saveSectionsData(secs)
   }, [saveSectionsData])
 
-  const refreshDates = useCallback(async () => {
-    const dates = await window.api.fs.scanDates()
-    setDatesWithData(dates)
-    return dates
-  }, [])
 
   const toggleTheme = useCallback(() => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -88,26 +83,63 @@ export function AppProvider({ children }) {
     const filePath = `${year}/${month}/${day}.json`
     const result = await window.api.fs.readFile(filePath)
     if (result.ok) {
-      try { return JSON.parse(result.data) } catch { return {} }
+      try { 
+        const parsed = JSON.parse(result.data) 
+        // Filter out empty entries immediately on read so they don't show up in Today
+        const cleaned = {}
+        for (const [k, v] of Object.entries(parsed)) {
+           if (v?.value !== undefined && v?.value !== null && String(v?.value).trim() !== '') {
+             cleaned[k] = v
+           }
+        }
+        return cleaned
+      } catch { return {} }
     }
     return {}
   }, [])
 
+  const refreshDates = useCallback(async () => {
+    // fs:scanDates returns all YYYY-MM-DD that have a JSON file
+    const rawDates = await window.api.fs.scanDates()
+    
+    // We need to filter out files that only contain empty/deleted data
+    // to completely fix the calendar dot bug (Task 1 & 5)
+    const validDates = []
+    for (const d of rawDates) {
+      const dayData = await readDayData(d)
+      const hasRealContent = Object.values(dayData).some(
+        entry => entry?.value !== undefined && entry?.value !== null && String(entry?.value).trim() !== ''
+      )
+      if (hasRealContent) validDates.push(d)
+    }
+    
+    setDatesWithData(validDates)
+    return validDates
+  }, [readDayData])
+
   const writeDayData = useCallback(async (dateStr, data) => {
     const [year, month, day] = dateStr.split('-')
     const filePath = `${year}/${month}/${day}.json`
-    const result = await window.api.fs.writeFile(filePath, JSON.stringify(data, null, 2))
+    
+    // Clean data before writing: remove completely empty entries
+    const cleanedData = {}
+    for (const [k, v] of Object.entries(data)) {
+       if (v?.value !== undefined && v?.value !== null && String(v?.value).trim() !== '') {
+         cleanedData[k] = v
+       }
+    }
+
+    const result = await window.api.fs.writeFile(filePath, JSON.stringify(cleanedData, null, 2))
+    
     if (result.ok) {
-      // Check if the day has any real content
-      const hasRealContent = Object.values(data).some(
-        entry => entry?.value !== undefined && entry?.value !== null && entry?.value !== ''
-      )
+      // Check if the day still has any real content
+      const hasRealContent = Object.keys(cleanedData).length > 0
       if (hasRealContent) {
         if (!datesWithData.includes(dateStr)) {
           setDatesWithData(prev => [...prev, dateStr])
         }
       } else {
-        // All content deleted — remove date from index so calendar dot disappears
+        // All content deleted — remove date from index
         setDatesWithData(prev => prev.filter(d => d !== dateStr))
       }
     }

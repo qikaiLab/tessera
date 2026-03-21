@@ -226,7 +226,7 @@ function buildChartData(card, sections, loadedData, datesWithData) {
           }
         }
       }
-      return { name: sec.name, value: parseFloat(total.toFixed(2)), fill: PALETTE[i % PALETTE.length] }
+      return { name: sec.name, value: parseFloat(total.toFixed(2)), fill: sec.color || PALETTE[i % PALETTE.length] }
     }).filter(Boolean)
   }
 
@@ -293,6 +293,8 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, o
   // Task 5.3: get heatmap color from section palette index
   const heatmapColor = useMemo(() => {
     if (card.type !== 'heatmap' || !bindings[0]) return PALETTE[0]
+    const sec = sections.find(s => s.id === bindings[0].sectionId)
+    if (sec && sec.color) return sec.color
     const idx = sections.findIndex(s => s.id === bindings[0].sectionId)
     return PALETTE[Math.max(0, idx) % PALETTE.length]
   }, [card.type, bindings, sections])
@@ -483,24 +485,28 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
           )}
           {yMode === 'dual' && (
             <>
-              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: PALETTE[0] }} width={40} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: PALETTE[1] }} width={40} />
+              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[0])?.color || PALETTE[0] }} width={40} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[1])?.color || PALETTE[1] }} width={40} />
             </>
           )}
           <Tooltip {...TooltipStyle} />
           {(yMode === 'dual' || yMode === 'none' || keys.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
-          {keys.map((k, i) => (
-            <Line
-              key={k}
-              type="monotone"
-              dataKey={k}
-              stroke={PALETTE[i % PALETTE.length]}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-              yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : yMode === 'single' ? 'left' : undefined}
-            />
-          ))}
+          {keys.map((k, i) => {
+            const sec = sections.find(s => s.name === k)
+            const color = sec?.color || PALETTE[i % PALETTE.length]
+            return (
+              <Line
+                key={k}
+                type="monotone"
+                dataKey={k}
+                stroke={color}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+                yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : yMode === 'single' ? 'left' : undefined}
+              />
+            )
+          })}
         </LineChart>
       </ResponsiveContainer>
     )
@@ -517,21 +523,25 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
           )}
           {yMode === 'dual' && (
             <>
-              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: PALETTE[0] }} width={40} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: PALETTE[1] }} width={40} />
+              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[0])?.color || PALETTE[0] }} width={40} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[1])?.color || PALETTE[1] }} width={40} />
             </>
           )}
           <Tooltip {...TooltipStyle} />
           {(yMode === 'dual' || yMode === 'none' || keys.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
-          {keys.map((k, i) => (
-            <Bar
-              key={k}
-              dataKey={k}
-              fill={PALETTE[i % PALETTE.length]}
-              radius={[3, 3, 0, 0]}
-              yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : yMode === 'single' ? 'left' : undefined}
-            />
-          ))}
+          {keys.map((k, i) => {
+            const sec = sections.find(s => s.name === k)
+            const color = sec?.color || PALETTE[i % PALETTE.length]
+            return (
+              <Bar
+                key={k}
+                dataKey={k}
+                fill={color}
+                radius={[3, 3, 0, 0]}
+                yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : yMode === 'single' ? 'left' : undefined}
+              />
+            )
+          })}
         </BarChart>
       </ResponsiveContainer>
     )
