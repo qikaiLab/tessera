@@ -134,19 +134,72 @@
   gap: 6px;
 }
 
-/* Heatmap */
+/* Heatmap - scrollable wrapper for 365/all view */
+.heatmap-wrapper {
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  padding: 8px 0;
+  /* Hide scrollbar but allow scrolling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  cursor: grab;
+}
+.heatmap-wrapper:active { cursor: grabbing; }
+
+/* Month-aligned grid: 7 rows per column (Mon-Sun), columns auto-expand */
 .heatmap {
   display: grid;
-  /* 7 rows for 7 days of the week, columns auto-added, flowing column first */
   grid-template-rows: repeat(7, 1fr);
   grid-auto-flow: column;
   gap: 4px;
-  /* Make sure it scrolls horizontally if it overflows */
-  overflow-x: auto;
-  padding: 8px 4px;
-  height: 100%;
-  width: 100%;
+  padding: 4px;
   align-content: center;
+  width: max-content;
+}
+
+/* Compact: 30/90 day grid centered in container */
+.heatmap-compact {
+  overflow-x: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.heatmap-compact-grid {
+  width: max-content;
+  margin: 0 auto;
+}
+
+/* 7-day horizontal layout */
+.heatmap-7d {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 12px 0;
+  width: 100%;
+}
+.heatmap-7d-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  max-width: 60px;
+}
+.heatmap-7d-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.heatmap-7d-col .heatmap-cell {
+  width: 100%;
+  height: 36px;
+  border-radius: 6px;
+}
+.heatmap-7d-weekday {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .heatmap-cell {
@@ -158,3 +211,4 @@
   flex-shrink: 0;
 }
 .heatmap-cell:hover { transform: scale(1.3); }
+

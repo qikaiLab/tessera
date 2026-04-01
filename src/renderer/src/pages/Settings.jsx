@@ -239,14 +239,16 @@ export default function Settings() {
               <option value="text">文字</option>
               <option value="number">数字</option>
             </select>
-            <input
-              type="color"
-              className="input"
-              value={newSectionColor}
-              onChange={e => setNewSectionColor(e.target.value)}
-              style={{ width: 44, padding: 4, cursor: 'pointer' }}
-              title="设定版块主题色"
-            />
+            <label className="color-swatch-btn color-swatch-btn--lg" title="设定版块主题色" style={{ '--swatch-color': newSectionColor }}>
+              <input
+                type="color"
+                value={newSectionColor}
+                onChange={e => setNewSectionColor(e.target.value)}
+                style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+                tabIndex={-1}
+              />
+              <span className="color-swatch-circle" style={{ background: newSectionColor }} />
+            </label>
             <input
               className="input flex-1"
               placeholder="版块名称 (如: 阅读, 体重...)"
@@ -393,13 +395,16 @@ function SortableSection({ section, onToggleResident, onChangeColor, onDelete })
         <span className="sec-item-type">{section.type === 'text' ? '📝 文字' : `🔢 数字 ${section.unit ? `[${section.unit}]` : ''}`}</span>
       </div>
       <div className="sec-item-actions">
-        <input
-          type="color"
-          value={section.color || '#7c6aff'}
-          onChange={e => onChangeColor(e.target.value)}
-          style={{ width: 28, height: 28, padding: 0, border: 'none', borderRadius: 4, cursor: 'pointer', background: 'transparent' }}
-          title="修改版块颜色"
-        />
+        <label className="color-swatch-btn" title="修改版块颜色" style={{ '--swatch-color': section.color || '#7c6aff' }}>
+          <input
+            type="color"
+            value={section.color || '#7c6aff'}
+            onChange={e => onChangeColor(e.target.value)}
+            style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+            tabIndex={-1}
+          />
+          <span className="color-swatch-circle" style={{ background: section.color || '#7c6aff' }} />
+        </label>
         <button
           className={`btn btn-sm ${section.resident ? 'btn-primary' : 'btn-ghost'}`}
           onClick={onToggleResident}

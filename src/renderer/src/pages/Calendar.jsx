@@ -89,12 +89,12 @@ export default function Calendar() {
 
       {/* Calendar Nav */}
       <div className="cal-nav">
-        <button className="btn btn-ghost btn-icon" onClick={() => navigate_(-1)}>←</button>
-        <button className="cal-today-btn btn btn-ghost btn-sm" onClick={() => setCursor(new Date())}>
+        <button className="cal-nav-arrow" onClick={() => navigate_(-1)} aria-label="上一页">‹</button>
+        <button className="cal-today-btn btn btn-primary btn-sm" onClick={() => setCursor(new Date())}>
           今日
         </button>
         <span className="cal-header-title">{headerTitle()}</span>
-        <button className="btn btn-ghost btn-icon" onClick={() => navigate_(1)}>→</button>
+        <button className="cal-nav-arrow" onClick={() => navigate_(1)} aria-label="下一页">›</button>
       </div>
 
       {/* Calendar Grid */}
@@ -159,7 +159,13 @@ function MonthView({ cursor, getDayStatus, onDayClick }) {
               <span className="cal-day-num">{format(day, 'd')}</span>
               {hasData && <span className="cal-dot" />}
               {cds.length > 0 && (
-                <span className="cal-countdown-marker" style={{ background: cds[0].color || 'var(--accent)' }} title={cds[0].name} />
+                <span
+                  className="cal-countdown-tag cal-countdown-tag--mini"
+                  style={{ background: cds[0].color || 'var(--accent)' }}
+                  title={cds.map(c => c.name).join(', ')}
+                >
+                  {cds[0].name.length > 4 ? cds[0].name.slice(0, 3) + '…' : cds[0].name}
+                </span>
               )}
             </button>
           )
@@ -222,12 +228,15 @@ function YearView({ cursor, getDayStatus, onDayClick }) {
             <div className="year-grid">
               {WEEKDAYS.map(d => <span key={d} className="year-weekday">{d}</span>)}
               {days.map((day, i) => {
-                const { today, selected, hasData } = getDayStatus(day)
+                const { today, selected, hasData, countdowns: cds } = getDayStatus(day)
+                const hasCd = cds && cds.length > 0
                 return (
                   <button
                     key={i}
-                    className={`year-day ${inMonth(day) ? '' : 'other-month'} ${today ? 'today' : ''} ${selected ? 'selected' : ''} ${hasData ? 'has-data' : ''}`}
+                    className={`year-day ${inMonth(day) ? '' : 'other-month'} ${today ? 'today' : ''} ${selected ? 'selected' : ''} ${hasData ? 'has-data' : ''} ${hasCd ? 'has-countdown' : ''}`}
                     onClick={() => onDayClick(day)}
+                    title={hasCd ? cds.map(c => `⏱ ${c.name}`).join('\n') : undefined}
+                    style={hasCd ? { '--cd-color': cds[0].color || 'var(--accent)' } : {}}
                   >
                     {format(day, 'd')}
                   </button>
@@ -248,9 +257,23 @@ function CountdownModal({ countdowns, onSave, onClose }) {
   const [newName, setNewName] = useState('')
   const [newDate, setNewDate] = useState('')
   const [newColor, setNewColor] = useState(COLORS[0])
+  const [addError, setAddError] = useState('') // 任务6: 添加错误提示
 
   const add = () => {
-    if (!newName || !newDate) return
+    // 任务6: 明确校验并提示缺失字段
+    if (!newName && !newDate) {
+      setAddError('请填写名称和日期')
+      return
+    }
+    if (!newName) {
+      setAddError('请填写倒数日名称')
+      return
+    }
+    if (!newDate) {
+      setAddError('请选择目标日期')
+      return
+    }
+    setAddError('')
     const item = { id: Date.now(), name: newName, date: newDate, color: newColor }
     setList(prev => [...prev, item])
     setNewName('')
@@ -258,6 +281,32 @@ function CountdownModal({ countdowns, onSave, onClose }) {
   }
 
   const remove = (id) => setList(prev => prev.filter(c => c.id !== id))
+
+  // 任务6: 保存前检查是否有未提交的条目
+  const handleSave = () => {
+    if (newName || newDate) {
+      // 用户有未完成的填写，提示是否先添加
+      const msg = newName && newDate
+        ? `您填写了「${newName}」但还未点击「添加」，是否先将其添加再保存？`
+        : '您有未完成的倒数日信息还未添加，是否直接保存（填写内容将被丢弃）？'
+      if (window.confirm(msg + '\n\n点击「确定」先添加该条目，点击「取消」直接保存。')) {
+        if (newName && newDate) {
+          const item = { id: Date.now(), name: newName, date: newDate, color: newColor }
+          onSave([...list, item])
+        } else {
+          // 有一个字段，提示继续填写
+          setAddError(!newName ? '请填写倒数日名称' : '请选择目标日期')
+          return
+        }
+      } else {
+        onSave(list)
+      }
+      onClose()
+      return
+    }
+    onSave(list)
+    onClose()
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -267,6 +316,11 @@ function CountdownModal({ countdowns, onSave, onClose }) {
           <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+          {list.length === 0 && (
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
+              还没有倒数日，在下方添加第一个吧 ↓
+            </p>
+          )}
           {list.map(cd => {
             const diff = Math.ceil((parseISO(cd.date) - new Date()) / (1000 * 60 * 60 * 24))
             const label = diff > 0 ? `还有 ${diff} 天` : diff === 0 ? '今天！' : `已过 ${-diff} 天`
@@ -281,41 +335,57 @@ function CountdownModal({ countdowns, onSave, onClose }) {
             )
           })}
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          <input
-            className="input"
-            placeholder="名称"
-            style={{ flex: 1, minWidth: 100 }}
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-          />
-          <input
-            type="date"
-            className="input"
-            style={{ flex: 1, minWidth: 130 }}
-            value={newDate}
-            onChange={e => setNewDate(e.target.value)}
-          />
-          <div style={{ display: 'flex', gap: 4 }}>
-            {COLORS.map(c => (
-              <button
-                key={c}
-                style={{
-                  width: 20, height: 20, borderRadius: '50%', background: c,
-                  border: newColor === c ? '2px solid white' : '2px solid transparent',
-                  cursor: 'pointer'
-                }}
-                onClick={() => setNewColor(c)}
-              />
-            ))}
+
+        {/* 任务6: 添加区域 */}
+        <div style={{ background: 'var(--bg-surface-2)', borderRadius: 10, padding: '12px', marginBottom: 12, border: addError ? '1px solid var(--error)' : '1px solid var(--border)' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+            添加新倒数日
           </div>
-          <button className="btn btn-primary btn-sm" onClick={add}>添加</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: addError ? 8 : 0 }}>
+            <input
+              className="input"
+              placeholder="名称（必填）"
+              style={{ flex: 1, minWidth: 100, borderColor: addError && !newName ? 'var(--error)' : undefined }}
+              value={newName}
+              onChange={e => { setNewName(e.target.value); setAddError('') }}
+              onKeyDown={e => e.key === 'Enter' && add()}
+            />
+            <input
+              type="date"
+              className="input"
+              style={{ flex: 1, minWidth: 130, borderColor: addError && !newDate ? 'var(--error)' : undefined }}
+              value={newDate}
+              onChange={e => { setNewDate(e.target.value); setAddError('') }}
+            />
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              {COLORS.map(c => (
+                <button
+                  key={c}
+                  style={{
+                    width: 20, height: 20, borderRadius: '50%', background: c,
+                    border: newColor === c ? '2px solid white' : '2px solid transparent',
+                    cursor: 'pointer', boxShadow: newColor === c ? `0 0 0 2px ${c}` : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onClick={() => setNewColor(c)}
+                />
+              ))}
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={add}>添加</button>
+          </div>
+          {addError && (
+            <div style={{ fontSize: 12, color: 'var(--error)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span>⚠</span> {addError}
+            </div>
+          )}
         </div>
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button className="btn btn-ghost" onClick={onClose}>取消</button>
-          <button className="btn btn-primary" onClick={() => { onSave(list); onClose() }}>保存</button>
+          <button className="btn btn-primary" onClick={handleSave}>保存</button>
         </div>
       </div>
     </div>
   )
 }
+

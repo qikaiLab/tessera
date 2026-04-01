@@ -197,12 +197,16 @@ function getDateRange(card, datesWithData) {
   return datesWithData.filter(d => d >= cutoff)
 }
 
-// Generate all calendar days in range (for heatmap)
+// Generate all calendar days in range (for heatmap), aligned to Mon-Sun columns
 function getAllDaysInRange(card) {
   const days = card.dateRange === 'all' ? 365 : parseInt(card.dateRange) || 30
   const end = new Date()
   const start = subDays(end, days - 1)
-  return eachDayOfInterval({ start, end }).map(d => format(d, 'yyyy-MM-dd'))
+  // Task 7.4: pad start back to Monday so every column is Mon-Sun
+  const dayOfWeek = start.getDay() // 0=Sun,1=Mon,...
+  const daysFromMon = (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+  const paddedStart = subDays(start, daysFromMon)
+  return eachDayOfInterval({ start: paddedStart, end }).map(d => format(d, 'yyyy-MM-dd'))
 }
 
 // ─── Chart Data Builder ───────────────────────────────────────────────────────
@@ -573,7 +577,7 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
   }
 
   if (card.type === 'heatmap') {
-    return <Heatmap data={data} color={heatmapColor} />
+    return <Heatmap data={data} color={heatmapColor} dateRange={card.dateRange} />
   }
 
   return null
@@ -581,28 +585,74 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
 
 // ─── Heatmap ──────────────────────────────────────────────────────────────────
 
-function Heatmap({ data, color }) {
+function Heatmap({ data, color, dateRange }) {
+  const scrollRef = React.useRef(null)
   if (!data.length) return null
   const max = Math.max(...data.map(d => d.value), 1)
 
-  // Task 5.3: use the section's palette color; Task 5.2: gray for 0
+  // Task 7.1: scroll to rightmost on mount/data change
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+    }
+  }, [data])
+
+  // Task 7.1: mouse wheel => horizontal scroll
+  const handleWheel = (e) => {
+    if (scrollRef.current) {
+      e.preventDefault()
+      scrollRef.current.scrollLeft += e.deltaY * 1.5
+    }
+  }
+
   const getColor = (v) => {
     if (v === 0) return 'rgba(128,128,128,0.15)'
     const intensity = v / max
-    // Parse hex color and apply opacity
     return hexToRgba(color, Math.max(0.15, intensity))
   }
 
+  // Task 7.3: 7-day range => horizontal row layout
+  if (dateRange === '7') {
+    const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+    return (
+      <div className="heatmap-7d">
+        {data.map((d, i) => {
+          const dateObj = parseISO(d.date)
+          return (
+            <div key={i} className="heatmap-7d-col">
+              <div className="heatmap-7d-label">{format(dateObj, 'MM/dd')}</div>
+              <div
+                className="heatmap-cell"
+                style={{ background: getColor(d.value) }}
+                title={`${d.date}: ${d.value}`}
+              />
+              <div className="heatmap-7d-weekday">{weekDays[dateObj.getDay()]}</div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // Task 7.2: compact centered for 30/90 days
+  const isCompact = dateRange === '30' || dateRange === '90'
+
   return (
-    <div className="heatmap">
-      {data.map((d, i) => (
-        <div
-          key={i}
-          className="heatmap-cell"
-          style={{ background: getColor(d.value) }}
-          title={`${d.date}: ${d.value}`}
-        />
-      ))}
+    <div
+      className={`heatmap-wrapper${isCompact ? ' heatmap-compact' : ''}`}
+      ref={scrollRef}
+      onWheel={handleWheel}
+    >
+      <div className={`heatmap${isCompact ? ' heatmap-compact-grid' : ''}`}>
+        {data.map((d, i) => (
+          <div
+            key={i}
+            className="heatmap-cell"
+            style={{ background: getColor(d.value) }}
+            title={`${d.date}: ${d.value}`}
+          />
+        ))}
+      </div>
     </div>
   )
 }
