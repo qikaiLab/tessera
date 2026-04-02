@@ -108,6 +108,9 @@ export default function Timeline() {
         })
 
       if (sectionResults.length === 0 && query) return null
+      // Task 3: when a specific section is selected, hide dates where
+      // that section has no recorded data
+      if (sectionResults.length === 0 && filterSection !== 'all') return null
 
       const totalWords = Object.values(dayData).reduce((acc, e) => acc + countWords(String(e?.value || '')), 0)
       const recordedSections = Object.keys(dayData)

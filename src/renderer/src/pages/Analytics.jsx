@@ -98,6 +98,11 @@ export default function Analytics() {
     const card = defaultCard(cards.length)
     setCards(prev => [...prev, card])
     setEditingCard(card.id)
+    // Task 4: scroll new card into view after state update
+    setTimeout(() => {
+      const el = document.getElementById(`analytics-card-${card.id}`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
   }
 
   const updateCard = (id, updates) => {
@@ -145,6 +150,7 @@ export default function Analytics() {
                 {cards.map(card => (
                   <SortableCard
                     key={card.id}
+                    id={`analytics-card-${card.id}`}
                     card={card}
                     sections={sections}
                     loadedData={loadedData}
@@ -278,7 +284,7 @@ function SortableCard(props) {
     opacity: isDragging ? 0.85 : 1,
   }
   return (
-    <div ref={setNodeRef} style={style}>
+    <div id={props.id} ref={setNodeRef} style={style}>
       <AnalyticsCard {...props} dragHandleProps={{ ...attributes, ...listeners }} />
     </div>
   )
@@ -587,23 +593,32 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
 
 function Heatmap({ data, color, dateRange }) {
   const scrollRef = React.useRef(null)
-  if (!data.length) return null
-  const max = Math.max(...data.map(d => d.value), 1)
+  const max = data.length ? Math.max(...data.map(d => d.value), 1) : 1
 
-  // Task 7.1: scroll to rightmost on mount/data change
+  // Scroll to rightmost on mount/data change
   React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
     }
   }, [data])
 
-  // Task 7.1: mouse wheel => horizontal scroll
-  const handleWheel = (e) => {
-    if (scrollRef.current) {
-      e.preventDefault()
-      scrollRef.current.scrollLeft += e.deltaY * 1.5
+  // Task 1: use addEventListener with {passive:false} to intercept wheel
+  // and convert vertical scroll to horizontal — React's onWheel is passive
+  // and cannot call preventDefault() reliably.
+  React.useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onWheel = (e) => {
+      // Only intercept if overflow is occurring (content wider than container)
+      if (el.scrollWidth > el.clientWidth) {
+        e.preventDefault()
+        e.stopPropagation()
+        el.scrollLeft += e.deltaY * 1.5
+      }
     }
-  }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [data])
 
   const getColor = (v) => {
     if (v === 0) return 'rgba(128,128,128,0.15)'
@@ -611,7 +626,9 @@ function Heatmap({ data, color, dateRange }) {
     return hexToRgba(color, Math.max(0.15, intensity))
   }
 
-  // Task 7.3: 7-day range => horizontal row layout
+  if (!data.length) return null
+
+  // 7-day range => horizontal row layout
   if (dateRange === '7') {
     const weekDays = ['日', '一', '二', '三', '四', '五', '六']
     return (
@@ -634,14 +651,13 @@ function Heatmap({ data, color, dateRange }) {
     )
   }
 
-  // Task 7.2: compact centered for 30/90 days
+  // compact centered for 30/90 days
   const isCompact = dateRange === '30' || dateRange === '90'
 
   return (
     <div
       className={`heatmap-wrapper${isCompact ? ' heatmap-compact' : ''}`}
       ref={scrollRef}
-      onWheel={handleWheel}
     >
       <div className={`heatmap${isCompact ? ' heatmap-compact-grid' : ''}`}>
         {data.map((d, i) => (
