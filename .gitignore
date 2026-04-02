@@ -44,5 +44,4 @@ userData/
 *.sqlite3
 
 # Project specific notes
-需求.txt
-第一次改进.txt
+txt_docs/

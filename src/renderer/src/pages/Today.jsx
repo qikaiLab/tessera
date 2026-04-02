@@ -23,6 +23,9 @@ export default function Today() {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [jumpInput, setJumpInput] = useState('')
   const [fullScreenSectionId, setFullScreenSectionId] = useState(null)
+  // Task 2: track sections manually added by user this session (so empty text
+  // sections don't immediately disappear after clicking "+")
+  const [manuallyAdded, setManuallyAdded] = useState(new Set())
   const saveTimerRef = useRef(null)
   const pendingDataRef = useRef(null)
 
@@ -33,6 +36,7 @@ export default function Today() {
     setLoading(true)
     setSaveStatus(STATUS.IDLE)
     setFullScreenSectionId(null) // Exit full screen on date change
+    setManuallyAdded(new Set())  // Task 2: clear manual additions on date change
     readDayData(dateStr).then(d => {
       setData(d)
       setLoading(false)
@@ -118,6 +122,8 @@ export default function Today() {
 
   const visibleSections = sections.filter(sec => {
     if (sec.resident) return true
+    // Task 2: show section if manually added this session (even if empty)
+    if (manuallyAdded.has(sec.id)) return true
     const entry = data[sec.id]
     const hasValue = entry && (
       sec.type === 'text' ? entry.value && entry.value.trim() !== '' : entry.value !== undefined && entry.value !== ''
@@ -128,6 +134,8 @@ export default function Today() {
   // Add sections for today that aren't resident but user might want to add
   const availableToAdd = sections.filter(sec => {
     if (sec.resident) return false
+    // Task 2: exclude already manually added sections
+    if (manuallyAdded.has(sec.id)) return false
     const entry = data[sec.id]
     const hasValue = entry && (
       sec.type === 'text' ? entry.value && entry.value.trim() !== '' : entry.value !== undefined && entry.value !== ''
@@ -260,7 +268,11 @@ export default function Today() {
                 <button
                   key={sec.id}
                   className="add-section-btn"
-                  onClick={() => handleChange(sec.id, sec.type === 'text' ? '' : '0')}
+                  onClick={() => {
+                    // Task 2: register as manually added so it stays visible
+                    setManuallyAdded(prev => new Set([...prev, sec.id]))
+                    handleChange(sec.id, sec.type === 'text' ? '' : '0')
+                  }}
                 >
                   + {sec.name}
                 </button>

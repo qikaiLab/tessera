@@ -50,7 +50,7 @@ function AppContent() {
     <div className="app-shell">
       <TitleBar />
       <div className="app-body">
-        <Sidebar />
+        <Sidebar onOpenOnboarding={() => setShowOnboarding(true)} />
         <main className="app-main">
           <Routes>
             <Route path="/" element={<Today />} />
@@ -74,7 +74,7 @@ function AppContent() {
   )
 }
 
-function Sidebar() {
+function Sidebar({ onOpenOnboarding }) {
   const { theme, toggleTheme } = useApp()
 
   const navItems = [
@@ -108,14 +108,20 @@ function Sidebar() {
       </nav>
       <div className="sidebar-footer">
         <button
+          className="btn btn-ghost btn-icon"
+          onClick={onOpenOnboarding}
+          title="使用说明"
+        >
+          💡
+        </button>
+        <button
           className="theme-toggle btn btn-ghost btn-icon"
           onClick={toggleTheme}
-          data-tooltip={theme === 'dark' ? '切换亮色主题' : '切换暗色主题'}
           title={theme === 'dark' ? '切换亮色模式' : '切换暗色模式'}
         >
           {theme === 'dark' ? '○' : '●'}
         </button>
-        <span className="sidebar-version">v0.1.0</span>
+        <span className="sidebar-version">v0.2.0</span>
       </div>
     </aside>
   )

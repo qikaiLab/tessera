@@ -108,6 +108,9 @@ export default function Timeline() {
         })
 
       if (sectionResults.length === 0 && query) return null
+      // Task 3: when a specific section is selected, hide dates where
+      // that section has no recorded data
+      if (sectionResults.length === 0 && filterSection !== 'all') return null
 
       const totalWords = Object.values(dayData).reduce((acc, e) => acc + countWords(String(e?.value || '')), 0)
       const recordedSections = Object.keys(dayData)
@@ -241,7 +244,30 @@ function TimelineCard({ card, query, onClick, filterSection, sections }) {
             <div className="tl-meta">
               <div className="tl-sections">
                 {recordedSections.map(sec => (
-                  <span key={sec.id} className="tl-section-tag">{sec.name}</span>
+                  <span
+                    key={sec.id}
+                    className="tl-section-tag"
+                    style={sec.color ? {
+                      borderLeft: `3px solid ${sec.color}`,
+                      paddingLeft: '6px',
+                    } : undefined}
+                  >
+                    {sec.color && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: 7,
+                          height: 7,
+                          borderRadius: '50%',
+                          background: sec.color,
+                          marginRight: 4,
+                          flexShrink: 0,
+                          verticalAlign: 'middle',
+                        }}
+                      />
+                    )}
+                    {sec.name}
+                  </span>
                 ))}
               </div>
               <span className="tl-wordcount">{totalWords} 字</span>

@@ -14,6 +14,34 @@
   flex-shrink: 0;
 }
 
+/* Nav arrow buttons — larger, more visible */
+.cal-nav-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-sans);
+  flex-shrink: 0;
+}
+.cal-nav-arrow:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+.cal-nav-arrow:active {
+  transform: scale(0.92);
+}
+
 .cal-today-btn { flex-shrink: 0; }
 
 .cal-header-title {
@@ -122,6 +150,30 @@
   gap: 4px;
 }
 .cal-day.week-day:hover { border-color: var(--border-hover); }
+
+/* Week view: today — accent left border + light bg */
+.cal-day.week-day.today {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  border-left: 3px solid var(--accent);
+}
+.cal-day.week-day.today .cal-day-num { color: var(--accent); font-weight: 700; }
+
+/* Week view: selected — solid accent fill to distinguish from today */
+.cal-day.week-day.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.cal-day.week-day.selected .cal-day-num { color: white; font-weight: 700; }
+.cal-day.week-day.selected .cal-weekday-label { color: rgba(255,255,255,0.75); }
+.cal-day.week-day.selected .cal-month-label { color: rgba(255,255,255,0.65); }
+.cal-day.week-day.selected .cal-dot { background: white; }
+
+/* When both today and selected — show a special combined style */
+.cal-day.week-day.today.selected {
+  background: var(--accent);
+  border-left: 3px solid white;
+}
 .cal-weekday-label {
   font-size: var(--text-xs);
   color: var(--text-muted);
@@ -144,6 +196,21 @@
   margin-top: 2px;
 }
 
+/* Mini countdown tag for month view */
+.cal-countdown-tag--mini {
+  font-size: 9px;
+  padding: 0px 4px;
+  border-radius: 4px;
+  font-weight: 600;
+  color: white;
+  line-height: 1.5;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
 /* Year view */
 .year-view {
   display: grid;
@@ -153,7 +220,8 @@
   margin: 0 auto;
 }
 
-.year-month {}
+
+
 .year-month-title {
   font-size: var(--text-sm);
   font-weight: 600;
@@ -188,10 +256,17 @@
   font-family: var(--font-sans);
 }
 .year-day:hover { background: var(--bg-hover); }
-.year-day.other-month { color: var(--text-muted); }
+.year-day.other-month { color: var(--text-muted); opacity: 0.4; }
 .year-day.has-data { background: var(--accent-light); }
 .year-day.today { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .year-day.selected { background: var(--accent); color: white; }
+
+/* Year view countdown indicator — colored bottom border */
+.year-day.has-countdown {
+  position: relative;
+  box-shadow: inset 0 -2px 0 var(--cd-color, var(--accent));
+}
+.year-day.has-countdown.other-month { opacity: 0.25; }
 
 /* Countdown legend */
 .countdown-legend {

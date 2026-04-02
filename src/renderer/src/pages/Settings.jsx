@@ -18,6 +18,7 @@ export default function Settings() {
   const [newSectionType, setNewSectionType] = useState('text')
   const [newSectionName, setNewSectionName] = useState('')
   const [newSectionUnit, setNewSectionUnit] = useState('')
+  const [newSectionColor, setNewSectionColor] = useState('#7c6aff')
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false, sec: null, hasData: false, checking: false })
 
   useEffect(() => { loadBackups() }, [])
@@ -52,12 +53,14 @@ export default function Settings() {
       name: newSectionName.trim(),
       type: newSectionType,
       unit: newSectionType === 'number' ? newSectionUnit.trim() : '',
+      color: newSectionColor,
       resident: false,
       order: sections.length
     }
     await saveSections([...sections, sec])
     setNewSectionName('')
     setNewSectionUnit('')
+    setNewSectionColor('#7c6aff')
     showToast('已添加新数据版块', 'success')
   }
 
@@ -91,6 +94,11 @@ export default function Settings() {
 
   const toggleResident = async (id) => {
     const next = sections.map(s => s.id === id ? { ...s, resident: !s.resident } : s)
+    await saveSections(next)
+  }
+
+  const changeSectionColor = async (id, color) => {
+    const next = sections.map(s => s.id === id ? { ...s, color } : s)
     await saveSections(next)
   }
 
@@ -213,6 +221,7 @@ export default function Settings() {
                     key={sec.id}
                     section={sec}
                     onToggleResident={() => toggleResident(sec.id)}
+                    onChangeColor={(color) => changeSectionColor(sec.id, color)}
                     onDelete={() => handleDeleteClick(sec.id)}
                   />
                 ))}
@@ -230,6 +239,16 @@ export default function Settings() {
               <option value="text">文字</option>
               <option value="number">数字</option>
             </select>
+            <label className="color-swatch-btn color-swatch-btn--lg" title="设定版块主题色" style={{ '--swatch-color': newSectionColor }}>
+              <input
+                type="color"
+                value={newSectionColor}
+                onChange={e => setNewSectionColor(e.target.value)}
+                style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+                tabIndex={-1}
+              />
+              <span className="color-swatch-circle" style={{ background: newSectionColor }} />
+            </label>
             <input
               className="input flex-1"
               placeholder="版块名称 (如: 阅读, 体重...)"
@@ -358,7 +377,7 @@ export default function Settings() {
   )
 }
 
-function SortableSection({ section, onToggleResident, onDelete }) {
+function SortableSection({ section, onToggleResident, onChangeColor, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
   
   const style = {
@@ -376,6 +395,16 @@ function SortableSection({ section, onToggleResident, onDelete }) {
         <span className="sec-item-type">{section.type === 'text' ? '📝 文字' : `🔢 数字 ${section.unit ? `[${section.unit}]` : ''}`}</span>
       </div>
       <div className="sec-item-actions">
+        <label className="color-swatch-btn" title="修改版块颜色" style={{ '--swatch-color': section.color || '#7c6aff' }}>
+          <input
+            type="color"
+            value={section.color || '#7c6aff'}
+            onChange={e => onChangeColor(e.target.value)}
+            style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+            tabIndex={-1}
+          />
+          <span className="color-swatch-circle" style={{ background: section.color || '#7c6aff' }} />
+        </label>
         <button
           className={`btn btn-sm ${section.resident ? 'btn-primary' : 'btn-ghost'}`}
           onClick={onToggleResident}
