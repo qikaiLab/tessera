@@ -71,6 +71,40 @@
 .sec-item-name {
   font-weight: 600;
   color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Editable name: show pencil icon on hover */
+.sec-item-name-editable {
+  cursor: text;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  transition: background var(--transition-fast);
+}
+.sec-item-name-editable:hover {
+  background: var(--bg-hover);
+}
+.sec-rename-icon {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  line-height: 1;
+}
+.sec-item-name-editable:hover .sec-rename-icon {
+  opacity: 1;
+}
+
+/* Inline rename input */
+.sec-item-name-input {
+  font-weight: 600;
+  padding: 2px 6px;
+  height: 28px;
+  font-size: var(--text-sm);
+  min-width: 80px;
+  max-width: 200px;
 }
 
 .sec-item-type {
@@ -80,6 +114,7 @@
   padding: 2px 6px;
   border-radius: var(--radius-sm);
 }
+
 
 .sec-item-actions {
   display: flex;

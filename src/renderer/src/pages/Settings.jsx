@@ -102,6 +102,14 @@ export default function Settings() {
     await saveSections(next)
   }
 
+  const renameSection = async (id, newName) => {
+    const trimmed = newName.trim()
+    if (!trimmed) return
+    const next = sections.map(s => s.id === id ? { ...s, name: trimmed } : s)
+    await saveSections(next)
+    showToast('已重命名版块', 'success')
+  }
+
   // Data Directory
   const pickDataDir = async () => {
     const dir = await window.api.dialog.openDirectory()
@@ -222,6 +230,7 @@ export default function Settings() {
                     section={sec}
                     onToggleResident={() => toggleResident(sec.id)}
                     onChangeColor={(color) => changeSectionColor(sec.id, color)}
+                    onRename={(name) => renameSection(sec.id, name)}
                     onDelete={() => handleDeleteClick(sec.id)}
                   />
                 ))}
@@ -377,9 +386,15 @@ export default function Settings() {
   )
 }
 
-function SortableSection({ section, onToggleResident, onChangeColor, onDelete }) {
+function SortableSection({ section, onToggleResident, onChangeColor, onRename, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
-  
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState(section.name)
+  const inputRef = React.useRef(null)
+
+  // Keep editName in sync if section.name changes externally
+  React.useEffect(() => { setEditName(section.name) }, [section.name])
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -387,11 +402,49 @@ function SortableSection({ section, onToggleResident, onChangeColor, onDelete })
     boxShadow: isDragging ? 'var(--shadow-md)' : 'none',
   }
 
+  const startEdit = () => {
+    setEditing(true)
+    setTimeout(() => inputRef.current?.select(), 30)
+  }
+
+  const commitEdit = () => {
+    setEditing(false)
+    if (editName.trim() && editName.trim() !== section.name) {
+      onRename(editName.trim())
+    } else {
+      setEditName(section.name)
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
+    if (e.key === 'Escape') { setEditing(false); setEditName(section.name) }
+  }
+
   return (
     <div ref={setNodeRef} style={style} className={`settings-section-item ${isDragging ? 'dragging' : ''}`}>
       <div className="drag-handle" {...attributes} {...listeners}>☷</div>
       <div className="sec-item-info">
-        <span className="sec-item-name">{section.name}</span>
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="input sec-item-name-input"
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={handleKeyDown}
+            autoFocus
+          />
+        ) : (
+          <span
+            className="sec-item-name sec-item-name-editable"
+            onClick={startEdit}
+            title="点击重命名"
+          >
+            {section.name}
+            <span className="sec-rename-icon">✎</span>
+          </span>
+        )}
         <span className="sec-item-type">{section.type === 'text' ? '📝 文字' : `🔢 数字 ${section.unit ? `[${section.unit}]` : ''}`}</span>
       </div>
       <div className="sec-item-actions">
