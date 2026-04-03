@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
+import EasterEgg from '../components/EasterEgg'
 import './Timeline.css'
 
 function escapeRegex(str) {
@@ -126,8 +127,13 @@ export default function Timeline() {
     navigate('/today')
   }
 
+  // Easter egg: trigger on specific search keywords
+  const easterEggKeywords = ['亓开', '朱琳']
+  const easterEggActive = easterEggKeywords.some(kw => query.trimEnd() === kw)
+
   return (
     <div className="timeline-page">
+      <EasterEgg active={easterEggActive} />
       {/* Header */}
       <div className="page-header">
         <span className="page-title">时间线</span>

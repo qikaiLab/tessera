@@ -125,8 +125,15 @@ export default function Analytics() {
   const duplicateCard = (id) => {
     const src = cards.find(c => c.id === id)
     if (!src) return
-    setCards(prev => [...prev, { ...src, id: generateId(), title: src.title + ' 副本' }])
+    const newCard = { ...src, id: generateId(), title: src.title + ' 副本' }
+    setCards(prev => [...prev, newCard])
+    // Task 4: scroll to the newly duplicated card
+    setTimeout(() => {
+      const el = document.getElementById(`analytics-card-${newCard.id}`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
   }
+
 
   return (
     <div className="analytics-page">
