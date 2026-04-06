@@ -35,6 +35,26 @@ const PALETTE = ['#7c6aff', '#34d399', '#f87171', '#fbbf24', '#60a5fa', '#f472b6
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
 
+/**
+ * Extract plain text from a persisted value (Tiptap JSON string or plain string).
+ */
+function extractText(value) {
+  if (!value) return ''
+  const str = String(value)
+  try {
+    const json = JSON.parse(str)
+    return extractNodeText(json)
+  } catch {
+    return str
+  }
+}
+function extractNodeText(node) {
+  if (!node) return ''
+  if (node.type === 'text') return node.text || ''
+  if (Array.isArray(node.content)) return node.content.map(extractNodeText).join('')
+  return ''
+}
+
 function defaultCard(idx) {
   return {
     id: generateId(),
@@ -237,7 +257,7 @@ function buildChartData(card, sections, loadedData, datesWithData) {
         const entry = loadedData[d]?.[b.sectionId]
         if (entry) {
           if (b.metric === 'wordcount') {
-            total += (entry.value || '').toString().replace(/\s+/g, '').length
+            total += extractText(entry.value).replace(/\s+/g, '').length
           } else {
             total += parseFloat(entry.value) || 0
           }
@@ -256,7 +276,7 @@ function buildChartData(card, sections, loadedData, datesWithData) {
       const entry = loadedData[d]?.[b.sectionId]
       let val = 0
       if (entry) {
-        if (b.metric === 'wordcount') val = (entry.value || '').toString().replace(/\s+/g, '').length
+        if (b.metric === 'wordcount') val = extractText(entry.value).replace(/\s+/g, '').length
         else val = parseFloat(entry.value) || 0
       }
       return { date: d, value: val }
@@ -271,7 +291,7 @@ function buildChartData(card, sections, loadedData, datesWithData) {
       const entry = loadedData[d]?.[b.sectionId]
       let val = 0
       if (entry) {
-        if (b.metric === 'wordcount') val = (entry.value || '').toString().replace(/\s+/g, '').length
+        if (b.metric === 'wordcount') val = extractText(entry.value).replace(/\s+/g, '').length
         else val = parseFloat(entry.value) || 0
       }
       point[sec.name] = val

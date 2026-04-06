@@ -15,6 +15,36 @@ function countWords(text) {
   return text.replace(/\s+/g, '').length
 }
 
+/**
+ * Extract plain text from a Tiptap JSON doc or raw string.
+ * Handles both new JSON format and legacy plain text.
+ */
+function extractText(value) {
+  if (!value) return ''
+  if (typeof value === 'string') {
+    // Try to parse as Tiptap JSON
+    try {
+      const json = JSON.parse(value)
+      return extractTextFromNode(json)
+    } catch {
+      return value // legacy plain text
+    }
+  }
+  if (typeof value === 'object') {
+    return extractTextFromNode(value)
+  }
+  return String(value)
+}
+
+function extractTextFromNode(node) {
+  if (!node) return ''
+  if (node.type === 'text') return node.text || ''
+  if (node.content && Array.isArray(node.content)) {
+    return node.content.map(extractTextFromNode).join('')
+  }
+  return ''
+}
+
 function highlightText(text, query) {
   if (!query || !text) return text
   const re = new RegExp(`(${escapeRegex(query)})`, 'gi')
@@ -95,7 +125,7 @@ export default function Timeline() {
 
           // Full text search
           if (query) {
-            const text = String(entry.value || '')
+            const text = extractText(entry.value)
             return text.toLowerCase().includes(query.toLowerCase())
           }
           return true
@@ -103,7 +133,7 @@ export default function Timeline() {
         .map(sid => {
           const sec = sections.find(s => s.id === sid)
           const entry = dayData[sid]
-          const text = String(entry?.value || '')
+          const text = extractText(entry?.value)
           const snippet = getSnippet(text, query)
           return { sec, text, snippet, wordCount: countWords(text) }
         })
@@ -113,7 +143,7 @@ export default function Timeline() {
       // that section has no recorded data
       if (sectionResults.length === 0 && filterSection !== 'all') return null
 
-      const totalWords = Object.values(dayData).reduce((acc, e) => acc + countWords(String(e?.value || '')), 0)
+      const totalWords = Object.values(dayData).reduce((acc, e) => acc + countWords(extractText(e?.value)), 0)
       const recordedSections = Object.keys(dayData)
         .map(sid => sections.find(s => s.id === sid))
         .filter(Boolean)

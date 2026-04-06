@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { format, parseISO, addDays, subDays, isToday, isValid } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
-import CodeMirrorEditor from '../components/CodeMirrorEditor'
+import TiptapEditor from '../components/TiptapEditor'
 import './Today.css'
 
 // Save status enum
@@ -48,10 +48,10 @@ export default function Today() {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && fullScreenSectionId) {
         setFullScreenSectionId(null)
-        // Set focus back inside the editor shortly after exiting
+        // Focus back into the editor after exiting fullscreen
         setTimeout(() => {
-          const editorShell = document.querySelector('.section-card:not(.fullscreen-active-parent) .cm-content')
-          if (editorShell) editorShell.focus()
+          const editorEl = document.querySelector('.section-card:not(.fullscreen-active-parent) .ProseMirror')
+          if (editorEl) editorEl.focus()
         }, 50)
       }
     }
@@ -98,10 +98,14 @@ export default function Today() {
 
   const handleChange = useCallback((sectionId, value) => {
     setData(prev => {
+      // value can be a JSON object (Tiptap) or a number string
+      const serialized = (typeof value === 'object' && value !== null)
+        ? JSON.stringify(value)
+        : value
       const next = {
         ...prev,
         [sectionId]: {
-          value,
+          value: serialized,
           updatedAt: new Date().toISOString()
         }
       }
@@ -286,6 +290,22 @@ export default function Today() {
 }
 
 function SectionCard({ section, value, onChange, animationDelay, isFullScreen, onToggleFullScreen, onSave }) {
+  // Parse persisted JSON string back to object for Tiptap
+  const parsedValue = React.useMemo(() => {
+    if (section.type !== 'text') return value
+    if (!value || value === '') return null
+    if (typeof value === 'object') return value
+    try {
+      return JSON.parse(value)
+    } catch {
+      // Legacy plain-text fallback: wrap in paragraph node
+      return {
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: value }] }]
+      }
+    }
+  }, [value, section.type])
+
   return (
     <div
       className={`section-card ${isFullScreen ? 'fullscreen-active-parent' : ''}`}
@@ -299,11 +319,10 @@ function SectionCard({ section, value, onChange, animationDelay, isFullScreen, o
       </div>
       <div className={`section-card-body ${section.type === 'text' ? 'text-editor-body' : ''}`}>
         {section.type === 'text' ? (
-          <CodeMirrorEditor
-            value={value}
+          <TiptapEditor
+            value={parsedValue}
             onChange={onChange}
             placeholder={`记录你的${section.name}...`}
-            minHeight={isFullScreen ? "60vh" : "120px"}
             isFullScreen={isFullScreen}
             onToggleFullScreen={onToggleFullScreen}
             onSave={onSave}
