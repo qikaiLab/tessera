@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 
 /**
- * Pure React bubble toolbar — no external dependency.
- * Detects text selection within the ProseMirror editor and positions itself
- * directly above the selection using the native Selection API.
+ * Pure React bubble toolbar — zero external dependency.
+ * Uses ProseMirror's coordsAtPos() for pixel-accurate positioning,
+ * which is far more reliable than window.getSelection() in Electron.
  */
 export function BubbleToolbar({ editor }) {
   const [visible, setVisible] = useState(false)
@@ -11,7 +11,7 @@ export function BubbleToolbar({ editor }) {
   const toolbarRef = useRef(null)
 
   const update = useCallback(() => {
-    if (!editor) return
+    if (!editor || !editor.view) return
 
     const { from, to } = editor.state.selection
     const hasSelection = from !== to
@@ -22,42 +22,39 @@ export function BubbleToolbar({ editor }) {
       return
     }
 
-    const domSelection = window.getSelection()
-    if (!domSelection || domSelection.rangeCount === 0) {
+    try {
+      // coordsAtPos returns viewport-relative coords (correct for position:fixed)
+      const startCoords = editor.view.coordsAtPos(from)
+      // Use (to - 1) to get coords of the last selected character
+      const endCoords = editor.view.coordsAtPos(Math.max(from, to - 1))
+
+      const selTop    = Math.min(startCoords.top, endCoords.top)
+      const selBottom = Math.max(startCoords.bottom, endCoords.bottom)
+      const selLeft   = Math.min(startCoords.left, endCoords.left)
+      const selRight  = Math.max(startCoords.right, endCoords.right)
+
+      const toolbarEl = toolbarRef.current
+      const toolbarW  = toolbarEl ? toolbarEl.offsetWidth  : 260
+      const toolbarH  = toolbarEl ? toolbarEl.offsetHeight : 38
+      const gap = 8
+
+      // Center horizontally over the selection
+      let left = (selLeft + selRight) / 2 - toolbarW / 2
+
+      // Prefer above the selection; fall back to below if near screen top
+      let top = selTop - toolbarH - gap
+      if (top < 8) {
+        top = selBottom + gap
+      }
+
+      // Clamp to viewport horizontally
+      left = Math.max(8, Math.min(left, window.innerWidth - toolbarW - 8))
+
+      setPos({ top: Math.round(top), left: Math.round(left) })
+      setVisible(true)
+    } catch {
       setVisible(false)
-      return
     }
-
-    const range = domSelection.getRangeAt(0)
-    const rect = range.getBoundingClientRect()
-
-    // rect values are 0 if nothing is in DOM yet, or selection collapsed
-    if (!rect || rect.width === 0 || rect.height === 0) {
-      setVisible(false)
-      return
-    }
-
-    // position: fixed uses viewport coords — NO scrollY adjustment needed
-    const toolbarEl = toolbarRef.current
-    const toolbarW = toolbarEl ? toolbarEl.offsetWidth : 0
-    const toolbarH = toolbarEl ? toolbarEl.offsetHeight : 38
-    const gap = 8
-
-    // Horizontally center the toolbar above the selection midpoint
-    let left = rect.left + rect.width / 2 - toolbarW / 2
-    // Vertically: prefer above; fall back to below if not enough room
-    let top = rect.top - toolbarH - gap
-
-    if (top < 4) {
-      // Not enough space above — place below selection
-      top = rect.bottom + gap
-    }
-
-    // Clamp horizontally to viewport
-    left = Math.max(8, Math.min(left, window.innerWidth - toolbarW - 8))
-
-    setPos({ top: Math.round(top), left: Math.round(left) })
-    setVisible(true)
   }, [editor])
 
   useEffect(() => {
@@ -94,7 +91,7 @@ export function BubbleToolbar({ editor }) {
       key={title}
       className={`bubble-btn ${isActive ? 'is-active' : ''}`}
       onMouseDown={(e) => {
-        e.preventDefault() // Keep selection alive
+        e.preventDefault() // Preserve selection
         action()
       }}
       title={title}
@@ -112,21 +109,24 @@ export function BubbleToolbar({ editor }) {
         top: pos.top,
         left: pos.left,
         zIndex: 9000,
-        // Invisible but layout-able before first open, so offsetWidth is measurable
+        // Keep in DOM so offsetWidth/Height are measurable; just hide visually
         visibility: visible ? 'visible' : 'hidden',
         pointerEvents: visible ? 'auto' : 'none',
+        transition: 'opacity 120ms ease, transform 120ms ease',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(4px)',
       }}
     >
-      {btn(<b>B</b>,  () => editor.chain().focus().toggleBold().run(),      editor.isActive('bold'),                 '加粗 (Ctrl+B)')}
-      {btn(<i>I</i>,  () => editor.chain().focus().toggleItalic().run(),    editor.isActive('italic'),               '斜体 (Ctrl+I)')}
-      {btn(<u>U</u>,  () => editor.chain().focus().toggleUnderline().run(), editor.isActive('underline'),            '下划线 (Ctrl+U)')}
-      {btn(<s>S</s>,  () => editor.chain().focus().toggleStrike().run(),    editor.isActive('strike'),               '删除线')}
+      {btn(<b>B</b>,  () => editor.chain().focus().toggleBold().run(),      editor.isActive('bold'),                '加粗 (Ctrl+B)')}
+      {btn(<i>I</i>,  () => editor.chain().focus().toggleItalic().run(),    editor.isActive('italic'),              '斜体 (Ctrl+I)')}
+      {btn(<u>U</u>,  () => editor.chain().focus().toggleUnderline().run(), editor.isActive('underline'),           '下划线 (Ctrl+U)')}
+      {btn(<s>S</s>,  () => editor.chain().focus().toggleStrike().run(),    editor.isActive('strike'),              '删除线')}
       <div className="bubble-sep" />
-      {btn('H1',      () => editor.chain().focus().toggleHeading({ level: 1 }).run(), editor.isActive('heading', { level: 1 }), '标题 1')}
-      {btn('H2',      () => editor.chain().focus().toggleHeading({ level: 2 }).run(), editor.isActive('heading', { level: 2 }), '标题 2')}
+      {btn('H1', () => editor.chain().focus().toggleHeading({ level: 1 }).run(), editor.isActive('heading', { level: 1 }), '标题 1')}
+      {btn('H2', () => editor.chain().focus().toggleHeading({ level: 2 }).run(), editor.isActive('heading', { level: 2 }), '标题 2')}
       <div className="bubble-sep" />
-      {btn('</>', () => editor.chain().focus().toggleCode().run(),           editor.isActive('code'),                 '行内代码')}
-      {btn('"',   () => editor.chain().focus().toggleBlockquote().run(),    editor.isActive('blockquote'),           '引用')}
+      {btn('</>', () => editor.chain().focus().toggleCode().run(),         editor.isActive('code'),                '行内代码')}
+      {btn('"',   () => editor.chain().focus().toggleBlockquote().run(),  editor.isActive('blockquote'),          '引用')}
     </div>
   )
 }
