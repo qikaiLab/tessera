@@ -86,20 +86,62 @@ export const slashCommands = [
   },
 ]
 
+/**
+ * Smart position function: places the menu at cursor, but flips above if
+ * it would overflow the viewport bottom, and clamps horizontally.
+ */
+function getSmartPosition(rect, container) {
+  const MENU_WIDTH = 260
+  const MENU_MAX_HEIGHT = 340 // matches CSS max-height
+  const GAP = 8
+  const VIEWPORT_MARGIN = 8
+
+  const viewportW = window.innerWidth
+  const viewportH = window.innerHeight
+
+  // Horizontal: start at cursor left, then clamp
+  let left = rect.left
+  if (left + MENU_WIDTH > viewportW - VIEWPORT_MARGIN) {
+    left = viewportW - MENU_WIDTH - VIEWPORT_MARGIN
+  }
+  left = Math.max(VIEWPORT_MARGIN, left)
+
+  // Vertical: prefer below cursor; flip above if not enough space
+  let top
+  const spaceBelow = viewportH - rect.bottom - GAP
+  const spaceAbove = rect.top - GAP
+
+  if (spaceBelow >= Math.min(MENU_MAX_HEIGHT, 200) || spaceBelow >= spaceAbove) {
+    // Show below
+    top = rect.bottom + GAP
+  } else {
+    // Show above — anchor to menu bottom
+    top = rect.top - GAP - Math.min(MENU_MAX_HEIGHT, spaceAbove)
+    top = Math.max(VIEWPORT_MARGIN, top)
+  }
+
+  return { left: Math.round(left), top: Math.round(top) }
+}
+
 export const SlashExtension = Extension.create({
   name: 'slashCommand',
   addOptions() {
     return {
       suggestion: {
         char: '/',
+        // Allow "/" anywhere (not just at line start)
+        allowedPrefixes: null,
         command: ({ editor, range, props }) => {
           props.command({ editor, range })
         },
         items: ({ query }) => {
-          return slashCommands.filter(item =>
-            item.title.toLowerCase().includes(query.toLowerCase()) ||
-            item.description.toLowerCase().includes(query.toLowerCase())
-          ).slice(0, 10)
+          return slashCommands
+            .filter(
+              item =>
+                item.title.toLowerCase().includes(query.toLowerCase()) ||
+                item.description.toLowerCase().includes(query.toLowerCase()),
+            )
+            .slice(0, 10)
         },
         render: () => {
           let component
@@ -124,8 +166,9 @@ export const SlashExtension = Extension.create({
               if (props.clientRect) {
                 const rect = props.clientRect()
                 if (rect) {
-                  container.style.left = `${rect.left}px`
-                  container.style.top = `${rect.bottom + 6}px`
+                  const { left, top } = getSmartPosition(rect, container)
+                  container.style.left = `${left}px`
+                  container.style.top = `${top}px`
                 }
               }
             },
@@ -134,8 +177,9 @@ export const SlashExtension = Extension.create({
               if (props.clientRect) {
                 const rect = props.clientRect()
                 if (rect) {
-                  container.style.left = `${rect.left}px`
-                  container.style.top = `${rect.bottom + 6}px`
+                  const { left, top } = getSmartPosition(rect, container)
+                  container.style.left = `${left}px`
+                  container.style.top = `${top}px`
                 }
               }
             },

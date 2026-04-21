@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 
 /**
@@ -8,11 +8,34 @@ import { createPortal } from 'react-dom'
  *
  * Coordinates come from ProseMirror's coordsAtPos() — viewport-relative,
  * matching position:fixed on document.body perfectly.
+ *
+ * Key improvements:
+ * - Cached toolbar dimensions to avoid layout-thrashing on every selection change
+ * - Debounced position updates to prevent jitter
+ * - useLayoutEffect for synchronous measurement before paint
  */
 export function BubbleToolbar({ editor }) {
-  const [visible, setVisible] = useState(false)
-  const [pos, setPos]         = useState({ top: 0, left: 0 })
-  const toolbarRef            = useRef(null)
+  const [visible, setVisible]   = useState(false)
+  const [pos, setPos]           = useState({ top: 0, left: 0 })
+  const toolbarRef              = useRef(null)
+  // Cache the toolbar size so we don't need a DOM read every time
+  const cachedSizeRef           = useRef({ w: 280, h: 38 })
+  const rafRef                  = useRef(null)
+
+  /* ── measure toolbar size once on mount (and on resize) ──────── */
+  useLayoutEffect(() => {
+    const el = toolbarRef.current
+    if (!el) return
+    const measure = () => {
+      const w = el.offsetWidth
+      const h = el.offsetHeight
+      if (w > 0) cachedSizeRef.current = { w, h }
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   /* ── position calculation ─────────────────────────────────────── */
   const update = useCallback(() => {
@@ -24,36 +47,41 @@ export function BubbleToolbar({ editor }) {
       return
     }
 
-    try {
-      const start = editor.view.coordsAtPos(from)
-      const end   = editor.view.coordsAtPos(Math.max(from, to - 1))
+    // Cancel pending RAF
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(() => {
+      if (!editor?.view) return
+      try {
+        const start = editor.view.coordsAtPos(from)
+        const end   = editor.view.coordsAtPos(Math.max(from, to - 1))
 
-      const selTop    = Math.min(start.top,    end.top)
-      const selBottom = Math.max(start.bottom, end.bottom)
-      const selLeft   = Math.min(start.left,   end.left)
-      const selRight  = Math.max(start.right,  end.right)
+        const selTop    = Math.min(start.top,    end.top)
+        const selBottom = Math.max(start.bottom, end.bottom)
+        const selLeft   = Math.min(start.left,   end.left)
+        const selRight  = Math.max(start.right,  end.right)
 
-      // Read actual rendered size (possible because visibility:hidden keeps layout)
-      const el       = toolbarRef.current
-      const toolbarW = el?.offsetWidth  || 264
-      const toolbarH = el?.offsetHeight || 38
-      const gap      = 8
+        // Use cached size — no DOM read here
+        const { w: toolbarW, h: toolbarH } = cachedSizeRef.current
+        const gap = 8
 
-      // Horizontal: centred over the selection span
-      let left = (selLeft + selRight) / 2 - toolbarW / 2
+        // Horizontal: centred over the selection span
+        let left = (selLeft + selRight) / 2 - toolbarW / 2
 
-      // Vertical: above selection; flip below if too close to top
-      let top = selTop - toolbarH - gap
-      if (top < 8) top = selBottom + gap
+        // Vertical: above selection; flip below if too close to top
+        let top = selTop - toolbarH - gap
+        if (top < 8) top = selBottom + gap
 
-      // Clamp within viewport
-      left = Math.max(8, Math.min(left, window.innerWidth - toolbarW - 8))
+        // Clamp within viewport
+        left = Math.max(8, Math.min(left, window.innerWidth - toolbarW - 8))
+        // Clamp vertically too
+        top = Math.max(8, Math.min(top, window.innerHeight - toolbarH - 8))
 
-      setPos({ top: Math.round(top), left: Math.round(left) })
-      setVisible(true)
-    } catch {
-      setVisible(false)
-    }
+        setPos({ top: Math.round(top), left: Math.round(left) })
+        setVisible(true)
+      } catch {
+        setVisible(false)
+      }
+    })
   }, [editor])
 
   /* ── event wiring ─────────────────────────────────────────────── */
@@ -69,6 +97,7 @@ export function BubbleToolbar({ editor }) {
       editor.off('transaction',     update)
       document.removeEventListener('mouseup', update)
       document.removeEventListener('keyup',   update)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [editor, update])
 
@@ -111,7 +140,7 @@ export function BubbleToolbar({ editor }) {
         pointerEvents: visible ? 'auto'    : 'none',
         opacity:       visible ? 1 : 0,
         transform:     visible ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.97)',
-        transition:    'opacity 130ms ease, transform 130ms ease',
+        transition:    'opacity 120ms ease, transform 120ms ease',
       }}
     >
       {btn(<b>B</b>, () => editor.chain().focus().toggleBold().run(),      editor.isActive('bold'),               '加粗 (Ctrl+B)')}
