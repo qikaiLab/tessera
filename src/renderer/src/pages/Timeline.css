@@ -30,10 +30,10 @@
 .timeline-list {
   flex: 1;
   overflow-y: auto;
-  padding: var(--spacing-4) var(--spacing-6);
+  padding: var(--spacing-3) var(--spacing-6);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
 }
 
 .search-result-count {
@@ -44,13 +44,14 @@
 
 .timeline-card {
   display: flex;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4);
+  gap: var(--spacing-3);
+  padding: 10px var(--spacing-4);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-fast);
+  min-height: 0;
 }
 .timeline-card:hover {
   border-color: var(--border-hover);
@@ -62,16 +63,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 72px;
-  gap: 2px;
+  min-width: 64px;
+  gap: 1px;
   flex-shrink: 0;
+  justify-content: center;
 }
 
 .tl-date-main {
-  font-size: var(--text-lg);
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .tl-date-week {
@@ -94,8 +97,9 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
   min-width: 0;
+  justify-content: center;
 }
 
 .tl-meta {
@@ -143,9 +147,22 @@
 .tl-snippet-text {
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.5;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.tl-numeric-value {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.tl-numeric-unit {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--text-secondary);
 }

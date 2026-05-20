@@ -133,9 +133,10 @@ export default function Timeline() {
         .map(sid => {
           const sec = sections.find(s => s.id === sid)
           const entry = dayData[sid]
+          const rawValue = entry?.value
           const text = extractText(entry?.value)
           const snippet = getSnippet(text, query)
-          return { sec, text, snippet, wordCount: countWords(text) }
+          return { sec, text, snippet, wordCount: countWords(text), rawValue }
         })
 
       if (sectionResults.length === 0 && query) return null
@@ -319,16 +320,37 @@ function TimelineCard({ card, query, onClick, filterSection, sections }) {
           </>
         ) : (
           <>
-            <div className="tl-meta">
-              <span className="tl-wordcount">{sectionResults[0]?.wordCount || 0} 字</span>
-            </div>
-            {sectionResults.map(({ sec, snippet }) => (
-              <div key={sec.id} className="tl-snippet">
-                <span className="tl-snippet-text selectable">
-                  {highlightText(snippet, query)}
-                </span>
-              </div>
-            ))}
+            {(() => {
+              const selectedSec = sections.find(s => s.id === filterSection)
+              const isNumeric = selectedSec?.type === 'number'
+              const firstResult = sectionResults[0]
+              if (isNumeric) {
+                return (
+                  <div className="tl-meta">
+                    <span className="tl-numeric-value">
+                      {firstResult?.rawValue !== undefined && firstResult?.rawValue !== null
+                        ? firstResult.rawValue
+                        : '—'}
+                      {selectedSec?.unit ? <span className="tl-numeric-unit"> {selectedSec.unit}</span> : null}
+                    </span>
+                  </div>
+                )
+              }
+              return (
+                <>
+                  <div className="tl-meta">
+                    <span className="tl-wordcount">{firstResult?.wordCount || 0} 字</span>
+                  </div>
+                  {sectionResults.map(({ sec, snippet }) => (
+                    <div key={sec.id} className="tl-snippet">
+                      <span className="tl-snippet-text selectable">
+                        {highlightText(snippet, query)}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )
+            })()}
           </>
         )}
       </div>
