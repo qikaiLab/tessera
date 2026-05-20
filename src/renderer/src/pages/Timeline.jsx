@@ -144,7 +144,11 @@ export default function Timeline() {
       // that section has no recorded data
       if (sectionResults.length === 0 && filterSection !== 'all') return null
 
-      const totalWords = Object.values(dayData).reduce((acc, e) => acc + countWords(extractText(e?.value)), 0)
+      const totalWords = Object.entries(dayData).reduce((acc, [sid, e]) => {
+        const sec = sections.find(s => s.id === sid)
+        if (sec?.type === 'number') return acc   // skip numeric sections
+        return acc + countWords(extractText(e?.value))
+      }, 0)
       const recordedSections = Object.keys(dayData)
         .map(sid => sections.find(s => s.id === sid))
         .filter(Boolean)

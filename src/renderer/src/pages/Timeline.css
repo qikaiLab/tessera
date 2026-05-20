@@ -51,7 +51,6 @@
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-fast);
-  min-height: 0;
 }
 .timeline-card:hover {
   border-color: var(--border-hover);
@@ -111,8 +110,11 @@
 
 .tl-sections {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
 }
 
 .tl-section-tag {
@@ -122,6 +124,8 @@
   color: var(--text-secondary);
   border-radius: var(--radius-full);
   font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .tl-wordcount {
