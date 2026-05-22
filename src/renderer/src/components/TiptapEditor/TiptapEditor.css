@@ -22,7 +22,8 @@
   padding: 14px 18px 20px;
   min-height: 120px;
   /* Unified line-height across all content */
-  line-height: 1.8;
+  line-height: var(--editor-line-height, 1.8);
+  letter-spacing: var(--editor-letter-spacing, normal);
   color: var(--text-primary);
   font-family: var(--font-sans);
   caret-color: var(--accent);
@@ -78,7 +79,7 @@
   margin: 0;
   /* Use padding instead of margin for consistent spacing */
   padding-bottom: 0.5em;
-  line-height: 1.8;
+  line-height: var(--editor-line-height, 1.8);
 }
 .ProseMirror p:last-child {
   padding-bottom: 0;
@@ -132,7 +133,7 @@
 /* Remove extra padding from paragraphs inside blockquote */
 .ProseMirror blockquote p {
   padding-bottom: 0.2em;
-  line-height: 1.8;
+  line-height: var(--editor-line-height, 1.8);
 }
 .ProseMirror blockquote p:last-child {
   padding-bottom: 0;
@@ -155,7 +156,7 @@
 
 .ProseMirror li {
   /* Unified line-height — must match .ProseMirror line-height */
-  line-height: 1.8;
+  line-height: var(--editor-line-height, 1.8);
   /* Small vertical gap between items */
   margin: 0.1em 0;
 }
@@ -164,7 +165,7 @@
 .ProseMirror li > p {
   padding-bottom: 0;
   margin: 0;
-  line-height: 1.8;
+  line-height: var(--editor-line-height, 1.8);
 }
 
 .ProseMirror ul li::marker { color: var(--accent); }
@@ -181,7 +182,7 @@
   align-items: flex-start;
   gap: 10px;
   margin: 0.15em 0;
-  line-height: 1.8;
+  line-height: var(--editor-line-height, 1.8);
 }
 .ProseMirror ul[data-type='taskList'] li > label {
   flex-shrink: 0;
@@ -225,13 +226,13 @@
 }
 .ProseMirror ul[data-type='taskList'] li > div {
   flex: 1;
-  line-height: 1.8;
+  line-height: var(--editor-line-height, 1.8);
 }
 /* Also remove extra p spacing inside task items */
 .ProseMirror ul[data-type='taskList'] li > div > p {
   padding-bottom: 0;
   margin: 0;
-  line-height: 1.8;
+  line-height: var(--editor-line-height, 1.8);
 }
 .ProseMirror ul[data-type='taskList'] li[data-checked='true'] > div {
   color: var(--text-tertiary);
@@ -460,6 +461,7 @@
   flex-direction: column;
   /* Subtle fade-in */
   animation: fullscreenFadeIn 220ms ease both;
+  -webkit-app-region: no-drag;
 }
 
 @keyframes fullscreenFadeIn {
@@ -471,8 +473,7 @@
 .tiptap-fullscreen .tiptap-editor-wrapper {
   flex: 1;
   overflow-y: auto;
-  /* Content column: max 700px, centred */
-  max-width: 700px;
+  /* max-width is set dynamically via style prop */
   width: 100%;
   margin: 0 auto;
   padding: 0 24px;
@@ -484,7 +485,7 @@
 .tiptap-fullscreen .ProseMirror {
   padding: 48px 0 60px;
   font-size: 1em;
-  line-height: 2;
+  line-height: var(--editor-line-height, 2);
   /* Slightly warmer text in immersive dark context */
   color: rgba(255, 255, 255, 0.88);
 }
@@ -492,71 +493,102 @@
 .tiptap-fullscreen .ProseMirror p,
 .tiptap-fullscreen .ProseMirror li > p,
 .tiptap-fullscreen .ProseMirror ul[data-type='taskList'] li > div > p {
-  line-height: 2;
+  line-height: var(--editor-line-height, 2);
 }
 
 .tiptap-fullscreen .ProseMirror li {
-  line-height: 2;
+  line-height: var(--editor-line-height, 2);
 }
 
-/* Translucent footer bar in fullscreen */
-.tiptap-fullscreen .tiptap-footer {
-  background: rgba(0, 0, 0, 0.45);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 10px 40px;
-  color: rgba(255, 255, 255, 0.45);
-  /* Centred to match content column width */
-  max-width: 700px;
+/* ── Fullscreen Header: minimal floating strip at the top ───────────────── */
+.tiptap-fullscreen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 8px;
+  /* max-width is set dynamically via style prop */
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
+  flex-shrink: 0;
+  z-index: 10;
 }
 
-/* ─── Fullscreen Exit Button ─────────────────────────────────────────────── */
-/*
- * A clearly visible "Exit Fullscreen" button fixed in the top-right corner.
- * Large enough to be discoverable, fades out when not hovered.
- */
-.tiptap-fullscreen-exit-btn {
-  position: fixed;
+/* Apply opacity transition to char count and font controls, but NOT the exit button */
+.tiptap-fullscreen-header .tiptap-char-count,
+.tiptap-fullscreen-header .tiptap-font-controls,
+.tiptap-fullscreen-header .tiptap-width-toggle {
+  opacity: 0.35;
+  transition: opacity 250ms ease;
+}
+
+.tiptap-fullscreen-header:hover .tiptap-char-count,
+.tiptap-fullscreen-header:hover .tiptap-font-controls,
+.tiptap-fullscreen-header:hover .tiptap-width-toggle {
+  opacity: 1;
+}
+
+.tiptap-fullscreen-header .tiptap-char-count,
+.tiptap-fullscreen-header .tiptap-font-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+}
+
+.tiptap-fullscreen-header .tiptap-font-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tiptap-fullscreen-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Highly visible exit button positioned at top right - does NOT fade when typing */
+.tiptap-fullscreen .fullscreen-exit-btn {
+  position: absolute;
   top: 16px;
   right: 20px;
   z-index: 1100;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-full, 999px);
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
+  border-radius: var(--radius-sm, 4px);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
   font-family: var(--font-sans);
   cursor: pointer;
   transition: all 200ms ease;
-  /* Low-profile by default, visible on hover */
-  opacity: 0.5;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  -webkit-app-region: no-drag;
 }
-.tiptap-fullscreen-exit-btn:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.35);
+
+.tiptap-fullscreen .fullscreen-exit-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
   color: #fff;
   transform: translateY(-1px);
 }
-.tiptap-fullscreen-exit-btn:active {
+
+.tiptap-fullscreen .fullscreen-exit-btn:active {
   transform: translateY(0);
 }
 
-.tiptap-fullscreen-exit-icon {
-  font-size: 13px;
-  line-height: 1;
+/* Fullscreen window dragging support */
+.tiptap-fullscreen-drag-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  z-index: 1050;
+  -webkit-app-region: drag;
+  background: transparent;
 }
 
-.tiptap-fullscreen-exit-label {
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-}

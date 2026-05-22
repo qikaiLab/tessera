@@ -11,6 +11,13 @@ export function AppProvider({ children }) {
   const [isInitialized, setIsInitialized] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
 
+  // Typesetting Settings
+  const [fullscreenWidthMode, setFullscreenWidthMode] = useState('standard')
+  const [fullscreenStandardWidth, setFullscreenStandardWidth] = useState('700px')
+  const [fullscreenWideWidth, setFullscreenWideWidth] = useState('1000px')
+  const [editorLineHeight, setEditorLineHeight] = useState('1.8')
+  const [editorLetterSpacing, setEditorLetterSpacing] = useState('0px')
+
   // Initialize
   useEffect(() => {
     async function init() {
@@ -19,6 +26,13 @@ export function AppProvider({ children }) {
         const savedTheme = cfg.theme || 'dark'
         setTheme(savedTheme)
         document.documentElement.setAttribute('data-theme', savedTheme)
+
+        // Load typesetting config
+        setFullscreenWidthMode(cfg.fullscreenWidthMode || 'standard')
+        setFullscreenStandardWidth(cfg.fullscreenStandardWidth || '700px')
+        setFullscreenWideWidth(cfg.fullscreenWideWidth || '1000px')
+        setEditorLineHeight(cfg.editorLineHeight || '1.8')
+        setEditorLetterSpacing(cfg.editorLetterSpacing || '0px')
 
         const dir = await window.api.config.getDataDir()
         setDataDir(dir)
@@ -68,6 +82,31 @@ export function AppProvider({ children }) {
     document.documentElement.setAttribute('data-theme', next)
     window.api.config.set('theme', next)
   }, [theme])
+
+  const updateFullscreenWidthMode = useCallback((val) => {
+    setFullscreenWidthMode(val)
+    window.api.config.set('fullscreenWidthMode', val)
+  }, [])
+
+  const updateFullscreenStandardWidth = useCallback((val) => {
+    setFullscreenStandardWidth(val)
+    window.api.config.set('fullscreenStandardWidth', val)
+  }, [])
+
+  const updateFullscreenWideWidth = useCallback((val) => {
+    setFullscreenWideWidth(val)
+    window.api.config.set('fullscreenWideWidth', val)
+  }, [])
+
+  const updateEditorLineHeight = useCallback((val) => {
+    setEditorLineHeight(val)
+    window.api.config.set('editorLineHeight', val)
+  }, [])
+
+  const updateEditorLetterSpacing = useCallback((val) => {
+    setEditorLetterSpacing(val)
+    window.api.config.set('editorLetterSpacing', val)
+  }, [])
 
   const showToast = useCallback((message, type = 'info', duration = 3000) => {
     const id = Date.now() + Math.random()
@@ -155,7 +194,12 @@ export function AppProvider({ children }) {
       dataDir, setDataDir,
       isInitialized,
       selectedDate, setSelectedDate,
-      readDayData, writeDayData
+      readDayData, writeDayData,
+      fullscreenWidthMode, updateFullscreenWidthMode,
+      fullscreenStandardWidth, updateFullscreenStandardWidth,
+      fullscreenWideWidth, updateFullscreenWideWidth,
+      editorLineHeight, updateEditorLineHeight,
+      editorLetterSpacing, updateEditorLetterSpacing
     }}>
       {children}
     </AppContext.Provider>

@@ -290,6 +290,16 @@ export default function Today() {
 }
 
 function SectionCard({ section, value, onChange, animationDelay, isFullScreen, onToggleFullScreen, onSave }) {
+  const [charCount, setCharCount] = useState(0)
+  const [fontSize, setFontSize] = useState(() => {
+    return parseInt(localStorage.getItem('mototrace_font_size') || '14', 10)
+  })
+
+  const handleFontSizeChange = (size) => {
+    setFontSize(size)
+    localStorage.setItem('mototrace_font_size', String(size))
+  }
+
   // Parse persisted JSON string back to object for Tiptap
   const parsedValue = React.useMemo(() => {
     if (section.type !== 'text') return value
@@ -306,34 +316,87 @@ function SectionCard({ section, value, onChange, animationDelay, isFullScreen, o
     }
   }, [value, section.type])
 
+  if (section.type === 'number') {
+    return (
+      <div
+        className="section-card number-card"
+        style={{ animationDelay: `${animationDelay}ms` }}
+      >
+        <div className="number-card-content">
+          <div className="number-card-left">
+            <span className="section-card-title">{section.name}</span>
+            <span className={`section-type-badge ${section.resident ? 'resident' : 'activated'}`}>
+              {section.resident ? '常驻' : '激发'}
+            </span>
+          </div>
+          <div className="number-card-right">
+            <NumberInput
+              value={value}
+              unit={section.unit}
+              onChange={onChange}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className={`section-card ${isFullScreen ? 'fullscreen-active-parent' : ''}`}
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div className="section-card-header">
-        <span className="section-card-title">{section.name}</span>
-        <span className={`section-type-badge ${section.resident ? 'resident' : 'activated'}`}>
-          {section.resident ? '常驻' : '激发'}
-        </span>
-      </div>
-      <div className={`section-card-body ${section.type === 'text' ? 'text-editor-body' : ''}`}>
-        {section.type === 'text' ? (
-          <TiptapEditor
-            value={parsedValue}
-            onChange={onChange}
-            placeholder={`记录你的${section.name}...`}
-            isFullScreen={isFullScreen}
-            onToggleFullScreen={onToggleFullScreen}
-            onSave={onSave}
-          />
-        ) : (
-          <NumberInput
-            value={value}
-            unit={section.unit}
-            onChange={onChange}
-          />
+        <div className="section-card-header-left">
+          <span className="section-card-title">{section.name}</span>
+          <span className={`section-type-badge ${section.resident ? 'resident' : 'activated'}`}>
+            {section.resident ? '常驻' : '激发'}
+          </span>
+        </div>
+        {!isFullScreen && (
+          <div className="section-card-header-right">
+            <span className="char-count-badge">{charCount} 字</span>
+            <div className="card-font-controls">
+              <button
+                className="btn btn-ghost btn-xs font-ctrl-btn"
+                onClick={() => handleFontSizeChange(Math.max(12, fontSize - 1))}
+                title="缩小字体"
+              >
+                A−
+              </button>
+              <span className="font-ctrl-label">{fontSize}</span>
+              <button
+                className="btn btn-ghost btn-xs font-ctrl-btn"
+                onClick={() => handleFontSizeChange(Math.min(24, fontSize + 1))}
+                title="放大字体"
+              >
+                A+
+              </button>
+            </div>
+            {onToggleFullScreen && (
+              <button
+                className="btn btn-ghost btn-xs btn-icon fullscreen-btn"
+                onClick={onToggleFullScreen}
+                title="全屏写作 (专注模式)"
+              >
+                ⛶
+              </button>
+            )}
+          </div>
         )}
+      </div>
+      <div className="section-card-body text-editor-body">
+        <TiptapEditor
+          value={parsedValue}
+          onChange={onChange}
+          placeholder={`记录你的${section.name}...`}
+          isFullScreen={isFullScreen}
+          onToggleFullScreen={onToggleFullScreen}
+          onSave={onSave}
+          fontSize={fontSize}
+          onFontSizeChange={handleFontSizeChange}
+          onCharCountChange={setCharCount}
+        />
       </div>
     </div>
   )

@@ -9,6 +9,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { Extension } from '@tiptap/core'
 import { BubbleToolbar } from './BubbleToolbar'
 import { SlashExtension } from './slashExtension'
+import { useApp } from '../../context/AppContext'
 import './TiptapEditor.css'
 
 // Custom save extension (Ctrl+S / Cmd+S)
@@ -98,23 +99,49 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     isFullScreen = false,
     onToggleFullScreen,
     onSave,
+    fontSize = 14,
+    onFontSizeChange,
+    onCharCountChange,
   },
   ref
 ) {
+  const {
+    fullscreenWidthMode,
+    updateFullscreenWidthMode,
+    fullscreenStandardWidth,
+    fullscreenWideWidth,
+    editorLineHeight,
+    editorLetterSpacing
+  } = useApp()
+
   const onSaveRef = useRef(onSave)
   const onChangeRef = useRef(onChange)
   const isExternalUpdateRef = useRef(false)
 
+  const formatCSSWidth = (val, fallback = '700px') => {
+    if (!val) return fallback
+    const trimmed = val.trim()
+    if (/^\d+$/.test(trimmed)) {
+      return trimmed + 'px'
+    }
+    return trimmed
+  }
+
+  const formatCSSLetterSpacing = (val, fallback = '0px') => {
+    if (!val) return fallback
+    const trimmed = val.trim()
+    if (/^\d+(\.\d+)?$/.test(trimmed)) {
+      return trimmed + 'px'
+    }
+    return trimmed
+  }
+
+  const currentMaxWidth = fullscreenWidthMode === 'wide'
+    ? formatCSSWidth(fullscreenWideWidth, '1000px')
+    : formatCSSWidth(fullscreenStandardWidth, '700px')
+
   useEffect(() => { onSaveRef.current = onSave }, [onSave])
   useEffect(() => { onChangeRef.current = onChange }, [onChange])
-
-  const [fontSize, setFontSize] = useState(() => {
-    return parseInt(localStorage.getItem('mototrace_font_size') || '14', 10)
-  })
-
-  useEffect(() => {
-    localStorage.setItem('mototrace_font_size', String(fontSize))
-  }, [fontSize])
 
   const editor = useEditor({
     extensions: [
@@ -168,17 +195,21 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     },
   }))
 
-  // Sync external value (e.g., date change)
-  const prevValueRef = useRef(value)
+  // Sync external value (e.g., date change).
+  // Fix: compare against editor's *live* content via getJSON() instead of a
+  // stale prevValueRef. After user input, onUpdate → onChange(json) → parent
+  // re-renders with the same JSON as `value`. At that point editor.getJSON()
+  // already equals value, so setContent is skipped and the cursor is preserved.
+  // setContent is only called when the value truly changed externally (e.g.,
+  // the user navigated to a different date).
   useEffect(() => {
     if (!editor) return
-    // Deep equality check using JSON string
-    const prevStr = JSON.stringify(prevValueRef.current)
-    const nextStr = JSON.stringify(value)
-    if (prevStr !== nextStr) {
-      prevValueRef.current = value
+    const nextContent = value || { type: 'doc', content: [{ type: 'paragraph' }] }
+    const currentStr = JSON.stringify(editor.getJSON())
+    const nextStr    = JSON.stringify(nextContent)
+    if (currentStr !== nextStr) {
       isExternalUpdateRef.current = true
-      editor.commands.setContent(value || { type: 'doc', content: [{ type: 'paragraph' }] })
+      editor.commands.setContent(nextContent)
       isExternalUpdateRef.current = false
     }
   }, [value, editor])
@@ -204,66 +235,74 @@ const TiptapEditor = forwardRef(function TiptapEditor(
 
   const charCount = countChars(editor)
 
+  useEffect(() => {
+    onCharCountChange?.(charCount)
+  }, [charCount, onCharCountChange])
+
   return (
     <div className={`tiptap-shell ${isFullScreen ? 'tiptap-fullscreen' : ''}`}>
+      {isFullScreen && <div className="tiptap-fullscreen-drag-handle" />}
+
       {/* Bubble Menu */}
       <BubbleToolbar editor={editor} />
 
-      {/* Fullscreen exit overlay button */}
+      {/* Fullscreen Header (instead of floating close button + bottom footer) */}
       {isFullScreen && (
+        <div className="tiptap-fullscreen-header" style={{ maxWidth: currentMaxWidth }}>
+          <span className="tiptap-char-count">{charCount} 字</span>
+          <div className="tiptap-fullscreen-header-actions">
+            <button
+              className="btn btn-ghost btn-xs tiptap-width-toggle"
+              onClick={() => updateFullscreenWidthMode(fullscreenWidthMode === 'standard' ? 'wide' : 'standard')}
+              title={fullscreenWidthMode === 'standard' ? '切换为宽幅宽度' : '切换为标准行宽'}
+              style={{ marginRight: '8px' }}
+            >
+              {fullscreenWidthMode === 'standard' ? '↔ 宽屏' : '→← 标准'}
+            </button>
+            <span className="tiptap-font-controls">
+              <button
+                className="btn btn-ghost btn-xs"
+                onClick={() => onFontSizeChange?.(Math.max(12, fontSize - 1))}
+                title="缩小字体"
+              >
+                A−
+              </button>
+              <span className="tiptap-font-label">{fontSize}</span>
+              <button
+                className="btn btn-ghost btn-xs"
+                onClick={() => onFontSizeChange?.(Math.min(24, fontSize + 1))}
+                title="放大字体"
+              >
+                A+
+              </button>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Button at the very top right of the viewport */}
+      {isFullScreen && onToggleFullScreen && (
         <button
-          className="tiptap-fullscreen-exit-btn"
+          className="fullscreen-exit-btn"
           onClick={handleToggleFullScreen}
           title="退出全屏 (Esc)"
         >
-          <span className="tiptap-fullscreen-exit-icon">✕</span>
-          <span className="tiptap-fullscreen-exit-label">退出全屏</span>
+          ✕ 退出全屏
         </button>
       )}
 
       {/* Editor Area */}
       <div
         className="tiptap-editor-wrapper"
-        style={{ fontSize: `${fontSize}px` }}
+        style={{
+          fontSize: `${fontSize}px`,
+          maxWidth: isFullScreen ? currentMaxWidth : undefined,
+          '--editor-line-height': editorLineHeight || '1.8',
+          '--editor-letter-spacing': formatCSSLetterSpacing(editorLetterSpacing, '0px')
+        }}
         onClick={() => editor?.commands.focus()}
       >
         <EditorContent editor={editor} />
-      </div>
-
-      {/* Footer */}
-      <div className="tiptap-footer">
-        <span className="tiptap-char-count">{charCount} 字</span>
-        <div className="tiptap-footer-actions">
-          {!isFullScreen && (
-            <span className="tiptap-hint">输入 <kbd>/</kbd> 插入块 &nbsp;·&nbsp; <kbd>Mod+↵</kbd> 跳出块</span>
-          )}
-          <span className="tiptap-font-controls">
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => setFontSize(s => Math.max(12, s - 1))}
-              title="缩小字体"
-            >
-              A−
-            </button>
-            <span className="tiptap-font-label">{fontSize}</span>
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => setFontSize(s => Math.min(24, s + 1))}
-              title="放大字体"
-            >
-              A+
-            </button>
-          </span>
-          {onToggleFullScreen && (
-            <button
-              className="btn btn-ghost btn-xs btn-icon"
-              onClick={handleToggleFullScreen}
-              title={isFullScreen ? '退出全屏 (Esc)' : '全屏写作 (专注模式)'}
-            >
-              {isFullScreen ? '↙' : '↗'}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   )

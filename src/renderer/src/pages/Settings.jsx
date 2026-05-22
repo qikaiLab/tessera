@@ -10,7 +10,13 @@ import JSZip from 'jszip'
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
 
 export default function Settings() {
-  const { sections, saveSections, dataDir, setDataDir, showToast, refreshDates, datesWithData, readDayData } = useApp()
+  const {
+    sections, saveSections, dataDir, setDataDir, showToast, refreshDates, datesWithData, readDayData,
+    fullscreenStandardWidth, updateFullscreenStandardWidth,
+    fullscreenWideWidth, updateFullscreenWideWidth,
+    editorLineHeight, updateEditorLineHeight,
+    editorLetterSpacing, updateEditorLetterSpacing
+  } = useApp()
   const [backups, setBackups] = useState([])
   const [backingUp, setBackingUp] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -276,6 +282,62 @@ export default function Settings() {
             )}
             <button className="btn btn-secondary" type="submit">添加版块</button>
           </form>
+        </div>
+
+        {/* Editor Typesetting Settings */}
+        <div className="settings-card animate-fade-in">
+          <div className="settings-card-title">编辑器排版设置</div>
+          <div className="settings-card-desc">自定义日记与文本编辑器在沉浸式全屏及常规模式下的排版显示效果。</div>
+          
+          <div className="settings-typesetting-grid">
+            <div className="settings-field">
+              <label className="settings-field-label">标准行宽 (标准模式)</label>
+              <input
+                className="input settings-field-input"
+                type="text"
+                placeholder="700px"
+                value={fullscreenStandardWidth}
+                onChange={e => updateFullscreenStandardWidth(e.target.value)}
+              />
+              <span className="settings-field-tip">全屏模式下的常规宽度 (例如: 700px)</span>
+            </div>
+
+            <div className="settings-field">
+              <label className="settings-field-label">宽屏行宽 (宽屏模式)</label>
+              <input
+                className="input settings-field-input"
+                type="text"
+                placeholder="1000px"
+                value={fullscreenWideWidth}
+                onChange={e => updateFullscreenWideWidth(e.target.value)}
+              />
+              <span className="settings-field-tip">全屏模式下的宽幅宽度 (例如: 1000px 或 90%)</span>
+            </div>
+
+            <div className="settings-field">
+              <label className="settings-field-label">行间距 (行高比例)</label>
+              <input
+                className="input settings-field-input"
+                type="text"
+                placeholder="1.8"
+                value={editorLineHeight}
+                onChange={e => updateEditorLineHeight(e.target.value)}
+              />
+              <span className="settings-field-tip">正文行高比例 (无单位数值，如: 1.8)</span>
+            </div>
+
+            <div className="settings-field">
+              <label className="settings-field-label">字间距 (字元额外间距)</label>
+              <input
+                className="input settings-field-input"
+                type="text"
+                placeholder="0px"
+                value={editorLetterSpacing}
+                onChange={e => updateEditorLetterSpacing(e.target.value)}
+              />
+              <span className="settings-field-tip">字与字之间的间距 (支持 em/px，如: 0.02em 或 0.5px，默认 0px)</span>
+            </div>
+          </div>
         </div>
 
         {/* Storage Management */}

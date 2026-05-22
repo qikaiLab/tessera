@@ -89,34 +89,48 @@ export const slashCommands = [
 /**
  * Smart position function: places the menu at cursor, but flips above if
  * it would overflow the viewport bottom, and clamps horizontally.
+ *
+ * Fix: use container.offsetHeight (actual rendered height) rather than the
+ * hardcoded MENU_MAX_HEIGHT fallback so the flip threshold is always exact.
+ * On first call the element may not be in the DOM yet, so we fall back to
+ * the CSS max-height (340 px) only in that case.
  */
 function getSmartPosition(rect, container) {
-  const MENU_WIDTH = 260
-  const MENU_MAX_HEIGHT = 340 // matches CSS max-height
-  const GAP = 8
+  const MENU_WIDTH     = 260
+  const MENU_MAX_HEIGHT = 340  // mirrors CSS max-height — fallback only
+  const GAP            = 8
   const VIEWPORT_MARGIN = 8
 
   const viewportW = window.innerWidth
   const viewportH = window.innerHeight
 
-  // Horizontal: start at cursor left, then clamp
+  // Actual rendered height if available, otherwise conservative fallback
+  const menuH = (container && container.offsetHeight > 0)
+    ? container.offsetHeight
+    : MENU_MAX_HEIGHT
+
+  // ── Horizontal: start at cursor left, then clamp ──────────────────────────
   let left = rect.left
   if (left + MENU_WIDTH > viewportW - VIEWPORT_MARGIN) {
     left = viewportW - MENU_WIDTH - VIEWPORT_MARGIN
   }
   left = Math.max(VIEWPORT_MARGIN, left)
 
-  // Vertical: prefer below cursor; flip above if not enough space
-  let top
+  // ── Vertical: prefer below cursor; flip above when space is insufficient ──
   const spaceBelow = viewportH - rect.bottom - GAP
-  const spaceAbove = rect.top - GAP
+  const spaceAbove = rect.top   - GAP
 
-  if (spaceBelow >= Math.min(MENU_MAX_HEIGHT, 200) || spaceBelow >= spaceAbove) {
-    // Show below
+  let top
+  if (spaceBelow >= menuH || spaceBelow >= spaceAbove) {
+    // Enough room below (or more than above) → show below
     top = rect.bottom + GAP
+    // Hard-clamp: if menu would still overflow the bottom, pull it up
+    if (top + menuH > viewportH - VIEWPORT_MARGIN) {
+      top = viewportH - menuH - VIEWPORT_MARGIN
+    }
   } else {
-    // Show above — anchor to menu bottom
-    top = rect.top - GAP - Math.min(MENU_MAX_HEIGHT, spaceAbove)
+    // Flip above — anchor bottom of menu to cursor top
+    top = rect.top - GAP - menuH
     top = Math.max(VIEWPORT_MARGIN, top)
   }
 
@@ -166,9 +180,12 @@ export const SlashExtension = Extension.create({
               if (props.clientRect) {
                 const rect = props.clientRect()
                 if (rect) {
-                  const { left, top } = getSmartPosition(rect, container)
-                  container.style.left = `${left}px`
-                  container.style.top = `${top}px`
+                  // Re-run after one frame so container.offsetHeight is available
+                  requestAnimationFrame(() => {
+                    const { left, top } = getSmartPosition(rect, container)
+                    container.style.left = `${left}px`
+                    container.style.top  = `${top}px`
+                  })
                 }
               }
             },

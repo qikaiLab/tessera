@@ -538,9 +538,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-3) var(--spacing-4);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-surface-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--bg-surface);
+  position: relative;
+}
+
+.section-card-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: var(--spacing-4);
+  right: var(--spacing-4);
+  border-bottom: 1px dashed var(--border);
 }
 
 .section-card-title {

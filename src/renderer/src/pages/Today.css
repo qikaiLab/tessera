@@ -115,14 +115,21 @@
 }
 
 .section-type-badge {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
-  padding: 2px 6px;
+  padding: 1px 6px;
   border-radius: var(--radius-full);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
 }
-.section-type-badge.resident { background: var(--accent-light); color: var(--accent); }
-.section-type-badge.activated { background: var(--success-light); color: var(--success); }
+.section-type-badge.resident {
+  background: rgba(124, 106, 255, 0.08);
+  color: rgba(124, 106, 255, 0.85);
+}
+.section-type-badge.activated {
+  background: rgba(52, 211, 153, 0.08);
+  color: rgba(52, 211, 153, 0.85);
+}
 
 /* Number input */
 .num-btn {
@@ -204,4 +211,119 @@
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-light);
+}
+
+/* Merged Card Header layout */
+.section-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.section-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.char-count-badge {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.card-font-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+.font-ctrl-btn {
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 10px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.font-ctrl-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.font-ctrl-label {
+  font-size: 10px;
+  min-width: 14px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.fullscreen-btn {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.fullscreen-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Number Card (Slim Bar) */
+.section-card.number-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.number-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--bg-surface);
+  height: 52px;
+}
+
+.number-card-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.number-card-right {
+  display: flex;
+  align-items: center;
+}
+
+/* Refined Number Input sizing to fit slim layout */
+.number-card-right .number-input-wrap {
+  gap: 4px;
+}
+
+.number-card-right .number-input {
+  width: 70px;
+  height: 28px;
+  font-size: var(--text-md);
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.number-card-right .num-btn {
+  width: 28px;
+  height: 28px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+.number-card-right .number-unit {
+  font-size: var(--text-xs);
+  margin-left: 4px;
+  color: var(--text-secondary);
 }
