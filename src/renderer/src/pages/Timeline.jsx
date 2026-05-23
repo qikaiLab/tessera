@@ -65,7 +65,7 @@ function getSnippet(text, query, maxLen = 120) {
 
 export default function Timeline() {
   const navigate = useNavigate()
-  const { sections, datesWithData, readDayData, setSelectedDate } = useApp()
+  const { sections, datesWithData, readDayData, setSelectedDate, showToast, refreshDates } = useApp()
   const [query, setQuery] = useState('')
   const [filterSection, setFilterSection] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
@@ -73,6 +73,10 @@ export default function Timeline() {
   const [cards, setCards] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadedDates, setLoadedDates] = useState({})
+
+  // Management states
+  const [isManageMode, setIsManageMode] = useState(false)
+  const [selectedDates, setSelectedDates] = useState(new Set())
 
   // Load all day data
   useEffect(() => {
@@ -162,6 +166,58 @@ export default function Timeline() {
     navigate('/today')
   }
 
+  const handleToggleSelect = (dateStr) => {
+    setSelectedDates(prev => {
+      const next = new Set(prev)
+      if (next.has(dateStr)) {
+        next.delete(dateStr)
+      } else {
+        next.add(dateStr)
+      }
+      return next
+    })
+  }
+
+  const handleSelectAll = () => {
+    setSelectedDates(prev => {
+      if (prev.size === filteredCards.length) {
+        return new Set()
+      } else {
+        return new Set(filteredCards.map(c => c.dateStr))
+      }
+    })
+  }
+
+  const handleBatchDelete = async () => {
+    if (selectedDates.size === 0) return
+    const count = selectedDates.size
+    const confirmMsg = `确定要删除所选的这 ${count} 天的全部记录吗？该操作将永久物理删除文件，且无法撤销！`
+    if (!window.confirm(confirmMsg)) return
+
+    setLoading(true)
+    try {
+      const promises = Array.from(selectedDates).map(dateStr => {
+        const [year, month, day] = dateStr.split('-')
+        const filePath = `${year}/${month}/${day}.json`
+        return window.api.fs.deleteFile(filePath)
+      })
+      await Promise.all(promises)
+
+      // Refresh the date list in context
+      await refreshDates()
+
+      // Clear selection and exit management mode
+      setSelectedDates(new Set())
+      setIsManageMode(false)
+      showToast(`成功删除 ${count} 天的记录`, 'success')
+    } catch (e) {
+      console.error(e)
+      showToast('删除失败', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Easter egg: trigger on specific search keywords
   const easterEggKeywords = ['亓开', '朱琳']
   const easterEggActive = easterEggKeywords.some(kw => query.trimEnd() === kw)
@@ -218,6 +274,16 @@ export default function Timeline() {
           placeholder="结束日期"
           title="结束日期"
         />
+        <button
+          className={`btn btn-sm ${isManageMode ? 'btn-secondary' : 'btn-ghost'}`}
+          onClick={() => {
+            setIsManageMode(!isManageMode)
+            setSelectedDates(new Set())
+          }}
+          title={isManageMode ? "退出管理" : "管理时间线"}
+        >
+          {isManageMode ? '退出管理' : '⚙ 管理'}
+        </button>
         {(query || filterSection !== 'all' || dateFrom || dateTo) && (
           <button
             className="btn btn-ghost btn-sm"
@@ -227,6 +293,27 @@ export default function Timeline() {
           </button>
         )}
       </div>
+
+      {/* Sticky Manage Bar */}
+      {isManageMode && (
+        <div className="timeline-manage-bar">
+          <div className="manage-info">
+            已选择 <strong className="selected-count">{selectedDates.size}</strong> 天记录
+          </div>
+          <div className="manage-actions">
+            <button className="btn btn-ghost btn-sm" onClick={handleSelectAll}>
+              {selectedDates.size === filteredCards.length ? '取消全选' : '全选'}
+            </button>
+            <button
+              className="btn btn-danger btn-sm"
+              disabled={selectedDates.size === 0}
+              onClick={handleBatchDelete}
+            >
+              🗑 批量删除
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* List */}
       <div className="timeline-list">
@@ -255,6 +342,9 @@ export default function Timeline() {
                 onClick={() => handleCardClick(card.dateStr)}
                 filterSection={filterSection}
                 sections={sections}
+                isManageMode={isManageMode}
+                isSelected={selectedDates.has(card.dateStr)}
+                onToggleSelect={() => handleToggleSelect(card.dateStr)}
               />
             ))}
           </>
@@ -264,15 +354,31 @@ export default function Timeline() {
   )
 }
 
-function TimelineCard({ card, query, onClick, filterSection, sections }) {
+function TimelineCard({ card, query, onClick, filterSection, sections, isManageMode, isSelected, onToggleSelect }) {
   const { dateStr, totalWords, recordedSections, sectionResults, dayData } = card
   const date = parseISO(dateStr)
   const dayOfWeek = format(date, 'EEEE', { locale: zhCN })
   const dateDisplay = format(date, 'MM月dd日')
   const yearDisplay = format(date, 'yyyy年')
 
+  const handleCardClick = (e) => {
+    if (isManageMode) {
+      e.stopPropagation()
+      onToggleSelect()
+    } else {
+      onClick()
+    }
+  }
+
   return (
-    <div className="timeline-card animate-fade-in" onClick={onClick}>
+    <div className={`timeline-card animate-fade-in ${isManageMode ? 'manage-mode-card' : ''} ${isSelected ? 'selected' : ''}`} onClick={handleCardClick}>
+      {isManageMode && (
+        <div className={`tl-card-checkbox-custom ${isSelected ? 'selected' : ''}`} onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}>
+          <div className="checkbox-inner">
+            {isSelected && '✓'}
+          </div>
+        </div>
+      )}
       <div className="timeline-card-date">
         <span className="tl-date-main">{dateDisplay}</span>
         <span className="tl-date-week">{dayOfWeek}</span>
@@ -288,10 +394,6 @@ function TimelineCard({ card, query, onClick, filterSection, sections }) {
                   <span
                     key={sec.id}
                     className="tl-section-tag"
-                    style={sec.color ? {
-                      borderLeft: `3px solid ${sec.color}`,
-                      paddingLeft: '6px',
-                    } : undefined}
                   >
                     {sec.color && (
                       <span
