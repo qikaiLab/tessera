@@ -292,6 +292,15 @@ export function AppProvider({ children }) {
     return result
   }, [datesWithData])
 
+  // Custom Confirmation Dialog State
+  const [confirmConfig, setConfirmConfig] = useState(null)
+
+  const confirm = useCallback(({ message, title = '提示', confirmText = '确定', cancelText = '取消', danger = false }) => {
+    return new Promise((resolve) => {
+      setConfirmConfig({ message, title, confirmText, cancelText, danger, resolve })
+    })
+  }, [])
+
   return (
     <AppContext.Provider value={{
       theme, toggleTheme,
@@ -308,9 +317,37 @@ export function AppProvider({ children }) {
       editorLineHeight, updateEditorLineHeight,
       editorLetterSpacing, updateEditorLetterSpacing,
       countdowns, saveCountdowns,
-      analytics, saveAnalytics
+      analytics, saveAnalytics,
+      confirm
     }}>
       {children}
+      {confirmConfig && (
+        <div className="modal-overlay" onClick={() => { confirmConfig.resolve(false); setConfirmConfig(null); }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <div className="modal-header">
+              <span className="modal-title">{confirmConfig.title}</span>
+              <button className="btn btn-ghost btn-icon" onClick={() => { confirmConfig.resolve(false); setConfirmConfig(null); }}>✕</button>
+            </div>
+            <div style={{ marginBottom: 20, color: 'var(--text-primary)', lineHeight: 1.6 }}>
+              {confirmConfig.message.split('\n').map((line, idx) => (
+                <p key={idx} style={{ marginTop: idx > 0 ? 8 : 0 }}>{line}</p>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-ghost" onClick={() => { confirmConfig.resolve(false); setConfirmConfig(null); }}>
+                {confirmConfig.cancelText}
+              </button>
+              <button 
+                className="btn btn-primary" 
+                style={confirmConfig.danger ? { background: 'var(--error)' } : {}} 
+                onClick={() => { confirmConfig.resolve(true); setConfirmConfig(null); }}
+              >
+                {confirmConfig.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppContext.Provider>
   )
 }

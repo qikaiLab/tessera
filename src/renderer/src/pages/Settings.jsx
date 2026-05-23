@@ -15,7 +15,8 @@ export default function Settings() {
     fullscreenStandardWidth, updateFullscreenStandardWidth,
     fullscreenWideWidth, updateFullscreenWideWidth,
     editorLineHeight, updateEditorLineHeight,
-    editorLetterSpacing, updateEditorLetterSpacing
+    editorLetterSpacing, updateEditorLetterSpacing,
+    confirm
   } = useApp()
   const [backups, setBackups] = useState([])
   const [backingUp, setBackingUp] = useState(false)
@@ -121,9 +122,11 @@ export default function Settings() {
     const dir = await window.api.dialog.openDirectory()
     if (dir) {
       await window.api.config.setDataDir(dir)
-      const confirmed = await window.api.dialog.confirm({
+      const confirmed = await confirm({
         message: '已更改数据目录，是否立即重启软件以加载新目录的数据？',
-        title: '提示'
+        title: '需要重启',
+        confirmText: '立即重启',
+        cancelText: '稍后重启'
       })
       if (confirmed) {
         window.api.window.close() // Close app, expect user to reopen

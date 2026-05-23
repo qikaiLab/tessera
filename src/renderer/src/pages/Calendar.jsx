@@ -16,7 +16,7 @@ const VIEW_LABELS = { month: '月', week: '周', year: '年' }
 
 export default function Calendar() {
   const navigate = useNavigate()
-  const { datesWithData, selectedDate, setSelectedDate, countdowns, saveCountdowns } = useApp()
+  const { datesWithData, selectedDate, setSelectedDate, countdowns, saveCountdowns, confirm } = useApp()
   const [view, setView] = useState('month')
   const [cursor, setCursor] = useState(new Date())
   const [showCountdownModal, setShowCountdownModal] = useState(false)
@@ -278,9 +278,11 @@ function CountdownModal({ countdowns, onSave, onClose }) {
       const msg = newName && newDate
         ? `您填写了「${newName}」但还未点击「添加」，是否先将其添加再保存？`
         : '您有未完成的倒数日信息还未添加，是否直接保存（填写内容将被丢弃）？'
-      const confirmed = await window.api.dialog.confirm({
-        message: msg + '\n\n点击「确定」先添加该条目，点击「取消」直接保存。',
-        title: '提示'
+      const confirmed = await confirm({
+        message: msg,
+        title: '保存确认',
+        confirmText: '添加并保存',
+        cancelText: '直接保存'
       })
       if (confirmed) {
         if (newName && newDate) {

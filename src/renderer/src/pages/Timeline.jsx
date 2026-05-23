@@ -45,6 +45,12 @@ function extractTextFromNode(node) {
   return ''
 }
 
+function isValueEmpty(val) {
+  if (val === undefined || val === null) return true
+  const text = extractText(val).trim()
+  return text === ''
+}
+
 function highlightText(text, query) {
   if (!query || !text) return text
   const re = new RegExp(`(${escapeRegex(query)})`, 'gi')
@@ -65,7 +71,7 @@ function getSnippet(text, query, maxLen = 120) {
 
 export default function Timeline() {
   const navigate = useNavigate()
-  const { sections, datesWithData, readDayData, setSelectedDate, showToast, refreshDates } = useApp()
+  const { sections, datesWithData, readDayData, writeDayData, setSelectedDate, showToast, refreshDates, confirm } = useApp()
   const [query, setQuery] = useState('')
   const [filterSection, setFilterSection] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
@@ -191,21 +197,63 @@ export default function Timeline() {
   const handleBatchDelete = async () => {
     if (selectedDates.size === 0) return
     const count = selectedDates.size
-    const confirmMsg = `确定要删除所选的这 ${count} 天的全部记录吗？该操作将永久物理删除文件，且无法撤销！`
-    const confirmed = await window.api.dialog.confirm({
-      message: confirmMsg,
-      title: '确认删除'
-    })
+    
+    let confirmed = false
+    if (filterSection === 'all') {
+      const confirmMsg = `确定要删除所选的这 ${count} 天的全部记录吗？\n该操作将永久物理删除文件，且无法撤销！`
+      confirmed = await confirm({
+        message: confirmMsg,
+        title: '确认删除',
+        confirmText: '确定删除',
+        danger: true
+      })
+    } else {
+      const section = sections.find(s => s.id === filterSection)
+      const secName = section?.name || filterSection
+      const confirmMsg = `确定要清除所选这 ${count} 天的「${secName}」版块数据吗？\n其他版块的内容将会被保留。`
+      confirmed = await confirm({
+        message: confirmMsg,
+        title: '确认清除版块',
+        confirmText: '确定清除',
+        danger: true
+      })
+    }
+    
     if (!confirmed) return
 
     setLoading(true)
     try {
-      const promises = Array.from(selectedDates).map(dateStr => {
-        const [year, month, day] = dateStr.split('-')
-        const filePath = `${year}/${month}/${day}.json`
-        return window.api.fs.deleteFile(filePath)
-      })
-      await Promise.all(promises)
+      if (filterSection === 'all') {
+        const promises = Array.from(selectedDates).map(dateStr => {
+          const [year, month, day] = dateStr.split('-')
+          const filePath = `${year}/${month}/${day}.json`
+          return window.api.fs.deleteFile(filePath)
+        })
+        await Promise.all(promises)
+        showToast(`成功删除 ${count} 天的记录`, 'success')
+      } else {
+        const section = sections.find(s => s.id === filterSection)
+        const secName = section?.name || filterSection
+        const promises = Array.from(selectedDates).map(async (dateStr) => {
+          const dayData = loadedDates[dateStr] || {}
+          const updatedData = { ...dayData }
+          delete updatedData[filterSection]
+          
+          const hasContentLeft = Object.values(updatedData).some(
+            entry => entry?.value !== undefined && entry?.value !== null && !isValueEmpty(entry.value)
+          )
+          
+          if (hasContentLeft) {
+            return writeDayData(dateStr, updatedData)
+          } else {
+            const [year, month, day] = dateStr.split('-')
+            const filePath = `${year}/${month}/${day}.json`
+            return window.api.fs.deleteFile(filePath)
+          }
+        })
+        await Promise.all(promises)
+        showToast(`成功清除 ${count} 天的「${secName}」数据`, 'success')
+      }
 
       // Refresh the date list in context
       await refreshDates()
@@ -213,7 +261,6 @@ export default function Timeline() {
       // Clear selection and exit management mode
       setSelectedDates(new Set())
       setIsManageMode(false)
-      showToast(`成功删除 ${count} 天的记录`, 'success')
     } catch (e) {
       console.error(e)
       showToast('删除失败', 'error')
