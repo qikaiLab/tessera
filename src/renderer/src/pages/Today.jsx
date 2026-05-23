@@ -65,7 +65,11 @@ export default function Today() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus(STATUS.SAVING)
-      const result = await writeDayData(dateStr, pendingDataRef.current)
+      const dataToSave = pendingDataRef.current
+      saveTimerRef.current = null
+      pendingDataRef.current = null
+      
+      const result = await writeDayData(dateStr, dataToSave)
       if (result.ok) {
         setSaveStatus(STATUS.SAVED)
         refreshDates()
@@ -78,9 +82,14 @@ export default function Today() {
 
   const handleManualSave = useCallback(() => {
     if (pendingDataRef.current) {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
       setSaveStatus(STATUS.SAVING)
-      writeDayData(dateStr, pendingDataRef.current).then(result => {
+      const dataToSave = pendingDataRef.current
+      pendingDataRef.current = null
+      writeDayData(dateStr, dataToSave).then(result => {
         if (result.ok) {
           setSaveStatus(STATUS.SAVED)
           refreshDates()
@@ -117,10 +126,13 @@ export default function Today() {
   const goTo = (date) => {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
       if (pendingDataRef.current) {
         writeDayData(dateStr, pendingDataRef.current)
+        pendingDataRef.current = null
       }
     }
+    pendingDataRef.current = null
     setSelectedDate(date)
   }
 
