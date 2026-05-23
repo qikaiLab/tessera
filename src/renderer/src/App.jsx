@@ -121,7 +121,7 @@ function Sidebar({ onOpenOnboarding }) {
         >
           {theme === 'dark' ? '○' : '●'}
         </button>
-        <span className="sidebar-version">v0.2.1</span>
+        <span className="sidebar-version">v0.2.2</span>
       </div>
     </aside>
   )

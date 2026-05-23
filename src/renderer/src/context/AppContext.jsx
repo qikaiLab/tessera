@@ -2,6 +2,29 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 
 const AppContext = createContext(null)
 
+const isEntryEmpty = (val) => {
+  if (val === undefined || val === null) return true
+  const str = String(val).trim()
+  if (str === '') return true
+  if (str.startsWith('{') && str.endsWith('}')) {
+    try {
+      const doc = JSON.parse(str)
+      if (doc.type === 'doc') {
+        const hasContent = (node) => {
+          if (!node) return false
+          if (node.type === 'text' && node.text && node.text.trim() !== '') return true
+          if (node.content && Array.isArray(node.content)) {
+            return node.content.some(hasContent)
+          }
+          return false
+        }
+        return !hasContent(doc)
+      }
+    } catch {}
+  }
+  return false
+}
+
 export function AppProvider({ children }) {
   const [theme, setTheme] = useState('dark')
   const [sections, setSections] = useState([])
@@ -127,7 +150,7 @@ export function AppProvider({ children }) {
         // Filter out empty entries immediately on read so they don't show up in Today
         const cleaned = {}
         for (const [k, v] of Object.entries(parsed)) {
-           if (v?.value !== undefined && v?.value !== null && String(v?.value).trim() !== '') {
+           if (v?.value !== undefined && v?.value !== null && !isEntryEmpty(v.value)) {
              cleaned[k] = v
            }
         }
@@ -147,7 +170,7 @@ export function AppProvider({ children }) {
     for (const d of rawDates) {
       const dayData = await readDayData(d)
       const hasRealContent = Object.values(dayData).some(
-        entry => entry?.value !== undefined && entry?.value !== null && String(entry?.value).trim() !== ''
+        entry => entry?.value !== undefined && entry?.value !== null && !isEntryEmpty(entry.value)
       )
       if (hasRealContent) validDates.push(d)
     }
@@ -163,7 +186,7 @@ export function AppProvider({ children }) {
     // Clean data before writing: remove completely empty entries
     const cleanedData = {}
     for (const [k, v] of Object.entries(data)) {
-       if (v?.value !== undefined && v?.value !== null && String(v?.value).trim() !== '') {
+       if (v?.value !== undefined && v?.value !== null && !isEntryEmpty(v.value)) {
          cleanedData[k] = v
        }
     }
