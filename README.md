@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.2.3-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
 [![Build](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/release.yml?label=CI%2FCD)](https://github.com/qikaiLab/tessera/actions)
@@ -171,6 +171,49 @@ MotoTrace 将数据安全视为头等大事，采用三层防护：
 ---
 
 ## 📋 更新日志
+
+### v0.2.3 *(2026-05-23)*
+
+**新特性**
+- **配置与数据分离 (metadata.json)**：倒数日配置和图表看板配置正式由浏览器 `localStorage` 迁移至当前数据根目录下的 `metadata.json`。配置文件支持跟随数据文件夹无感拷贝/迁移，并提供平滑的首次启动自动导入与清理机制。
+- **特定版块批量删除**：时间线在「管理模式」下支持对选中日期进行细粒度特定版块删除，其他版块内容不受波及。删除后若某天内容已清空，会自动进行物理文件清理，保持存储纯净。
+- **自定义 React 确认弹窗**：开发了高颜值的自定义确认对话框，提供毛玻璃遮罩、弹出回弹动画并完美响应暗色/亮色主题，替换了原生的 Windows 系统弹窗。
+
+**修复**
+- **焦点丢失修复**：通过 React 自定义弹窗，彻底解决 Electron 无边框窗口下原生弹窗触发的小概率鼠标点击输入框焦点失效 Bug。
+- **日历标点残留修复**：修复了在删除某日全部数据后，日历标点依旧存在不消失的残留 Bug。
+- **日记“传染/泄露”Bug 修复**：修复了前后日来回切换跳转时，旧日记内容小概率被拷贝覆盖到临近无数据日期的问题。
+
+---
+
+### v0.2.2 *(2026-05-22)*
+
+**新特性**
+- **排版个性化设置**：设置页新增全屏宽度、编辑器行高和字距设置，支持全屏无边框窗口的拖动。
+- **时间线版块筛选增强**：在选择特定版块时，会自动隐藏没有记录该版块的卡片，布局更加紧凑。
+
+**优化**
+- 优化了数值版块的卡片布局与对齐，并修复了全部版块合并字数时的统计策略。
+
+---
+
+### v0.2.1 *(2026-05-18)*
+
+**新特性**
+- **版块重命名**：设置页支持对已有版块重命名，并自动关联所有历史 JSON 文件中的 Key 以保证数据连贯。
+- **新增彩蛋触发机制**：时间线模糊搜索特定词汇触发趣味动效。
+- **重名版块检测**：添加新版块时自动校验重名与自动定位逻辑。
+
+---
+
+### v0.2.0 *(2026-05-14)*
+
+**改进与修复**
+- 优化了 CodeMirror 编辑器中文字数实时防抖统计逻辑。
+- 完善了 Markdown 编辑工具栏的功能。
+- 增加了常驻/非常驻版块动态激活切换和 ZIP 数据轮转自动备份功能。
+
+---
 
 ### v0.1.1 *(2026-03-19)*
 
