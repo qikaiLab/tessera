@@ -35,7 +35,8 @@ const api = {
   dialog: {
     openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
     saveFile: (opts) => ipcRenderer.invoke('dialog:saveFile', opts),
-    openFile: (opts) => ipcRenderer.invoke('dialog:openFile', opts)
+    openFile: (opts) => ipcRenderer.invoke('dialog:openFile', opts),
+    confirm: (opts) => ipcRenderer.invoke('dialog:confirm', opts)
   },
   // Backup
   backup: {

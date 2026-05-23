@@ -192,7 +192,11 @@ export default function Timeline() {
     if (selectedDates.size === 0) return
     const count = selectedDates.size
     const confirmMsg = `确定要删除所选的这 ${count} 天的全部记录吗？该操作将永久物理删除文件，且无法撤销！`
-    if (!window.confirm(confirmMsg)) return
+    const confirmed = await window.api.dialog.confirm({
+      message: confirmMsg,
+      title: '确认删除'
+    })
+    if (!confirmed) return
 
     setLoading(true)
     try {

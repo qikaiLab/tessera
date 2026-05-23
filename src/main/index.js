@@ -236,6 +236,19 @@ ipcMain.handle('dialog:openFile', async (_, opts) => {
   return result.canceled ? null : result.filePaths[0]
 })
 
+ipcMain.handle('dialog:confirm', async (_, { message, buttons = ['确定', '取消'], title = '提示' }) => {
+  const { response } = await dialog.showMessageBox(mainWindow, {
+    type: 'question',
+    buttons,
+    defaultId: 0,
+    cancelId: 1,
+    title,
+    message,
+    noLink: true
+  })
+  return response === 0
+})
+
 // Backup
 ipcMain.handle('backup:create', async () => {
   try {

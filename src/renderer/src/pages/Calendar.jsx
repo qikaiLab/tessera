@@ -283,13 +283,17 @@ function CountdownModal({ countdowns, onSave, onClose }) {
   const remove = (id) => setList(prev => prev.filter(c => c.id !== id))
 
   // 任务6: 保存前检查是否有未提交的条目
-  const handleSave = () => {
+  const handleSave = async () => {
     if (newName || newDate) {
       // 用户有未完成的填写，提示是否先添加
       const msg = newName && newDate
         ? `您填写了「${newName}」但还未点击「添加」，是否先将其添加再保存？`
         : '您有未完成的倒数日信息还未添加，是否直接保存（填写内容将被丢弃）？'
-      if (window.confirm(msg + '\n\n点击「确定」先添加该条目，点击「取消」直接保存。')) {
+      const confirmed = await window.api.dialog.confirm({
+        message: msg + '\n\n点击「确定」先添加该条目，点击「取消」直接保存。',
+        title: '提示'
+      })
+      if (confirmed) {
         if (newName && newDate) {
           const item = { id: Date.now(), name: newName, date: newDate, color: newColor }
           onSave([...list, item])

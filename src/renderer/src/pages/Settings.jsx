@@ -121,7 +121,10 @@ export default function Settings() {
     const dir = await window.api.dialog.openDirectory()
     if (dir) {
       await window.api.config.setDataDir(dir)
-      const confirmed = confirm('已更改数据目录，是否立即重启软件以加载新目录的数据？')
+      const confirmed = await window.api.dialog.confirm({
+        message: '已更改数据目录，是否立即重启软件以加载新目录的数据？',
+        title: '提示'
+      })
       if (confirmed) {
         window.api.window.close() // Close app, expect user to reopen
       }
