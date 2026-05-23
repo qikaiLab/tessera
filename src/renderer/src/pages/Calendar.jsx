@@ -16,23 +16,12 @@ const VIEW_LABELS = { month: '月', week: '周', year: '年' }
 
 export default function Calendar() {
   const navigate = useNavigate()
-  const { datesWithData, selectedDate, setSelectedDate } = useApp()
+  const { datesWithData, selectedDate, setSelectedDate, countdowns, saveCountdowns } = useApp()
   const [view, setView] = useState('month')
   const [cursor, setCursor] = useState(new Date())
-  const [countdowns, setCountdowns] = useState(() => {
-    try {
-      const saved = localStorage.getItem('mototrace_countdowns')
-      return saved ? JSON.parse(saved) : []
-    } catch { return [] }
-  })
   const [showCountdownModal, setShowCountdownModal] = useState(false)
 
   const datesSet = useMemo(() => new Set(datesWithData), [datesWithData])
-
-  const saveCountdowns = useCallback((cds) => {
-    setCountdowns(cds)
-    localStorage.setItem('mototrace_countdowns', JSON.stringify(cds))
-  }, [])
 
   const navigate_ = (dir) => {
     setCursor(prev => {

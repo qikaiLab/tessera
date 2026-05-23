@@ -346,6 +346,31 @@ ipcMain.handle('import:readFile', (_, filePath) => {
   }
 })
 
+ipcMain.handle('metadata:get', () => {
+  const metaPath = path.join(dataDir, 'metadata.json')
+  try {
+    if (fs.existsSync(metaPath)) {
+      return { ok: true, data: fs.readFileSync(metaPath, 'utf8') }
+    }
+    return { ok: true, data: JSON.stringify({ countdowns: [], analytics: [] }) }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+ipcMain.handle('metadata:set', (_, content) => {
+  const metaPath = path.join(dataDir, 'metadata.json')
+  try {
+    ensureDir(path.dirname(metaPath))
+    const tmp = metaPath + '.tmp'
+    fs.writeFileSync(tmp, content, 'utf8')
+    fs.renameSync(tmp, metaPath)
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
 ipcMain.handle('shell:showItemInFolder', (_, filePath) => {
   shell.showItemInFolder(filePath)
 })

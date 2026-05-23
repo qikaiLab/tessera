@@ -68,20 +68,10 @@ function defaultCard(idx) {
 }
 
 export default function Analytics() {
-  const { sections, datesWithData } = useApp()
-  const [cards, setCards] = useState(() => {
-    try {
-      const s = localStorage.getItem('mototrace_analytics')
-      return s ? JSON.parse(s) : []
-    } catch { return [] }
-  })
+  const { sections, datesWithData, analytics: cards, saveAnalytics: setCards } = useApp()
   const [editingCard, setEditingCard] = useState(null)
   const [loadedData, setLoadedData] = useState({})
   const [deleteConfirm, setDeleteConfirm] = useState(null) // card id pending deletion
-
-  useEffect(() => {
-    localStorage.setItem('mototrace_analytics', JSON.stringify(cards))
-  }, [cards])
 
   useEffect(() => {
     if (!datesWithData.length) return

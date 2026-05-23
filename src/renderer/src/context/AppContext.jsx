@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 
 const AppContext = createContext(null)
 
@@ -41,6 +41,89 @@ export function AppProvider({ children }) {
   const [editorLineHeight, setEditorLineHeight] = useState('1.8')
   const [editorLetterSpacing, setEditorLetterSpacing] = useState('0px')
 
+  // Metadata Settings (Countdowns and Charts)
+  const [countdowns, setCountdowns] = useState([])
+  const [analytics, setAnalytics] = useState([])
+  const metadataTimerRef = useRef(null)
+  const hasChangedRef = useRef(false)
+
+  const loadMetadata = useCallback(async () => {
+    const res = await window.api.metadata.get()
+    if (res.ok) {
+      try {
+        const meta = JSON.parse(res.data)
+        let cds = meta.countdowns || []
+        let charts = meta.analytics || []
+        
+        // Migration from localStorage if metadata is empty but localStorage has data
+        let migrated = false
+        if (cds.length === 0) {
+          const localCdsStr = localStorage.getItem('mototrace_countdowns')
+          if (localCdsStr) {
+            try {
+              const localCds = JSON.parse(localCdsStr)
+              if (Array.isArray(localCds) && localCds.length > 0) {
+                cds = localCds
+                migrated = true
+              }
+            } catch {}
+          }
+        }
+        
+        if (charts.length === 0) {
+          const localChartsStr = localStorage.getItem('mototrace_analytics')
+          if (localChartsStr) {
+            try {
+              const localCharts = JSON.parse(localChartsStr)
+              if (Array.isArray(localCharts) && localCharts.length > 0) {
+                charts = localCharts
+                migrated = true
+              }
+            } catch {}
+          }
+        }
+
+        setCountdowns(cds)
+        setAnalytics(charts)
+
+        if (migrated) {
+          // Write back migrated data to metadata.json and clean up localStorage
+          await window.api.metadata.set(JSON.stringify({ countdowns: cds, analytics: charts }, null, 2))
+          localStorage.removeItem('mototrace_countdowns')
+          localStorage.removeItem('mototrace_analytics')
+        }
+      } catch (e) {
+        console.error('Failed to parse metadata.json:', e)
+      }
+    }
+  }, [])
+
+  const saveCountdowns = useCallback((cds) => {
+    hasChangedRef.current = true
+    setCountdowns(cds)
+  }, [])
+
+  const saveAnalytics = useCallback((cards) => {
+    hasChangedRef.current = true
+    setAnalytics(cards)
+  }, [])
+
+  // Debounced effect to save metadata when countdowns or analytics change
+  useEffect(() => {
+    if (!hasChangedRef.current) return
+
+    if (metadataTimerRef.current) clearTimeout(metadataTimerRef.current)
+    metadataTimerRef.current = setTimeout(async () => {
+      hasChangedRef.current = false
+      const content = JSON.stringify({ countdowns, analytics }, null, 2)
+      await window.api.metadata.set(content)
+    }, 300)
+
+    return () => {
+      if (metadataTimerRef.current) clearTimeout(metadataTimerRef.current)
+    }
+  }, [countdowns, analytics])
+
   // Initialize
   useEffect(() => {
     async function init() {
@@ -62,6 +145,7 @@ export function AppProvider({ children }) {
 
         await loadSections()
         await refreshDates()
+        await loadMetadata()
         setIsInitialized(true)
       } catch (e) {
         console.error('Init error:', e)
@@ -69,7 +153,7 @@ export function AppProvider({ children }) {
       }
     }
     init()
-  }, [])
+  }, [loadMetadata])
 
   const loadSections = useCallback(async () => {
     const result = await window.api.fs.readFile('sections.json')
@@ -222,7 +306,9 @@ export function AppProvider({ children }) {
       fullscreenStandardWidth, updateFullscreenStandardWidth,
       fullscreenWideWidth, updateFullscreenWideWidth,
       editorLineHeight, updateEditorLineHeight,
-      editorLetterSpacing, updateEditorLetterSpacing
+      editorLetterSpacing, updateEditorLetterSpacing,
+      countdowns, saveCountdowns,
+      analytics, saveAnalytics
     }}>
       {children}
     </AppContext.Provider>

@@ -52,6 +52,11 @@ const api = {
   import: {
     readFile: (filePath) => ipcRenderer.invoke('import:readFile', filePath)
   },
+  // Metadata
+  metadata: {
+    get: () => ipcRenderer.invoke('metadata:get'),
+    set: (content) => ipcRenderer.invoke('metadata:set', content)
+  },
   // Shell
   shell: {
     showItemInFolder: (filePath) => ipcRenderer.invoke('shell:showItemInFolder', filePath)
