@@ -8,9 +8,19 @@
 ; Custom LangStrings for Step 1 Install Mode Choice
 !pragma warning disable 6030
 LangString onlyForMe 2052 "仅为当前用户安装（推荐）"
-LangString allUsers 2052 "为使用这台电脑的所有用户安装"
+LangString forAll 2052 "为使用这台电脑的所有用户安装"
 LangString onlyForMe 1033 "仅为当前用户安装（推荐）"
-LangString allUsers 1033 "为使用这台电脑的所有用户安装"
+LangString forAll 1033 "为使用这台电脑的所有用户安装"
+
+LangString freshInstallForCurrent 2052 "软件仅对当前登录的系统账户可见。"
+LangString freshInstallForCurrent 1033 "软件仅对当前登录的系统账户可见。"
+LangString freshInstallForAll 2052 "需要系统管理员（UAC）权限，安装后所有系统账户都能使用。"
+LangString freshInstallForAll 1033 "需要系统管理员（UAC）权限，安装后所有系统账户都能使用。"
+
+LangString perUserInstallExists 2052 "软件仅对当前登录的系统账户可见（已检测到现有安装）。"
+LangString perUserInstallExists 1033 "软件仅对当前登录的系统账户可见（已检测到现有安装）。"
+LangString perMachineInstallExists 2052 "需要系统管理员（UAC）权限，安装后所有系统账户都能使用（已检测到现有安装）。"
+LangString perMachineInstallExists 1033 "需要系统管理员（UAC）权限，安装后所有系统账户都能使用（已检测到现有安装）。"
 
 ; Shared Variables
 Var CustomDialog
@@ -44,15 +54,23 @@ Var CustomDialog
   Var StateUnData
 !endif
 
+; Define macros for page positioning in the wizard sequence
 !macro customHeader
-  !ifdef BUILD_UNINSTALLER
-    UninstPage custom un.PageUnOptions un.PageUnOptionsLeave
-    UninstPage custom un.PageUnConfirm un.PageUnConfirmLeave
-  !else
-    Page custom PagePaths PagePathsLeave
-    Page custom PageShortcuts PageShortcutsLeave
-  !endif
+  ; No pages defined here, as customHeader is processed too early
 !macroend
+
+!macro customPageAfterChangeDir
+  Page custom PagePaths PagePathsLeave
+  Page custom PageShortcuts PageShortcutsLeave
+!macroend
+
+; Hook into the uninstaller welcome page slot to declare custom uninstaller pages before file deletion
+!macro customUnWelcomePage
+  UninstPage custom un.PageUnOptions un.PageUnOptionsLeave
+  UninstPage custom un.PageUnConfirm un.PageUnConfirmLeave
+!macroend
+
+
 
 ; ─────────────────────────────────────────────────────────────────────────────
 ; Installer Steps (Only compiled for Installer)

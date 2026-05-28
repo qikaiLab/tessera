@@ -62,8 +62,8 @@
       "oneClick": false,
       "allowElevation": true,
       "allowToChangeInstallationDirectory": false,
-      "perMachine": true,
-      "removeDefaultUninstallWelcomePage": true,
+      "perMachine": false,
+      "removeDefaultUninstallWelcomePage": false,
       "createDesktopShortcut": false,
       "createStartMenuShortcut": false,
       "include": "build/installer.nsh"
