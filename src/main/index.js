@@ -38,7 +38,23 @@ function ensureDir(dir) {
 
 function createWindow() {
   const cfg = loadConfig()
-  dataDir = cfg.dataDir || getDefaultDataDir()
+  
+  let initialDataDir = cfg.dataDir
+  if (!initialDataDir) {
+    try {
+      const datapathFile = path.join(app.getPath('userData'), 'datapath.txt')
+      if (fs.existsSync(datapathFile)) {
+        const customPath = fs.readFileSync(datapathFile, 'utf8').trim()
+        if (customPath) {
+          initialDataDir = customPath
+          cfg.dataDir = customPath
+          saveConfig(cfg)
+        }
+      }
+    } catch {}
+  }
+
+  dataDir = initialDataDir || getDefaultDataDir()
   ensureDir(dataDir)
   ensureDir(path.join(dataDir, 'backups'))
 
@@ -102,6 +118,10 @@ ipcMain.handle('config:setDataDir', (_, newDir) => {
   const cfg = loadConfig()
   cfg.dataDir = newDir
   saveConfig(cfg)
+  try {
+    const datapathFile = path.join(app.getPath('userData'), 'datapath.txt')
+    fs.writeFileSync(datapathFile, newDir, 'utf8')
+  } catch {}
   return true
 })
 ipcMain.handle('config:get', () => loadConfig())
