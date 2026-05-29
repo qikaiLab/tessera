@@ -257,7 +257,7 @@
   align-items: center;
   gap: 2px;
   padding: 5px 8px;
-  background: var(--bg-glass);
+  background: rgba(28, 28, 31, 0.72);
   border: 1px solid var(--border-hover);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -277,6 +277,10 @@
   visibility: visible;
   transform: translateY(0) scale(1);
   pointer-events: auto;
+}
+
+[data-theme='light'] .bubble-toolbar {
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .bubble-btn {
