@@ -257,7 +257,7 @@
   align-items: center;
   gap: 2px;
   padding: 5px 8px;
-  background: var(--bg-surface);
+  background: var(--bg-glass);
   border: 1px solid var(--border-hover);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);

@@ -141,7 +141,7 @@ export function BubbleToolbar({ editor }) {
         pointerEvents: visible ? 'auto'    : 'none',
         opacity:       visible ? 1 : 0,
         transform:     visible ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.97)',
-        transition:    'opacity 120ms ease, transform 120ms ease',
+        transition:    'opacity 120ms ease, transform 120ms ease, visibility 120ms ease',
       }}
     >
       {btn(<b>B</b>, () => editor.chain().focus().toggleBold().run(),      editor.isActive('bold'),               '加粗 (Ctrl+B)')}
