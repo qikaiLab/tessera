@@ -35,10 +35,10 @@
 | 功能 | 说明 |
 |------|------|
 | **多维度数据版块** | 文本（富文本 Markdown）和数字版块可自由组合，各自拥有独立的记录区域 |
-| **CodeMirror 6 编辑器** | 基于 CodeMirror 6 实现的 Obsidian 风格「实时预览」Markdown 编辑体验 |
-| **Markdown 工具栏** | 一键插入加粗、斜体、引用、分割线、代办列表、有序/无序列表、表格等常用格式 |
+| **Tiptap 富文本编辑器** | 基于 Tiptap (ProseMirror) 实现的所见即所得 (WYSIWYG) 富文本写作体验 |
+| **交互式快捷编辑工具** | 支持输入 `/` 唤起斜杠菜单 (Slash Command) 快捷插入排版，以及选中文字弹出气泡浮动工具栏 (Bubble Toolbar) 进行格式化修改 |
 | **字数实时统计** | 防抖处理，毫秒级更新当前版块的字数，不干扰输入流 |
-| **沉浸式全屏模式** | 一键全屏，毛玻璃背景遮罩，聚焦写作。支持 `Esc` 退出与 `Ctrl+S` 手动保存 |
+| **沉浸式全屏模式** | 一键全屏，提供自适应双主题的精致径向渐变（Vignette）背景遮罩，聚焦写作。支持 `Esc` 退出与自动/手动保存 |
 | **全局日期状态** | 以 `selectedDate` 为单一数据源，从日历跳转回记录页后，视图精准锁定，不重置 |
 | **原子化写入** | 写入时先生成 `.tmp` 文件，成功后再原子替换，彻底防止崩溃导致的数据损坏 |
 
@@ -83,7 +83,7 @@ Electron (electron-vite)
 └── Renderer (React 18)
     ├── AppContext    → selectedDate / sections 全局单点状态管理
     ├── Pages         → Record / Calendar / Timeline / Analytics / Settings
-    └── Components    → CodeMirrorEditor / Charts / DragSortable / Modal 等
+    └── Components    → TiptapEditor / Charts / DragSortable / Modal 等
 ```
 
 ### 依赖项总揽
@@ -92,7 +92,7 @@ Electron (electron-vite)
 |----|------|------|
 | [Electron](https://www.electronjs.org/) | 33.x | 桌面外壳 |
 | [React](https://reactjs.org/) | 18.x | UI 框架 |
-| [CodeMirror 6](https://codemirror.net/) | 6.x | 核心编辑器引擎 |
+| [Tiptap](https://tiptap.dev/) | 3.x | 富文本与所见即所得编辑器引擎 |
 | [Recharts](https://recharts.org/) | 2.x | 图表渲染 |
 | [dnd-kit](https://dndkit.com/) | 6.x | 拖拽排序 |
 | [date-fns](https://date-fns.org/) | 3.x | 日期计算与格式化 |
@@ -109,7 +109,7 @@ Project_SlefTracker/
 │   └── renderer/src/
 │       ├── context/      # AppContext — selectedDate、sections 全局状态
 │       ├── pages/        # Record / Calendar / Timeline / Analytics / Settings
-│       └── components/   # CodeMirrorEditor、Modal、各类图表组件
+│       └── components/   # TiptapEditor、Modal、各类图表组件
 ├── electron.vite.config.js
 └── package.json
 ```
