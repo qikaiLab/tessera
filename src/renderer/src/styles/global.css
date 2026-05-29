@@ -160,6 +160,14 @@ body {
   user-select: text;
 }
 
+::selection {
+  background: rgba(124, 106, 255, 0.35);
+  color: inherit;
+}
+[data-theme='light'] ::selection {
+  background: rgba(99, 85, 232, 0.25);
+}
+
 /* ─── Scrollbars ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

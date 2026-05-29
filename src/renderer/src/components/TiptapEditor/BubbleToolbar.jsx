@@ -41,16 +41,17 @@ export function BubbleToolbar({ editor }) {
   const update = useCallback(() => {
     if (!editor?.view) return
 
-    const { from, to } = editor.state.selection
-    if (from === to || editor.isActive('codeBlock')) {
-      setVisible(false)
-      return
-    }
-
     // Cancel pending RAF
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
     rafRef.current = requestAnimationFrame(() => {
       if (!editor?.view) return
+
+      const { from, to } = editor.state.selection
+      if (from === to || editor.isActive('codeBlock')) {
+        setVisible(false)
+        return
+      }
+
       try {
         const start = editor.view.coordsAtPos(from)
         const end   = editor.view.coordsAtPos(Math.max(from, to - 1))

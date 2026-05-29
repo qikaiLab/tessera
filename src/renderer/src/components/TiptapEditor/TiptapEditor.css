@@ -241,7 +241,10 @@
 
 /* ─── Selection ──────────────────────────────────────────────────────────── */
 .ProseMirror ::selection {
-  background: var(--accent-light);
+  background: rgba(124, 106, 255, 0.35);
+}
+[data-theme='light'] .ProseMirror ::selection {
+  background: rgba(99, 85, 232, 0.25);
 }
 .ProseMirror .ProseMirror-selectednode {
   outline: 2px solid var(--accent);
