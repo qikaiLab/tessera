@@ -142,7 +142,7 @@ export default function Settings() {
     if (result.ok && result.files.length > 0) {
       const zip = new JSZip()
       result.files.forEach(f => zip.file(f.path, f.content))
-      const content = await zip.generateAsync({ type: 'uint8array' })
+      const content = await zip.generateAsync({ type: 'base64' })
       const saveRes = await window.api.backup.writeZip(result.backupPath, content)
       if (saveRes.ok) {
         showToast('备份成功', 'success')
@@ -172,7 +172,7 @@ export default function Settings() {
       if (result.ok && result.files.length > 0) {
         const zip = new JSZip()
         result.files.forEach(f => zip.file(f.path, f.content))
-        const content = await zip.generateAsync({ type: 'uint8array' })
+        const content = await zip.generateAsync({ type: 'base64' })
         const writeRes = await window.api.export.writeFile(savePath, content)
         if (writeRes.ok) showToast('导出成功', 'success')
         else showToast('导出失败', 'error')
@@ -194,7 +194,7 @@ export default function Settings() {
       const r = await window.api.import.readFile(filePath)
       if (r.ok) {
         try {
-          const zip = await JSZip.loadAsync(r.buffer)
+          const zip = await JSZip.loadAsync(r.data, { base64: true })
           let count = 0
           for (const [path, file] of Object.entries(zip.files)) {
             if (!file.dir && path.endsWith('.json') && !path.startsWith('backups/')) {

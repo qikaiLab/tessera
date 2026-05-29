@@ -91,15 +91,22 @@ export default function Timeline() {
       return
     }
     setLoading(true)
+    let aborted = false
     const fetchAll = async () => {
+      // Fix #6: Parallel loading instead of serial for...await
+      const entries = await Promise.all(
+        datesWithData.map(async (d) => [d, await readDayData(d)])
+      )
+      if (aborted) return
       const result = {}
-      for (const d of datesWithData) {
-        result[d] = await readDayData(d)
+      for (const [d, data] of entries) {
+        result[d] = data
       }
       setLoadedDates(result)
       setLoading(false)
     }
     fetchAll()
+    return () => { aborted = true }
   }, [datesWithData, readDayData])
 
   const filteredCards = useMemo(() => {

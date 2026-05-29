@@ -117,6 +117,8 @@ const TiptapEditor = forwardRef(function TiptapEditor(
   const onSaveRef = useRef(onSave)
   const onChangeRef = useRef(onChange)
   const isExternalUpdateRef = useRef(false)
+  // Fix #11: Track setTimeout IDs for cleanup
+  const toggleTimeoutRef = useRef(null)
 
   const formatCSSWidth = (val, fallback = '700px') => {
     if (!val) return fallback
@@ -217,7 +219,12 @@ const TiptapEditor = forwardRef(function TiptapEditor(
   // Focus after fullscreen toggle
   const handleToggleFullScreen = useCallback(() => {
     onToggleFullScreen?.()
-    setTimeout(() => editor?.commands.focus(), 80)
+    // Fix #11: Track timeout and clean previous one
+    if (toggleTimeoutRef.current) clearTimeout(toggleTimeoutRef.current)
+    toggleTimeoutRef.current = setTimeout(() => {
+      editor?.commands.focus()
+      toggleTimeoutRef.current = null
+    }, 80)
   }, [onToggleFullScreen, editor])
 
   // Keyboard shortcut: Esc to exit fullscreen
@@ -230,7 +237,14 @@ const TiptapEditor = forwardRef(function TiptapEditor(
       }
     }
     window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
+    return () => {
+      window.removeEventListener('keydown', handleKey)
+      // Fix #11: Clean up pending timeout when effect is torn down
+      if (toggleTimeoutRef.current) {
+        clearTimeout(toggleTimeoutRef.current)
+        toggleTimeoutRef.current = null
+      }
+    }
   }, [isFullScreen, handleToggleFullScreen])
 
   const charCount = countChars(editor)

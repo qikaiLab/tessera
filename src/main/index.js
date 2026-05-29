@@ -1,18 +1,38 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const fsp = require('fs').promises
 const os = require('os')
-const { fileURLToPath } = require('url')
 
 // Platform path helpers
 const isDev = !app.isPackaged
 
 let mainWindow
 let dataDir = ''
+let isQuitting = false
 
 function getDefaultDataDir() {
   return path.join(os.homedir(), 'MotoTrace', 'data')
 }
+
+// ─── Path Safety (#5) ─────────────────────────────────────────────────────────
+// Prevent path traversal attacks by ensuring resolved paths stay within dataDir
+
+function safePath(filePath) {
+  // Reject absolute paths — all operations must be relative to dataDir
+  if (path.isAbsolute(filePath)) {
+    throw new Error('Absolute paths are not allowed')
+  }
+  const resolved = path.resolve(dataDir, filePath)
+  // Ensure the resolved path is within dataDir
+  const normalizedDataDir = path.resolve(dataDir)
+  if (!resolved.startsWith(normalizedDataDir + path.sep) && resolved !== normalizedDataDir) {
+    throw new Error('Path traversal detected')
+  }
+  return resolved
+}
+
+// ─── Config (uses app userData, not dataDir — no safePath needed) ──────────────
 
 function loadConfig() {
   const configPath = path.join(app.getPath('userData'), 'config.json')
@@ -21,7 +41,9 @@ function loadConfig() {
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'))
       return cfg
     }
-  } catch {}
+  } catch (e) {
+    console.error('Failed to load config:', e)
+  }
   return {}
 }
 
@@ -30,7 +52,18 @@ function saveConfig(cfg) {
   fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8')
 }
 
-function ensureDir(dir) {
+// ─── Async helpers ────────────────────────────────────────────────────────────
+
+async function ensureDir(dir) {
+  try {
+    await fsp.mkdir(dir, { recursive: true })
+  } catch (e) {
+    // EEXIST is fine
+    if (e.code !== 'EEXIST') throw e
+  }
+}
+
+function ensureDirSync(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })
   }
@@ -51,12 +84,14 @@ function createWindow() {
           saveConfig(cfg)
         }
       }
-    } catch {}
+    } catch (e) {
+      console.error('Failed to read datapath.txt:', e)
+    }
   }
 
   dataDir = initialDataDir || getDefaultDataDir()
-  ensureDir(dataDir)
-  ensureDir(path.join(dataDir, 'backups'))
+  ensureDirSync(dataDir)
+  ensureDirSync(path.join(dataDir, 'backups'))
 
   mainWindow = new BrowserWindow({
     icon: path.join(__dirname, '../../logo.ico'),
@@ -91,7 +126,28 @@ function createWindow() {
   mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-state-change', 'normal'))
   mainWindow.on('enter-full-screen', () => mainWindow.webContents.send('window-state-change', 'fullscreen'))
   mainWindow.on('leave-full-screen', () => mainWindow.webContents.send('window-state-change', 'normal'))
+
+  // ─── Fix #8: Graceful close — flush pending data before quitting ────────────
+  mainWindow.on('close', (e) => {
+    if (isQuitting) return // Already confirmed, let it close
+
+    e.preventDefault()
+    // Ask renderer to flush pending saves
+    mainWindow.webContents.send('app-before-close')
+
+    // Safety timeout: if renderer doesn't respond within 3s, force close
+    setTimeout(() => {
+      isQuitting = true
+      mainWindow.close()
+    }, 3000)
+  })
 }
+
+// Fix #8: Renderer confirms it's safe to close
+ipcMain.handle('app:confirmClose', () => {
+  isQuitting = true
+  mainWindow.close()
+})
 
 app.whenReady().then(createWindow)
 
@@ -112,16 +168,18 @@ ipcMain.handle('window:isMaximized', () => mainWindow.isMaximized())
 
 // Config
 ipcMain.handle('config:getDataDir', () => dataDir)
-ipcMain.handle('config:setDataDir', (_, newDir) => {
-  ensureDir(newDir)
+ipcMain.handle('config:setDataDir', async (_, newDir) => {
+  await ensureDir(newDir)
   dataDir = newDir
   const cfg = loadConfig()
   cfg.dataDir = newDir
   saveConfig(cfg)
   try {
     const datapathFile = path.join(app.getPath('userData'), 'datapath.txt')
-    fs.writeFileSync(datapathFile, newDir, 'utf8')
-  } catch {}
+    await fsp.writeFile(datapathFile, newDir, 'utf8')
+  } catch (e) {
+    console.error('Failed to write datapath.txt:', e)
+  }
   return true
 })
 ipcMain.handle('config:get', () => loadConfig())
@@ -132,106 +190,153 @@ ipcMain.handle('config:set', (_, key, value) => {
   return true
 })
 
-// File System
-ipcMain.handle('fs:readFile', (_, filePath) => {
-  const full = path.isAbsolute(filePath) ? filePath : path.join(dataDir, filePath)
+// ─── File System (all async, with path safety) ───────────────────────────────
+
+ipcMain.handle('fs:readFile', async (_, filePath) => {
   try {
-    return { ok: true, data: fs.readFileSync(full, 'utf8') }
+    const full = safePath(filePath)
+    const data = await fsp.readFile(full, 'utf8')
+    return { ok: true, data }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('fs:writeFile', (_, filePath, content) => {
-  const full = path.isAbsolute(filePath) ? filePath : path.join(dataDir, filePath)
+ipcMain.handle('fs:writeFile', async (_, filePath, content) => {
   try {
-    ensureDir(path.dirname(full))
+    const full = safePath(filePath)
+    await ensureDir(path.dirname(full))
     // Write to .tmp first, then rename for crash safety
     const tmp = full + '.tmp'
-    fs.writeFileSync(tmp, content, 'utf8')
-    fs.renameSync(tmp, full)
+    await fsp.writeFile(tmp, content, 'utf8')
+    await fsp.rename(tmp, full)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('fs:deleteFile', (_, filePath) => {
-  const full = path.isAbsolute(filePath) ? filePath : path.join(dataDir, filePath)
+ipcMain.handle('fs:deleteFile', async (_, filePath) => {
   try {
-    if (fs.existsSync(full)) fs.unlinkSync(full)
+    const full = safePath(filePath)
+    try {
+      await fsp.unlink(full)
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e
+    }
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('fs:listDir', (_, dir) => {
-  const full = path.isAbsolute(dir) ? dir : path.join(dataDir, dir)
+ipcMain.handle('fs:listDir', async (_, dir) => {
   try {
-    if (!fs.existsSync(full)) return { ok: true, data: [] }
-    return { ok: true, data: fs.readdirSync(full) }
+    const full = safePath(dir)
+    try {
+      const entries = await fsp.readdir(full)
+      return { ok: true, data: entries }
+    } catch (e) {
+      if (e.code === 'ENOENT') return { ok: true, data: [] }
+      throw e
+    }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('fs:exists', (_, filePath) => {
-  const full = path.isAbsolute(filePath) ? filePath : path.join(dataDir, filePath)
-  return fs.existsSync(full)
+ipcMain.handle('fs:exists', async (_, filePath) => {
+  try {
+    const full = safePath(filePath)
+    try {
+      await fsp.access(full)
+      return true
+    } catch {
+      return false
+    }
+  } catch {
+    return false
+  }
 })
 
-ipcMain.handle('fs:scanDates', () => {
+ipcMain.handle('fs:scanDates', async () => {
   // Scan all YYYY/MM/DD.json recursively to build date index
   const dates = []
   try {
-    const yearDirs = fs.readdirSync(dataDir).filter(d => /^\d{4}$/.test(d))
+    const entries = await fsp.readdir(dataDir)
+    const yearDirs = entries.filter(d => /^\d{4}$/.test(d))
     for (const year of yearDirs) {
       const yearPath = path.join(dataDir, year)
-      const monthDirs = fs.readdirSync(yearPath).filter(d => /^\d{2}$/.test(d))
-      for (const month of monthDirs) {
-        const monthPath = path.join(yearPath, month)
-        const dayFiles = fs.readdirSync(monthPath).filter(f => /^\d{2}\.json$/.test(f))
-        for (const dayFile of dayFiles) {
-          const day = dayFile.replace('.json', '')
-          dates.push(`${year}-${month}-${day}`)
+      try {
+        const monthEntries = await fsp.readdir(yearPath)
+        const monthDirs = monthEntries.filter(d => /^\d{2}$/.test(d))
+        for (const month of monthDirs) {
+          const monthPath = path.join(yearPath, month)
+          try {
+            const dayEntries = await fsp.readdir(monthPath)
+            const dayFiles = dayEntries.filter(f => /^\d{2}\.json$/.test(f))
+            for (const dayFile of dayFiles) {
+              const day = dayFile.replace('.json', '')
+              dates.push(`${year}-${month}-${day}`)
+            }
+          } catch (e) {
+            console.error(`Failed to read month dir ${monthPath}:`, e)
+          }
         }
+      } catch (e) {
+        console.error(`Failed to read year dir ${yearPath}:`, e)
       }
     }
-  } catch {}
+  } catch (e) {
+    console.error('Failed to scan dates:', e)
+  }
   return dates
 })
 
-ipcMain.handle('fs:checkTmpFiles', () => {
+ipcMain.handle('fs:checkTmpFiles', async () => {
   // Find any .tmp files left over from crashes
   const tmpFiles = []
-  function scan(dir) {
+  async function scan(dir) {
     try {
-      const entries = fs.readdirSync(dir, { withFileTypes: true })
+      const entries = await fsp.readdir(dir, { withFileTypes: true })
       for (const e of entries) {
         const full = path.join(dir, e.name)
-        if (e.isDirectory()) scan(full)
+        if (e.isDirectory()) await scan(full)
         else if (e.name.endsWith('.tmp')) tmpFiles.push(full)
       }
-    } catch {}
+    } catch (e) {
+      console.error(`Failed to scan for tmp files in ${dir}:`, e)
+    }
   }
-  scan(dataDir)
+  await scan(dataDir)
   return tmpFiles
 })
 
-ipcMain.handle('fs:recoverTmp', (_, tmpPath) => {
+ipcMain.handle('fs:recoverTmp', async (_, tmpPath) => {
   try {
+    // Validate that tmpPath is within dataDir
+    const normalizedDataDir = path.resolve(dataDir)
+    const resolvedTmp = path.resolve(tmpPath)
+    if (!resolvedTmp.startsWith(normalizedDataDir + path.sep)) {
+      throw new Error('Path traversal detected')
+    }
     const target = tmpPath.replace(/\.tmp$/, '')
-    fs.renameSync(tmpPath, target)
+    await fsp.rename(tmpPath, target)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('fs:discardTmp', (_, tmpPath) => {
+ipcMain.handle('fs:discardTmp', async (_, tmpPath) => {
   try {
-    fs.unlinkSync(tmpPath)
+    // Validate that tmpPath is within dataDir
+    const normalizedDataDir = path.resolve(dataDir)
+    const resolvedTmp = path.resolve(tmpPath)
+    if (!resolvedTmp.startsWith(normalizedDataDir + path.sep)) {
+      throw new Error('Path traversal detected')
+    }
+    await fsp.unlink(tmpPath)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -273,45 +378,50 @@ ipcMain.handle('dialog:confirm', async (_, { message, buttons = ['确定', '取�
 ipcMain.handle('backup:create', async () => {
   try {
     const backupDir = path.join(dataDir, 'backups')
-    ensureDir(backupDir)
+    await ensureDir(backupDir)
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
     const backupPath = path.join(backupDir, `backup-${timestamp}.zip`)
 
-    // Simple backup: copy all JSON files to a zip using JSZip in main
-    // We'll pass the data back to renderer to do the zip
+    // Collect all JSON files
     const files = []
-    function collectFiles(dir, base = '') {
+    async function collectFiles(dir, base = '') {
       try {
-        const entries = fs.readdirSync(dir, { withFileTypes: true })
+        const entries = await fsp.readdir(dir, { withFileTypes: true })
         for (const e of entries) {
           const full = path.join(dir, e.name)
           const rel = base ? `${base}/${e.name}` : e.name
-          if (e.isDirectory() && e.name !== 'backups') collectFiles(full, rel)
+          if (e.isDirectory() && e.name !== 'backups') await collectFiles(full, rel)
           else if (e.name.endsWith('.json') && !base.startsWith('backups')) {
-            files.push({ path: rel, content: fs.readFileSync(full, 'utf8') })
+            const content = await fsp.readFile(full, 'utf8')
+            files.push({ path: rel, content })
           }
         }
-      } catch {}
+      } catch (e) {
+        console.error(`Failed to collect files from ${dir}:`, e)
+      }
     }
-    collectFiles(dataDir)
+    await collectFiles(dataDir)
     return { ok: true, files, backupPath }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('backup:writeZip', (_, backupPath, buffer) => {
+// Fix #4: Use base64 instead of Array.from(buffer) for IPC transfers
+ipcMain.handle('backup:writeZip', async (_, backupPath, base64Data) => {
   try {
-    fs.writeFileSync(backupPath, Buffer.from(buffer))
+    const buffer = Buffer.from(base64Data, 'base64')
+    await fsp.writeFile(backupPath, buffer)
     // Enforce max 30 backups
     const backupDir = path.dirname(backupPath)
-    const backups = fs.readdirSync(backupDir)
+    const allFiles = await fsp.readdir(backupDir)
+    const backups = allFiles
       .filter(f => f.startsWith('backup-') && f.endsWith('.zip'))
       .sort()
     if (backups.length > 30) {
       const toDelete = backups.slice(0, backups.length - 30)
       for (const b of toDelete) {
-        fs.unlinkSync(path.join(backupDir, b))
+        await fsp.unlink(path.join(backupDir, b))
       }
     }
     return { ok: true }
@@ -320,71 +430,88 @@ ipcMain.handle('backup:writeZip', (_, backupPath, buffer) => {
   }
 })
 
-ipcMain.handle('backup:list', () => {
+ipcMain.handle('backup:list', async () => {
   const backupDir = path.join(dataDir, 'backups')
   try {
-    if (!fs.existsSync(backupDir)) return []
-    return fs.readdirSync(backupDir)
-      .filter(f => f.endsWith('.zip'))
-      .sort()
-      .reverse()
-      .map(f => ({
+    try {
+      await fsp.access(backupDir)
+    } catch {
+      return []
+    }
+    const allFiles = await fsp.readdir(backupDir)
+    const zipFiles = allFiles.filter(f => f.endsWith('.zip')).sort().reverse()
+    const result = []
+    for (const f of zipFiles) {
+      const filePath = path.join(backupDir, f)
+      const stat = await fsp.stat(filePath)
+      result.push({
         name: f,
-        path: path.join(backupDir, f),
-        size: fs.statSync(path.join(backupDir, f)).size,
-        date: fs.statSync(path.join(backupDir, f)).mtime.toISOString()
-      }))
-  } catch {
+        path: filePath,
+        size: stat.size,
+        date: stat.mtime.toISOString()
+      })
+    }
+    return result
+  } catch (e) {
+    console.error('Failed to list backups:', e)
     return []
   }
 })
 
-ipcMain.handle('backup:readZip', (_, backupPath) => {
+// Fix #4: Use base64 instead of Array.from(buffer)
+ipcMain.handle('backup:readZip', async (_, backupPath) => {
   try {
-    const buffer = fs.readFileSync(backupPath)
-    return { ok: true, buffer: Array.from(buffer) }
+    const buffer = await fsp.readFile(backupPath)
+    return { ok: true, data: buffer.toString('base64') }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('export:writeFile', (_, savePath, buffer) => {
+// Fix #4 + #5: export/import use dialog-chosen paths (trusted), but still use base64
+ipcMain.handle('export:writeFile', async (_, savePath, base64Data) => {
   try {
-    fs.writeFileSync(savePath, Buffer.from(buffer))
+    const buffer = Buffer.from(base64Data, 'base64')
+    await fsp.writeFile(savePath, buffer)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('import:readFile', (_, filePath) => {
+ipcMain.handle('import:readFile', async (_, filePath) => {
   try {
-    const buffer = fs.readFileSync(filePath)
-    return { ok: true, buffer: Array.from(buffer) }
+    const buffer = await fsp.readFile(filePath)
+    return { ok: true, data: buffer.toString('base64') }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('metadata:get', () => {
+ipcMain.handle('metadata:get', async () => {
   const metaPath = path.join(dataDir, 'metadata.json')
   try {
-    if (fs.existsSync(metaPath)) {
-      return { ok: true, data: fs.readFileSync(metaPath, 'utf8') }
+    try {
+      const data = await fsp.readFile(metaPath, 'utf8')
+      return { ok: true, data }
+    } catch (e) {
+      if (e.code === 'ENOENT') {
+        return { ok: true, data: JSON.stringify({ countdowns: [], analytics: [] }) }
+      }
+      throw e
     }
-    return { ok: true, data: JSON.stringify({ countdowns: [], analytics: [] }) }
   } catch (e) {
     return { ok: false, error: e.message }
   }
 })
 
-ipcMain.handle('metadata:set', (_, content) => {
+ipcMain.handle('metadata:set', async (_, content) => {
   const metaPath = path.join(dataDir, 'metadata.json')
   try {
-    ensureDir(path.dirname(metaPath))
+    await ensureDir(path.dirname(metaPath))
     const tmp = metaPath + '.tmp'
-    fs.writeFileSync(tmp, content, 'utf8')
-    fs.renameSync(tmp, metaPath)
+    await fsp.writeFile(tmp, content, 'utf8')
+    await fsp.rename(tmp, metaPath)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }

@@ -75,16 +75,31 @@ export default function Analytics() {
 
   useEffect(() => {
     if (!datesWithData.length) return
+    let aborted = false
     const fetchAll = async () => {
+      // Fix #6: Parallel loading instead of serial for...await
+      const entries = await Promise.all(
+        datesWithData.map(async (d) => {
+          const [y, m, day] = d.split('-')
+          const r = await window.api.fs.readFile(`${y}/${m}/${day}.json`)
+          if (r.ok) {
+            try { return [d, JSON.parse(r.data)] } catch (e) {
+              console.error(`Failed to parse ${d}:`, e)
+              return null
+            }
+          }
+          return null
+        })
+      )
+      if (aborted) return
       const result = {}
-      for (const d of datesWithData) {
-        const [y, m, day] = d.split('-')
-        const r = await window.api.fs.readFile(`${y}/${m}/${day}.json`)
-        if (r.ok) { try { result[d] = JSON.parse(r.data) } catch {} }
+      for (const entry of entries) {
+        if (entry) result[entry[0]] = entry[1]
       }
       setLoadedData(result)
     }
     fetchAll()
+    return () => { aborted = true }
   }, [datesWithData])
 
   // DnD sensors

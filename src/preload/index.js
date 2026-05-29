@@ -41,13 +41,13 @@ const api = {
   // Backup
   backup: {
     create: () => ipcRenderer.invoke('backup:create'),
-    writeZip: (path, buffer) => ipcRenderer.invoke('backup:writeZip', path, buffer),
+    writeZip: (path, base64Data) => ipcRenderer.invoke('backup:writeZip', path, base64Data),
     list: () => ipcRenderer.invoke('backup:list'),
     readZip: (path) => ipcRenderer.invoke('backup:readZip', path)
   },
   // Export/Import
   export: {
-    writeFile: (savePath, buffer) => ipcRenderer.invoke('export:writeFile', savePath, buffer)
+    writeFile: (savePath, base64Data) => ipcRenderer.invoke('export:writeFile', savePath, base64Data)
   },
   import: {
     readFile: (filePath) => ipcRenderer.invoke('import:readFile', filePath)
@@ -60,6 +60,14 @@ const api = {
   // Shell
   shell: {
     showItemInFolder: (filePath) => ipcRenderer.invoke('shell:showItemInFolder', filePath)
+  },
+  // Fix #8: App lifecycle — flush pending data before close
+  lifecycle: {
+    onBeforeClose: (cb) => {
+      ipcRenderer.on('app-before-close', () => cb())
+      return () => ipcRenderer.removeAllListeners('app-before-close')
+    },
+    confirmClose: () => ipcRenderer.invoke('app:confirmClose')
   }
 }
 

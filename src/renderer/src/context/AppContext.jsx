@@ -46,6 +46,20 @@ export function AppProvider({ children }) {
   const [analytics, setAnalytics] = useState([])
   const metadataTimerRef = useRef(null)
   const hasChangedRef = useRef(false)
+  // Fix #7: Write lock to prevent concurrent metadata writes
+  const isWritingMetadataRef = useRef(false)
+  const needsRewriteRef = useRef(false)
+
+  // Fix #8: Registry of pending flush callbacks for graceful shutdown
+  const pendingFlushesRef = useRef(new Map())
+
+  const registerPendingFlush = useCallback((key, flushFn) => {
+    pendingFlushesRef.current.set(key, flushFn)
+  }, [])
+
+  const unregisterPendingFlush = useCallback((key) => {
+    pendingFlushesRef.current.delete(key)
+  }, [])
 
   const loadMetadata = useCallback(async () => {
     const res = await window.api.metadata.get()
@@ -108,21 +122,68 @@ export function AppProvider({ children }) {
     setAnalytics(cards)
   }, [])
 
-  // Debounced effect to save metadata when countdowns or analytics change
+  // Fix #7: Debounced metadata save with write lock to prevent race conditions
+  const doMetadataWrite = useCallback(async () => {
+    if (isWritingMetadataRef.current) {
+      // A write is in progress — mark that we need to re-write when done
+      needsRewriteRef.current = true
+      return
+    }
+    isWritingMetadataRef.current = true
+    try {
+      // Read latest state via functional setters' closure would be stale here,
+      // so we rely on the fact that React state is committed before setTimeout fires
+      const content = JSON.stringify({ countdowns, analytics }, null, 2)
+      await window.api.metadata.set(content)
+    } catch (e) {
+      console.error('Failed to write metadata:', e)
+    } finally {
+      isWritingMetadataRef.current = false
+      // If new changes came in during write, flush again
+      if (needsRewriteRef.current) {
+        needsRewriteRef.current = false
+        // Schedule next write on next tick to get latest state
+        setTimeout(() => {
+          if (hasChangedRef.current) {
+            hasChangedRef.current = false
+            doMetadataWrite()
+          }
+        }, 50)
+      }
+    }
+  }, [countdowns, analytics])
+
   useEffect(() => {
     if (!hasChangedRef.current) return
 
     if (metadataTimerRef.current) clearTimeout(metadataTimerRef.current)
-    metadataTimerRef.current = setTimeout(async () => {
+    metadataTimerRef.current = setTimeout(() => {
       hasChangedRef.current = false
-      const content = JSON.stringify({ countdowns, analytics }, null, 2)
-      await window.api.metadata.set(content)
+      doMetadataWrite()
     }, 300)
 
     return () => {
       if (metadataTimerRef.current) clearTimeout(metadataTimerRef.current)
     }
-  }, [countdowns, analytics])
+  }, [countdowns, analytics, doMetadataWrite])
+
+  // Fix #8: Register metadata flush for graceful shutdown
+  useEffect(() => {
+    const flushMetadata = async () => {
+      if (metadataTimerRef.current) {
+        clearTimeout(metadataTimerRef.current)
+        metadataTimerRef.current = null
+      }
+      if (hasChangedRef.current || needsRewriteRef.current) {
+        hasChangedRef.current = false
+        needsRewriteRef.current = false
+        const content = JSON.stringify({ countdowns, analytics }, null, 2)
+        await window.api.metadata.set(content)
+      }
+    }
+    registerPendingFlush('metadata', flushMetadata)
+    return () => unregisterPendingFlush('metadata')
+  }, [countdowns, analytics, registerPendingFlush, unregisterPendingFlush])
 
   // Initialize
   useEffect(() => {
@@ -155,22 +216,46 @@ export function AppProvider({ children }) {
     init()
   }, [loadMetadata])
 
+  // Fix #8: Listen for app-before-close and flush all pending saves
+  useEffect(() => {
+    const cleanup = window.api.lifecycle.onBeforeClose(async () => {
+      // Execute all registered flush callbacks
+      const flushPromises = []
+      for (const [key, flushFn] of pendingFlushesRef.current) {
+        flushPromises.push(
+          Promise.resolve(flushFn()).catch(e =>
+            console.error(`Failed to flush "${key}":`, e)
+          )
+        )
+      }
+      await Promise.all(flushPromises)
+      // Tell main process it's safe to close now
+      window.api.lifecycle.confirmClose()
+    })
+    return cleanup
+  }, [])
+
   const loadSections = useCallback(async () => {
     const result = await window.api.fs.readFile('sections.json')
     if (result.ok) {
-      const s = JSON.parse(result.data)
-      setSections(s)
-      return s
-    } else {
-      // Default sections on first run
-      const defaults = [
-        { id: 'diary', name: '日记', type: 'text', unit: '', resident: true, order: 0 },
-        { id: 'running', name: '今日跑步[m]', type: 'number', unit: 'm', resident: false, order: 1 }
-      ]
-      await saveSectionsData(defaults)
-      setSections(defaults)
-      return defaults
+      try {
+        const s = JSON.parse(result.data)
+        setSections(s)
+        return s
+      } catch (e) {
+        // Fix #10: Log parsing errors
+        console.error('Failed to parse sections.json:', e)
+        // Fall through to defaults
+      }
     }
+    // Default sections on first run
+    const defaults = [
+      { id: 'diary', name: '日记', type: 'text', unit: '', resident: true, order: 0 },
+      { id: 'running', name: '今日跑步[m]', type: 'number', unit: 'm', resident: false, order: 1 }
+    ]
+    await saveSectionsData(defaults)
+    setSections(defaults)
+    return defaults
   }, [])
 
   const saveSectionsData = useCallback(async (secs) => {
@@ -239,30 +324,24 @@ export function AppProvider({ children }) {
            }
         }
         return cleaned
-      } catch { return {} }
+      } catch (e) {
+        // Fix #10: Log JSON parse errors instead of silently swallowing
+        console.error(`Failed to parse data for ${dateStr}:`, e)
+        return {}
+      }
     }
     return {}
   }, [])
 
+  // Fix #1: refreshDates no longer reads each file's content.
+  // It trusts fs:scanDates for file existence. writeDayData handles incremental updates.
   const refreshDates = useCallback(async () => {
-    // fs:scanDates returns all YYYY-MM-DD that have a JSON file
     const rawDates = await window.api.fs.scanDates()
-    
-    // We need to filter out files that only contain empty/deleted data
-    // to completely fix the calendar dot bug (Task 1 & 5)
-    const validDates = []
-    for (const d of rawDates) {
-      const dayData = await readDayData(d)
-      const hasRealContent = Object.values(dayData).some(
-        entry => entry?.value !== undefined && entry?.value !== null && !isEntryEmpty(entry.value)
-      )
-      if (hasRealContent) validDates.push(d)
-    }
-    
-    setDatesWithData(validDates)
-    return validDates
-  }, [readDayData])
+    setDatesWithData(rawDates)
+    return rawDates
+  }, [])
 
+  // Fix #9: Use functional update for setDatesWithData to eliminate stale closure dependency
   const writeDayData = useCallback(async (dateStr, data) => {
     const [year, month, day] = dateStr.split('-')
     const filePath = `${year}/${month}/${day}.json`
@@ -278,19 +357,18 @@ export function AppProvider({ children }) {
     const result = await window.api.fs.writeFile(filePath, JSON.stringify(cleanedData, null, 2))
     
     if (result.ok) {
-      // Check if the day still has any real content
       const hasRealContent = Object.keys(cleanedData).length > 0
-      if (hasRealContent) {
-        if (!datesWithData.includes(dateStr)) {
-          setDatesWithData(prev => [...prev, dateStr])
+      // Fix #9: Functional update avoids stale closure over datesWithData
+      setDatesWithData(prev => {
+        if (hasRealContent) {
+          return prev.includes(dateStr) ? prev : [...prev, dateStr]
+        } else {
+          return prev.filter(d => d !== dateStr)
         }
-      } else {
-        // All content deleted — remove date from index
-        setDatesWithData(prev => prev.filter(d => d !== dateStr))
-      }
+      })
     }
     return result
-  }, [datesWithData])
+  }, []) // Fix #9: No dependency on datesWithData
 
   // Custom Confirmation Dialog State
   const [confirmConfig, setConfirmConfig] = useState(null)
@@ -318,7 +396,9 @@ export function AppProvider({ children }) {
       editorLetterSpacing, updateEditorLetterSpacing,
       countdowns, saveCountdowns,
       analytics, saveAnalytics,
-      confirm
+      confirm,
+      // Fix #8: Expose flush registration for Today page
+      registerPendingFlush, unregisterPendingFlush
     }}>
       {children}
       {confirmConfig && (

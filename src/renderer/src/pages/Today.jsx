@@ -15,7 +15,10 @@ const STATUS = {
 }
 
 export default function Today() {
-  const { sections, readDayData, writeDayData, refreshDates, selectedDate, setSelectedDate, showToast } = useApp()
+  const {
+    sections, readDayData, writeDayData, selectedDate, setSelectedDate, showToast,
+    registerPendingFlush, unregisterPendingFlush
+  } = useApp()
 
   const [data, setData] = useState({})
   const [saveStatus, setSaveStatus] = useState(STATUS.IDLE)
@@ -28,8 +31,13 @@ export default function Today() {
   const [manuallyAdded, setManuallyAdded] = useState(new Set())
   const saveTimerRef = useRef(null)
   const pendingDataRef = useRef(null)
+  // Fix #11: Track escape-handler setTimeout for cleanup
+  const escapeTimeoutRef = useRef(null)
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
+  // Keep a ref to dateStr so flush can use latest value
+  const dateStrRef = useRef(dateStr)
+  dateStrRef.current = dateStr
 
   // Load data when date changes
   useEffect(() => {
@@ -48,15 +56,22 @@ export default function Today() {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && fullScreenSectionId) {
         setFullScreenSectionId(null)
-        // Focus back into the editor after exiting fullscreen
-        setTimeout(() => {
+        // Fix #11: Track the timeout and clear on cleanup
+        escapeTimeoutRef.current = setTimeout(() => {
           const editorEl = document.querySelector('.section-card:not(.fullscreen-active-parent) .ProseMirror')
           if (editorEl) editorEl.focus()
         }, 50)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      // Fix #11: Clear pending timeout on cleanup
+      if (escapeTimeoutRef.current) {
+        clearTimeout(escapeTimeoutRef.current)
+        escapeTimeoutRef.current = null
+      }
+    }
   }, [fullScreenSectionId])
 
   const scheduleSave = useCallback((newData) => {
@@ -69,16 +84,33 @@ export default function Today() {
       saveTimerRef.current = null
       pendingDataRef.current = null
       
-      const result = await writeDayData(dateStr, dataToSave)
+      const result = await writeDayData(dateStrRef.current, dataToSave)
       if (result.ok) {
         setSaveStatus(STATUS.SAVED)
-        refreshDates()
+        // Fix #1: Removed refreshDates() call — writeDayData already updates datesWithData incrementally
         setTimeout(() => setSaveStatus(STATUS.IDLE), 2000)
       } else {
         setSaveStatus(STATUS.FAILED)
       }
     }, 800)
-  }, [dateStr, writeDayData, refreshDates])
+  }, [writeDayData])
+
+  // Fix #8: Register flush callback for graceful shutdown
+  useEffect(() => {
+    const flushTodayData = async () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
+      if (pendingDataRef.current) {
+        const dataToSave = pendingDataRef.current
+        pendingDataRef.current = null
+        await writeDayData(dateStrRef.current, dataToSave)
+      }
+    }
+    registerPendingFlush('today', flushTodayData)
+    return () => unregisterPendingFlush('today')
+  }, [writeDayData, registerPendingFlush, unregisterPendingFlush])
 
   const handleManualSave = useCallback(() => {
     if (pendingDataRef.current) {
@@ -92,7 +124,6 @@ export default function Today() {
       writeDayData(dateStr, dataToSave).then(result => {
         if (result.ok) {
           setSaveStatus(STATUS.SAVED)
-          refreshDates()
           showToast('已保存更改', 'success', 2000)
           setTimeout(() => setSaveStatus(STATUS.IDLE), 2000)
         } else {
@@ -103,7 +134,7 @@ export default function Today() {
     } else {
       showToast('暂无需要保存的更改', 'info', 1000)
     }
-  }, [dateStr, writeDayData, refreshDates, showToast])
+  }, [dateStr, writeDayData, showToast])
 
   const handleChange = useCallback((sectionId, value) => {
     setData(prev => {
@@ -123,13 +154,18 @@ export default function Today() {
     })
   }, [scheduleSave])
 
+  // Fix #3: goTo() now catches write errors and shows user feedback
   const goTo = (date) => {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
       if (pendingDataRef.current) {
-        writeDayData(dateStr, pendingDataRef.current)
+        const dataToSave = pendingDataRef.current
         pendingDataRef.current = null
+        writeDayData(dateStr, dataToSave).catch(e => {
+          console.error('Failed to save on date change:', e)
+          showToast('切换日期时保存失败', 'error')
+        })
       }
     }
     pendingDataRef.current = null
