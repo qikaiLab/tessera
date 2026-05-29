@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-0.2.3-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.2.4-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
 [![Build](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/release.yml?label=CI%2FCD)](https://github.com/qikaiLab/tessera/actions)
@@ -171,6 +171,18 @@ MotoTrace 将数据安全视为头等大事，采用三层防护：
 ---
 
 ## 📋 更新日志
+
+### v0.2.4 *(2026-05-29)*
+
+**新特性**
+- **全屏写作背景优化**：用精致的径向渐变（Vignette）与中心微光代替了易产生色彩断层的强毛玻璃背景，完美自适应深色/浅色（白色）主题，保障写作的高级感与纯净专注力。
+- **全局文本选中样式**：统一并调优了全站和编辑器的文本选中背景色高亮，提高浅色/深色主题下的视觉对比度，使文本选取更清晰易读。
+
+**修复**
+- **格式工具栏交互 Bug 修复**：彻底修复了取消选中/点击文本任意处时，格式气泡菜单残留不退出的 Bug。
+- **浮窗退出动画流畅度优化**：将显隐动画与 `visibility` 状态原生由 CSS 引擎接管，消除了外边框和阴影比文本先消失的过渡卡顿与闪烁。
+
+---
 
 ### v0.2.3 *(2026-05-23)*
 
