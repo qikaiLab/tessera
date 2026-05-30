@@ -29,7 +29,7 @@ const steps = [
   }
 ]
 
-export default function Onboarding({ onDone }) {
+export default function Onboarding({ onDone, onOpenShortcuts }) {
   const [step, setStep] = useState(0)
   const isLast = step === steps.length - 1
   const current = steps[step]
@@ -45,6 +45,26 @@ export default function Onboarding({ onDone }) {
         <div className="onboarding-icon" key={step}>{current.icon}</div>
         <h2 className="onboarding-title">{current.title}</h2>
         <p className="onboarding-desc">{current.desc}</p>
+        {step === 2 && (
+          <button 
+            className="btn btn-ghost btn-sm onboarding-shortcuts-btn" 
+            onClick={onOpenShortcuts}
+            style={{ 
+              marginTop: '4px',
+              fontSize: '12px',
+              color: 'var(--accent)',
+              border: '1px dashed var(--accent)',
+              borderRadius: 'var(--radius-md)',
+              padding: '6px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            ⌨ 查看完整快捷键清单
+          </button>
+        )}
         <div className="onboarding-actions">
           {step > 0 && (
             <button className="btn btn-ghost" onClick={() => setStep(s => s - 1)}>

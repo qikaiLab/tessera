@@ -1,0 +1,200 @@
+.shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  animation: fadeIn var(--transition-base, 0.2s) both;
+}
+
+.shortcuts-modal {
+  background: var(--bg-surface, #1e1e1e);
+  border: 1px solid var(--border, #2d2d2d);
+  border-radius: var(--radius-xl, 16px);
+  width: 480px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  animation: scaleIn var(--transition-spring, 0.3s) both;
+  overflow: hidden;
+}
+
+.shortcuts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #2d2d2d);
+}
+
+.shortcuts-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shortcuts-header-icon {
+  font-size: 20px;
+  color: var(--accent, #7c6aff);
+}
+
+.shortcuts-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+}
+
+.shortcuts-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--text-muted, #808080);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shortcuts-close:hover {
+  color: var(--text-primary, #ffffff);
+  background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+}
+
+.shortcuts-tabs {
+  display: flex;
+  background: var(--bg-dark, #121212);
+  padding: 4px;
+  margin: 12px 20px 8px;
+  border-radius: var(--radius-md, 8px);
+  gap: 2px;
+}
+
+.shortcuts-tab {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-secondary, #b3b3b3);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.shortcuts-tab:hover {
+  color: var(--text-primary, #ffffff);
+}
+
+.shortcuts-tab.active {
+  background: var(--bg-surface, #1e1e1e);
+  color: var(--accent, #7c6aff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.shortcuts-content {
+  padding: 12px 20px 16px;
+  max-height: 320px;
+  overflow-y: auto;
+  min-height: 240px;
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shortcuts-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--bg-dark, #121212);
+  border: 1px solid var(--border, #2d2d2d);
+  border-radius: var(--radius-md, 8px);
+  transition: background 0.2s;
+}
+
+.shortcuts-row:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.02));
+}
+
+.shortcuts-desc {
+  font-size: 13px;
+  color: var(--text-secondary, #b3b3b3);
+}
+
+.shortcuts-keys {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shortcut-kbd {
+  background: var(--bg-surface, #1e1e1e);
+  border: 1px solid var(--border-hover, #444444);
+  border-bottom: 2px solid var(--border-hover, #444444);
+  color: var(--text-primary, #ffffff);
+  border-radius: var(--radius-sm, 4px);
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+  display: inline-block;
+  min-width: 16px;
+  text-align: center;
+}
+
+.shortcuts-key-or {
+  font-size: 11px;
+  color: var(--text-muted, #808080);
+  margin: 0 2px;
+}
+
+.shortcuts-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border, #2d2d2d);
+}
+
+.shortcuts-hint {
+  font-size: 11px;
+  color: var(--text-muted, #808080);
+}
+
+.shortcuts-hint kbd {
+  background: var(--bg-dark, #121212);
+  border: 1px solid var(--border, #2d2d2d);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 9px;
+}
+
+/* Custom Scrollbar for list container */
+.shortcuts-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.shortcuts-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.shortcuts-content::-webkit-scrollbar-thumb {
+  background: var(--border, #2d2d2d);
+  border-radius: 3px;
+}
+
+.shortcuts-content::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover, #444444);
+}

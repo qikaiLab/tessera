@@ -4,6 +4,7 @@ import { AppProvider, useApp } from './context/AppContext'
 import TitleBar from './components/TitleBar'
 import Toast from './components/Toast'
 import Onboarding from './components/Onboarding'
+import ShortcutsModal from './components/ShortcutsModal'
 import CrashRecovery from './components/CrashRecovery'
 import Today from './pages/Today'
 import Timeline from './pages/Timeline'
@@ -15,6 +16,7 @@ import './styles/App.css'
 function AppContent() {
   const { isInitialized, showToast } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const [tmpFiles, setTmpFiles] = useState([])
 
   useEffect(() => {
@@ -28,6 +30,21 @@ function AppContent() {
       if (files.length > 0) setTmpFiles(files)
     })
   }, [isInitialized])
+
+  // Global F1 and Ctrl+/ keydown listeners
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.key === 'F1') {
+        e.preventDefault()
+        setShowOnboarding(true)
+      } else if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault()
+        setShowShortcuts(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [])
 
   const handleOnboardingDone = () => {
     setShowOnboarding(false)
@@ -63,7 +80,13 @@ function AppContent() {
         </main>
       </div>
       <Toast />
-      {showOnboarding && <Onboarding onDone={handleOnboardingDone} />}
+      {showOnboarding && (
+        <Onboarding
+          onDone={handleOnboardingDone}
+          onOpenShortcuts={() => setShowShortcuts(true)}
+        />
+      )}
+      {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
       {tmpFiles.length > 0 && (
         <CrashRecovery
           files={tmpFiles}
