@@ -86,6 +86,24 @@ const ExitBlockExtension = Extension.create({
   },
 })
 
+/**
+ * ClearFormatting extension:
+ * - Ctrl-Space or Mod-Space: clear all marks at the cursor or selection.
+ */
+const ClearFormattingExtension = Extension.create({
+  name: 'clearFormatting',
+  addKeyboardShortcuts() {
+    return {
+      'Ctrl-Space': ({ editor }) => {
+        return editor.chain().focus().unsetAllMarks().run()
+      },
+      'Mod-Space': ({ editor }) => {
+        return editor.chain().focus().unsetAllMarks().run()
+      },
+    }
+  },
+})
+
 function countChars(editor) {
   if (!editor) return 0
   return editor.storage.characterCount?.characters?.() ?? 0
@@ -168,6 +186,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
       }),
       SlashExtension,
       ExitBlockExtension,
+      ClearFormattingExtension,
       buildSaveExtension(() => onSaveRef.current?.()),
     ],
     content: value || { type: 'doc', content: [{ type: 'paragraph' }] },
