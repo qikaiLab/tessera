@@ -521,3 +521,17 @@ ipcMain.handle('metadata:set', async (_, content) => {
 ipcMain.handle('shell:showItemInFolder', (_, filePath) => {
   shell.showItemInFolder(filePath)
 })
+
+ipcMain.handle('shell:openExternal', async (_, url) => {
+  try {
+    const parsed = new URL(url)
+    const allowedProtocols = new Set(['http:', 'https:', 'mailto:', 'tel:'])
+    if (!allowedProtocols.has(parsed.protocol)) {
+      throw new Error('Unsupported external link protocol')
+    }
+    await shell.openExternal(parsed.toString())
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})

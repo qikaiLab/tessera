@@ -10,6 +10,7 @@ import Today from './pages/Today'
 import Timeline from './pages/Timeline'
 import Calendar from './pages/Calendar'
 import Analytics from './pages/Analytics'
+import Notes from './pages/Notes'
 import Settings from './pages/Settings'
 import './styles/App.css'
 
@@ -72,6 +73,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Today />} />
             <Route path="/today" element={<Today />} />
+            <Route path="/notes" element={<Notes />} />
             <Route path="/timeline" element={<Timeline />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/analytics" element={<Analytics />} />
@@ -102,6 +104,7 @@ function Sidebar({ onOpenOnboarding }) {
 
   const navItems = [
     { to: '/today', icon: '◎', label: '记录', exact: false },
+    { to: '/notes', icon: 'N', label: '便签' },
     { to: '/timeline', icon: '☰', label: '时间线' },
     { to: '/calendar', icon: '⊞', label: '日历' },
     { to: '/analytics', icon: '∑', label: '数据分析' },

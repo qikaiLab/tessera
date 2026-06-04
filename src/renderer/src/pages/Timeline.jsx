@@ -170,6 +170,8 @@ export default function Timeline() {
         .map(sid => sections.find(s => s.id === sid))
         .filter(Boolean)
 
+      if (recordedSections.length === 0) return null
+
       return { dateStr, dayData, sectionResults, totalWords, recordedSections }
     }).filter(Boolean)
   }, [datesWithData, loadedDates, filterSection, query, dateFrom, dateTo, sections])

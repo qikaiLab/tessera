@@ -333,13 +333,18 @@ export function AppProvider({ children }) {
     return {}
   }, [])
 
-  // Fix #1: refreshDates no longer reads each file's content.
-  // It trusts fs:scanDates for file existence. writeDayData handles incremental updates.
   const refreshDates = useCallback(async () => {
     const rawDates = await window.api.fs.scanDates()
-    setDatesWithData(rawDates)
-    return rawDates
-  }, [])
+    const checkedDates = await Promise.all(
+      rawDates.map(async (dateStr) => {
+        const dayData = await readDayData(dateStr)
+        return Object.keys(dayData).length > 0 ? dateStr : null
+      })
+    )
+    const datesWithRealData = checkedDates.filter(Boolean)
+    setDatesWithData(datesWithRealData)
+    return datesWithRealData
+  }, [readDayData])
 
   // Fix #9: Use functional update for setDatesWithData to eliminate stale closure dependency
   const writeDayData = useCallback(async (dateStr, data) => {
@@ -354,10 +359,12 @@ export function AppProvider({ children }) {
        }
     }
 
-    const result = await window.api.fs.writeFile(filePath, JSON.stringify(cleanedData, null, 2))
+    const hasRealContent = Object.keys(cleanedData).length > 0
+    const result = hasRealContent
+      ? await window.api.fs.writeFile(filePath, JSON.stringify(cleanedData, null, 2))
+      : await window.api.fs.deleteFile(filePath)
     
     if (result.ok) {
-      const hasRealContent = Object.keys(cleanedData).length > 0
       // Fix #9: Functional update avoids stale closure over datesWithData
       setDatesWithData(prev => {
         if (hasRealContent) {

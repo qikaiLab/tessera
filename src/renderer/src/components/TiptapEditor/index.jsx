@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useState, useRef, forwardRef, useImperat
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
+import Link from '@tiptap/extension-link'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import CharacterCount from '@tiptap/extension-character-count'
@@ -109,6 +110,18 @@ function countChars(editor) {
   return editor.storage.characterCount?.characters?.() ?? 0
 }
 
+function normalizeExternalUrl(url) {
+  if (!url) return null
+  const trimmed = url.trim()
+  if (/^https?:\/\//i.test(trimmed) || /^mailto:/i.test(trimmed) || /^tel:/i.test(trimmed)) {
+    return trimmed
+  }
+  if (/^www\./i.test(trimmed)) {
+    return `https://${trimmed}`
+  }
+  return null
+}
+
 const TiptapEditor = forwardRef(function TiptapEditor(
   {
     value = null,        // JSON object or null
@@ -175,6 +188,16 @@ const TiptapEditor = forwardRef(function TiptapEditor(
         },
       }),
       Underline,
+      Link.configure({
+        autolink: true,
+        linkOnPaste: true,
+        openOnClick: false,
+        protocols: ['http', 'https', 'mailto', 'tel'],
+        HTMLAttributes: {
+          rel: 'noopener noreferrer',
+          target: null,
+        },
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
       CharacterCount,
@@ -266,6 +289,21 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     }
   }, [isFullScreen, handleToggleFullScreen])
 
+  const handleEditorClick = useCallback((event) => {
+    const linkEl = event.target?.closest?.('a[href]')
+    if (!linkEl) {
+      editor?.commands.focus()
+      return
+    }
+
+    const url = normalizeExternalUrl(linkEl.getAttribute('href'))
+    if (!url) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    window.api?.shell?.openExternal?.(url)
+  }, [editor])
+
   const charCount = countChars(editor)
 
   useEffect(() => {
@@ -333,7 +371,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
           '--editor-line-height': editorLineHeight || '1.8',
           '--editor-letter-spacing': formatCSSLetterSpacing(editorLetterSpacing, '0px')
         }}
-        onClick={() => editor?.commands.focus()}
+        onClick={handleEditorClick}
       >
         <EditorContent editor={editor} />
       </div>

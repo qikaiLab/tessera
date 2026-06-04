@@ -90,6 +90,15 @@
 .ProseMirror em { font-style: italic; color: var(--text-secondary); }
 .ProseMirror s { text-decoration: line-through; color: var(--text-tertiary); }
 .ProseMirror u { text-decoration: underline; text-underline-offset: 3px; }
+.ProseMirror a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.ProseMirror a:hover {
+  color: var(--accent-hover);
+}
 
 /* Inline code */
 .ProseMirror code {
