@@ -54,6 +54,15 @@
   flex: 1;
   overflow: hidden;
   background: var(--bg-app);
+  position: relative;
+}
+
+.app-main > * {
+  animation: pageSoftIn var(--transition-base) both;
+}
+
+.app-main > .notes-fullscreen-active-parent {
+  animation: none;
 }
 
 /* ─── Titlebar ───────────────────────────────────────────────────────────── */

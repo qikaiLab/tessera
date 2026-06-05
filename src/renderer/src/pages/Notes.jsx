@@ -12,6 +12,9 @@ const SAVE_FAILED = 'failed'
 const NOTES_LIST_MIN = 240
 const NOTES_LIST_MAX = 520
 const NOTES_LIST_DEFAULT = 320
+const NOTE_FONT_MIN = 12
+const NOTE_FONT_MAX = 24
+const NOTE_FONT_DEFAULT = 14
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 
@@ -35,8 +38,14 @@ function normalizeMeta(note) {
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
     pinned: Boolean(note.pinned),
-    archived: Boolean(note.archived)
+    archived: Boolean(note.archived),
+    fontSize: normalizeFontSize(note.fontSize)
   }
+}
+
+function normalizeFontSize(value) {
+  const parsed = parseInt(value, 10)
+  return Number.isFinite(parsed) ? clamp(parsed, NOTE_FONT_MIN, NOTE_FONT_MAX) : NOTE_FONT_DEFAULT
 }
 
 function extractText(value) {
@@ -55,6 +64,10 @@ function extractText(value) {
   return ''
 }
 
+function countNoteChars(content) {
+  return extractText(content).length
+}
+
 function parseNote(raw, fallbackMeta) {
   try {
     const parsed = JSON.parse(raw)
@@ -65,7 +78,8 @@ function parseNote(raw, fallbackMeta) {
       createdAt: parsed.createdAt || fallbackMeta.createdAt || new Date().toISOString(),
       updatedAt: parsed.updatedAt || fallbackMeta.updatedAt || new Date().toISOString(),
       pinned: Boolean(parsed.pinned ?? fallbackMeta.pinned),
-      archived: Boolean(parsed.archived ?? fallbackMeta.archived)
+      archived: Boolean(parsed.archived ?? fallbackMeta.archived),
+      fontSize: normalizeFontSize(parsed.fontSize ?? fallbackMeta.fontSize)
     }
   } catch {
     return null
@@ -99,9 +113,6 @@ export default function Notes() {
     const saved = parseInt(localStorage.getItem('mototrace_notes_list_width') || '', 10)
     return Number.isFinite(saved) ? clamp(saved, NOTES_LIST_MIN, NOTES_LIST_MAX) : NOTES_LIST_DEFAULT
   })
-  const [fontSize, setFontSize] = useState(() => {
-    return parseInt(localStorage.getItem('mototrace_notes_font_size') || '14', 10)
-  })
   const saveTimerRef = useRef(null)
   const pendingNoteRef = useRef(null)
   const titleInputRef = useRef(null)
@@ -115,7 +126,8 @@ export default function Notes() {
     const payload = {
       ...note,
       title: note.title?.trim() || '无标题便签',
-      content: note.content || emptyDoc()
+      content: note.content || emptyDoc(),
+      fontSize: normalizeFontSize(note.fontSize)
     }
     return window.api.fs.writeFile(notePath(payload.id), JSON.stringify(payload, null, 2))
   }, [])
@@ -187,6 +199,7 @@ export default function Notes() {
     const firstActive = loaded.find(n => !n.archived) || loaded[0] || null
     setSelectedId(firstActive?.id || null)
     setCurrentNote(firstActive || null)
+    setCharCount(firstActive ? countNoteChars(firstActive.content) : 0)
     setFullScreenNoteId(null)
     setLoading(false)
   }, [showToast])
@@ -207,6 +220,7 @@ export default function Notes() {
     await flushPending()
     setSelectedId(note.id)
     setCurrentNote(note)
+    setCharCount(countNoteChars(note.content))
     setFullScreenNoteId(null)
     setSaveStatus(SAVE_IDLE)
   }, [flushPending])
@@ -237,7 +251,8 @@ export default function Notes() {
       createdAt: now,
       updatedAt: now,
       pinned: false,
-      archived: false
+      archived: false,
+      fontSize: normalizeFontSize(localStorage.getItem('mototrace_notes_font_size'))
     }
     const nextNotes = [note, ...notes].sort(compareNotes)
     setNotes(nextNotes)
@@ -246,6 +261,7 @@ export default function Notes() {
     const ok = await persistNoteNow(note, nextNotes)
     if (ok) {
       showToast('已新建便签', 'success', 1200)
+      setCharCount(0)
       setTimeout(() => titleInputRef.current?.focus(), 40)
     }
   }, [flushPending, notes, persistNoteNow, showToast])
@@ -261,8 +277,9 @@ export default function Notes() {
   }, [currentNote, updateCurrentNote])
 
   const handleFontSizeChange = (size) => {
-    setFontSize(size)
-    localStorage.setItem('mototrace_notes_font_size', String(size))
+    const nextSize = normalizeFontSize(size)
+    localStorage.setItem('mototrace_notes_font_size', String(nextSize))
+    updateCurrentNote({ fontSize: nextSize })
   }
 
   const startNotesListResize = (event) => {
@@ -305,9 +322,10 @@ export default function Notes() {
     [SAVE_SAVING]: { text: '保存中...', cls: 'status-saving' },
     [SAVE_FAILED]: { text: '保存失败', cls: 'status-failed' },
   }[saveStatus]
+  const activeFontSize = normalizeFontSize(currentNote?.fontSize)
 
   return (
-    <div className="notes-page" style={{ gridTemplateColumns: `${notesListWidth}px 6px minmax(0, 1fr)` }}>
+    <div className="notes-page" style={{ gridTemplateColumns: `${notesListWidth}px minmax(0, 1fr)` }}>
       <aside className="notes-list-panel">
         <div className="notes-list-header">
           <div>
@@ -367,12 +385,28 @@ export default function Notes() {
       </aside>
       <div
         className="notes-resize-handle"
+        style={{ left: notesListWidth - 3 }}
         onMouseDown={startNotesListResize}
         title="拖动调整便签列表宽度"
       />
 
       <main className={`notes-editor-panel ${fullScreenNoteId ? 'notes-fullscreen-active-parent' : ''}`}>
-        {currentNote ? (
+        {loading ? (
+          <div className="notes-editor-loading">
+            <div className="notes-editor-loading-header">
+              <div className="skeleton notes-title-skeleton" />
+              <div className="skeleton notes-actions-skeleton" />
+            </div>
+            <div className="skeleton notes-meta-skeleton" />
+            <div className="notes-editor-body">
+              <div className="notes-editor-loading-card">
+                <div className="skeleton notes-line-skeleton wide" />
+                <div className="skeleton notes-line-skeleton" />
+                <div className="skeleton notes-line-skeleton short" />
+              </div>
+            </div>
+          </div>
+        ) : currentNote ? (
           <>
             <div className="notes-editor-header">
               <input
@@ -392,19 +426,18 @@ export default function Notes() {
                     {statusLabel.text}
                   </span>
                 )}
-                <span className="char-count-badge">{charCount} 字</span>
                 <div className="card-font-controls">
                   <button
                     className="btn btn-ghost btn-xs font-ctrl-btn"
-                    onClick={() => handleFontSizeChange(Math.max(12, fontSize - 1))}
+                    onClick={() => handleFontSizeChange(activeFontSize - 1)}
                     title="缩小字体"
                   >
                     A-
                   </button>
-                  <span className="font-ctrl-label">{fontSize}</span>
+                  <span className="font-ctrl-label">{activeFontSize}</span>
                   <button
                     className="btn btn-ghost btn-xs font-ctrl-btn"
-                    onClick={() => handleFontSizeChange(Math.min(24, fontSize + 1))}
+                    onClick={() => handleFontSizeChange(activeFontSize + 1)}
                     title="放大字体"
                   >
                     A+
@@ -428,6 +461,7 @@ export default function Notes() {
             <div className="notes-editor-meta">
               <span>创建 {formatTime(currentNote.createdAt)}</span>
               <span>更新 {formatTime(currentNote.updatedAt)}</span>
+              <span>{charCount} 字</span>
             </div>
             <div className="notes-editor-body">
               <TiptapEditor
@@ -437,7 +471,7 @@ export default function Notes() {
                 isFullScreen={fullScreenNoteId === currentNote.id}
                 onToggleFullScreen={() => setFullScreenNoteId(prev => prev === currentNote.id ? null : currentNote.id)}
                 onSave={flushPending}
-                fontSize={fontSize}
+                fontSize={activeFontSize}
                 onFontSizeChange={handleFontSizeChange}
                 onCharCountChange={setCharCount}
               />

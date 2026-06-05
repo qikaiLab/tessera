@@ -23,6 +23,9 @@ export default function Today() {
   const [data, setData] = useState({})
   const [saveStatus, setSaveStatus] = useState(STATUS.IDLE)
   const [loading, setLoading] = useState(true)
+  const [transitioningDate, setTransitioningDate] = useState(false)
+  const [showSkeleton, setShowSkeleton] = useState(false)
+  const [dateTransitionDir, setDateTransitionDir] = useState('jump')
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [jumpInput, setJumpInput] = useState('')
   const [fullScreenSectionId, setFullScreenSectionId] = useState(null)
@@ -31,6 +34,8 @@ export default function Today() {
   const [manuallyAdded, setManuallyAdded] = useState(new Set())
   const saveTimerRef = useRef(null)
   const pendingDataRef = useRef(null)
+  const hasLoadedOnceRef = useRef(false)
+  const loadSeqRef = useRef(0)
   // Fix #11: Track escape-handler setTimeout for cleanup
   const escapeTimeoutRef = useRef(null)
 
@@ -41,15 +46,45 @@ export default function Today() {
 
   // Load data when date changes
   useEffect(() => {
-    setLoading(true)
+    const seq = loadSeqRef.current + 1
+    loadSeqRef.current = seq
+    const hasLoadedOnce = hasLoadedOnceRef.current
+    let skeletonTimer = null
+
+    setLoading(!hasLoadedOnce)
+    setTransitioningDate(hasLoadedOnce)
+    setShowSkeleton(false)
     setSaveStatus(STATUS.IDLE)
     setFullScreenSectionId(null) // Exit full screen on date change
     setManuallyAdded(new Set())  // Task 2: clear manual additions on date change
-    readDayData(dateStr).then(d => {
-      setData(d)
-      setLoading(false)
-    })
-  }, [dateStr, readDayData])
+
+    if (!hasLoadedOnce) {
+      skeletonTimer = setTimeout(() => setShowSkeleton(true), 180)
+    }
+
+    readDayData(dateStr)
+      .then(d => {
+        if (loadSeqRef.current !== seq) return
+        setData(d)
+      })
+      .catch(error => {
+        console.error('Failed to load day data:', error)
+        if (loadSeqRef.current === seq) {
+          showToast('读取记录失败', 'error')
+        }
+      })
+      .finally(() => {
+        if (loadSeqRef.current !== seq) return
+        hasLoadedOnceRef.current = true
+        setLoading(false)
+        setTransitioningDate(false)
+        setShowSkeleton(false)
+      })
+
+    return () => {
+      if (skeletonTimer) clearTimeout(skeletonTimer)
+    }
+  }, [dateStr, readDayData, showToast])
 
   // Global escape key for fullscreen
   useEffect(() => {
@@ -169,6 +204,9 @@ export default function Today() {
       }
     }
     pendingDataRef.current = null
+    const currentTime = selectedDate.getTime()
+    const nextTime = date.getTime()
+    setDateTransitionDir(nextTime > currentTime ? 'next' : nextTime < currentTime ? 'prev' : 'jump')
     setSelectedDate(date)
   }
 
@@ -228,8 +266,10 @@ export default function Today() {
           </button>
           <div className="today-date-group">
             <div className="today-date" onClick={() => setShowDatePicker(v => !v)}>
-              <span className="today-date-main">{formatDateDisplay()}</span>
-              <span className="today-date-sub">{format(selectedDate, 'yyyy年MM月dd日')}</span>
+              <div key={dateStr} className={`today-date-motion date-motion-${dateTransitionDir}`}>
+                <span className="today-date-main">{formatDateDisplay()}</span>
+                <span className="today-date-sub">{format(selectedDate, 'yyyy年MM月dd日')}</span>
+              </div>
             </div>
             {showDatePicker && (
               <form className="date-jump-form" onSubmit={handleJump}>
@@ -276,8 +316,9 @@ export default function Today() {
       </div>
 
       {/* Content */}
-      <div className="today-content">
-        {loading ? (
+      <div className={`today-content ${transitioningDate ? 'is-date-transitioning' : ''}`}>
+        <div key={`date-flow-${dateStr}`} className={`today-date-flow date-flow-${dateTransitionDir}`} />
+        {loading && showSkeleton ? (
           <div className="today-skeleton">
             {[1, 2].map(i => (
               <div key={i} className="skeleton-card">
@@ -286,6 +327,8 @@ export default function Today() {
               </div>
             ))}
           </div>
+        ) : loading ? (
+          <div className="today-loading-quiet" />
         ) : visibleSections.length === 0 && sections.length > 0 ? (
           <div className="today-empty-day">
             <div className="empty-state">
@@ -295,7 +338,7 @@ export default function Today() {
             </div>
           </div>
         ) : (
-          <div className="sections-grid">
+          <div key={`sections-${dateStr}`} className="sections-grid">
             {visibleSections.map((sec, i) => (
               <SectionCard
                 key={sec.id}
@@ -303,6 +346,7 @@ export default function Today() {
                 value={data[sec.id]?.value ?? (sec.type === 'text' ? '' : '')}
                 onChange={(val) => handleChange(sec.id, val)}
                 animationDelay={i * 50}
+                dateTransitionDir={dateTransitionDir}
                 isFullScreen={fullScreenSectionId === sec.id}
                 onToggleFullScreen={() => setFullScreenSectionId(prev => prev === sec.id ? null : sec.id)}
                 onSave={handleManualSave}
@@ -337,7 +381,7 @@ export default function Today() {
   )
 }
 
-function SectionCard({ section, value, onChange, animationDelay, isFullScreen, onToggleFullScreen, onSave }) {
+function SectionCard({ section, value, onChange, animationDelay, dateTransitionDir, isFullScreen, onToggleFullScreen, onSave }) {
   const [charCount, setCharCount] = useState(0)
   const [fontSize, setFontSize] = useState(() => {
     return parseInt(localStorage.getItem('mototrace_font_size') || '14', 10)
@@ -367,7 +411,7 @@ function SectionCard({ section, value, onChange, animationDelay, isFullScreen, o
   if (section.type === 'number') {
     return (
       <div
-        className="section-card number-card"
+        className={`section-card number-card date-card-${dateTransitionDir}`}
         style={{ animationDelay: `${animationDelay}ms` }}
       >
         <div className="number-card-content">
@@ -391,7 +435,7 @@ function SectionCard({ section, value, onChange, animationDelay, isFullScreen, o
 
   return (
     <div
-      className={`section-card ${isFullScreen ? 'fullscreen-active-parent' : ''}`}
+      className={`section-card date-card-${dateTransitionDir} ${isFullScreen ? 'fullscreen-active-parent' : ''}`}
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div className="section-card-header">
