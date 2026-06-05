@@ -31,12 +31,15 @@ export default function Today() {
   const [saveStatus, setSaveStatus] = useState(STATUS.IDLE)
   const [loading, setLoading] = useState(true)
   const [transitioningDate, setTransitioningDate] = useState(false)
+  const [dateLeaving, setDateLeaving] = useState(false)
+  const [dateLeavingDir, setDateLeavingDir] = useState('jump')
   const [showSkeleton, setShowSkeleton] = useState(false)
   const [dateTransitionDir, setDateTransitionDir] = useState('jump')
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [jumpInput, setJumpInput] = useState('')
   const [fullScreenSectionId, setFullScreenSectionId] = useState(null)
   const [notesDrawerOpen, setNotesDrawerOpen] = useState(false)
+  const [notesDrawerMounted, setNotesDrawerMounted] = useState(false)
   const [notesDrawerWidth, setNotesDrawerWidth] = useState(() => {
     const saved = parseInt(localStorage.getItem('mototrace_today_notes_drawer_width') || '', 10)
     return Number.isFinite(saved) ? clamp(saved, NOTES_DRAWER_MIN, NOTES_DRAWER_MAX) : NOTES_DRAWER_DEFAULT
@@ -48,6 +51,8 @@ export default function Today() {
   const pendingDataRef = useRef(null)
   const hasLoadedOnceRef = useRef(false)
   const loadSeqRef = useRef(0)
+  const dateSwitchTimerRef = useRef(null)
+  const suppressNextLoadTransitionRef = useRef(false)
   // Fix #11: Track escape-handler setTimeout for cleanup
   const escapeTimeoutRef = useRef(null)
 
@@ -61,10 +66,12 @@ export default function Today() {
     const seq = loadSeqRef.current + 1
     loadSeqRef.current = seq
     const hasLoadedOnce = hasLoadedOnceRef.current
+    const shouldSuppressLoadTransition = suppressNextLoadTransitionRef.current
+    suppressNextLoadTransitionRef.current = false
     let skeletonTimer = null
 
     setLoading(!hasLoadedOnce)
-    setTransitioningDate(hasLoadedOnce)
+    setTransitioningDate(hasLoadedOnce && !shouldSuppressLoadTransition)
     setShowSkeleton(false)
     setSaveStatus(STATUS.IDLE)
     setFullScreenSectionId(null) // Exit full screen on date change
@@ -97,6 +104,12 @@ export default function Today() {
       if (skeletonTimer) clearTimeout(skeletonTimer)
     }
   }, [dateStr, readDayData, showToast])
+
+  useEffect(() => {
+    return () => {
+      if (dateSwitchTimerRef.current) clearTimeout(dateSwitchTimerRef.current)
+    }
+  }, [])
 
   // Global escape key for fullscreen
   useEffect(() => {
@@ -218,8 +231,18 @@ export default function Today() {
     pendingDataRef.current = null
     const currentTime = selectedDate.getTime()
     const nextTime = date.getTime()
-    setDateTransitionDir(nextTime > currentTime ? 'next' : nextTime < currentTime ? 'prev' : 'jump')
-    setSelectedDate(date)
+    if (nextTime === currentTime) return
+    const nextDir = nextTime > currentTime ? 'next' : 'prev'
+    setDateLeavingDir(nextDir)
+    setDateLeaving(true)
+    if (dateSwitchTimerRef.current) clearTimeout(dateSwitchTimerRef.current)
+    dateSwitchTimerRef.current = setTimeout(() => {
+      dateSwitchTimerRef.current = null
+      suppressNextLoadTransitionRef.current = true
+      setDateTransitionDir(nextDir)
+      setSelectedDate(date)
+      setDateLeaving(false)
+    }, 140)
   }
 
   const visibleSections = sections.filter(sec => {
@@ -282,6 +305,21 @@ export default function Today() {
     window.addEventListener('mouseup', handleUp)
   }
 
+  const toggleNotesDrawer = () => {
+    if (notesDrawerOpen) {
+      setNotesDrawerOpen(false)
+      return
+    }
+    setNotesDrawerMounted(true)
+    setNotesDrawerOpen(true)
+  }
+
+  const handleNotesDrawerAnimationEnd = () => {
+    if (!notesDrawerOpen) {
+      setNotesDrawerMounted(false)
+    }
+  }
+
   const statusLabel = {
     [STATUS.IDLE]: null,
     [STATUS.SAVED]: { text: '已保存', cls: 'status-saved' },
@@ -292,7 +330,7 @@ export default function Today() {
 
   return (
     <div className="today-page">
-      <div className={`today-main-split ${notesDrawerOpen ? 'has-notes-drawer' : ''}`}>
+      <div className={`today-main-split ${notesDrawerMounted ? 'has-notes-drawer' : ''}`}>
         <div className="today-record-pane">
           {/* Header */}
           <div className="today-header">
@@ -340,11 +378,12 @@ export default function Today() {
             </div>
             <div className="today-header-right">
               <button
-                className={`today-notes-toggle btn btn-ghost btn-icon ${notesDrawerOpen ? 'active' : ''}`}
-                onClick={() => setNotesDrawerOpen(prev => !prev)}
+                className={`today-notes-toggle ${notesDrawerOpen ? 'active' : ''}`}
+                onClick={toggleNotesDrawer}
                 title={notesDrawerOpen ? '收起便签抽屉' : '打开便签抽屉'}
+                aria-label={notesDrawerOpen ? '收起便签抽屉' : '打开便签抽屉'}
               >
-                N
+                <span className="today-notes-toggle-mark">{notesDrawerOpen ? '›' : '‹'}</span>
               </button>
               {statusLabel && (
                 <span className={`save-status ${statusLabel.cls}`}>
@@ -359,7 +398,7 @@ export default function Today() {
           </div>
 
           {/* Content */}
-          <div className={`today-content ${transitioningDate ? 'is-date-transitioning' : ''}`}>
+          <div className={`today-content ${transitioningDate ? 'is-date-transitioning' : ''} ${dateLeaving ? `is-date-leaving date-leaving-${dateLeavingDir}` : ''}`}>
             <div key={`date-flow-${dateStr}`} className={`today-date-flow date-flow-${dateTransitionDir}`} />
             {loading && showSkeleton ? (
               <div className="today-skeleton">
@@ -421,11 +460,13 @@ export default function Today() {
             )}
           </div>
         </div>
-        {notesDrawerOpen && (
+        {notesDrawerMounted && (
           <NotesDrawer
             dateStr={dateStr}
             width={notesDrawerWidth}
             onResizeStart={startNotesDrawerResize}
+            closing={!notesDrawerOpen}
+            onAnimationEnd={handleNotesDrawerAnimationEnd}
           />
         )}
       </div>

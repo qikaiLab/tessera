@@ -73,6 +73,7 @@ export default function Timeline() {
   const navigate = useNavigate()
   const { sections, datesWithData, readDayData, writeDayData, setSelectedDate, showToast, refreshDates, confirm } = useApp()
   const [query, setQuery] = useState('')
+  const [easterEggSearch, setEasterEggSearch] = useState('')
   const [filterSection, setFilterSection] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -278,9 +279,19 @@ export default function Timeline() {
     }
   }
 
-  // Easter egg: trigger on specific search keywords
-  const easterEggKeywords = ['亓开', '朱琳']
-  const easterEggActive = easterEggKeywords.some(kw => query.trimEnd() === kw)
+  const handleSearchChange = (e) => {
+    setQuery(e.target.value)
+    setEasterEggSearch('')
+  }
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key !== 'Enter') return
+    setEasterEggSearch(query.trim())
+  }
+
+  // Easter egg: trigger only after submitting an exact private code.
+  const easterEggKeywords = ['Wmm', '7kai']
+  const easterEggActive = easterEggKeywords.some(kw => easterEggSearch === kw)
 
   return (
     <div className="timeline-page">
@@ -301,7 +312,8 @@ export default function Timeline() {
             className="input search-input"
             placeholder="搜索记录内容..."
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={handleSearchChange}
+            onKeyDown={handleSearchKeyDown}
           />
         </div>
         <select

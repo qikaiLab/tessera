@@ -119,7 +119,7 @@ function isLinkedToDate(note, dateStr) {
   return Boolean(dateLink && dateLink.start <= dateStr && dateLink.end >= dateStr)
 }
 
-export default function NotesDrawer({ dateStr, width, onResizeStart }) {
+export default function NotesDrawer({ dateStr, width, onResizeStart, closing = false, onAnimationEnd }) {
   const { showToast, registerPendingFlush, unregisterPendingFlush } = useApp()
   const [notes, setNotes] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -321,10 +321,16 @@ export default function NotesDrawer({ dateStr, width, onResizeStart }) {
   const activeFontSize = normalizeFontSize(currentNote?.fontSize)
 
   return (
-    <aside className="notes-drawer" style={{ width }}>
+    <aside
+      className={`notes-drawer ${closing ? 'is-closing' : ''}`}
+      style={{ width, '--notes-drawer-width': `${width}px`, '--notes-drawer-offset': `-${width}px` }}
+      onAnimationEnd={event => {
+        if (event.target === event.currentTarget) onAnimationEnd?.()
+      }}
+    >
       <div className="notes-drawer-resize" onMouseDown={onResizeStart} title="拖动调整便签抽屉宽度" />
       <div className="notes-drawer-header">
-        <div>
+        <div className="notes-drawer-heading">
           <h2>便签</h2>
           <span>{filteredNotes.length} 条</span>
         </div>

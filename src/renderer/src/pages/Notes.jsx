@@ -501,7 +501,7 @@ export default function Notes() {
     <div className="notes-page" style={{ gridTemplateColumns: `${notesListWidth}px minmax(0, 1fr)` }}>
       <aside className="notes-list-panel">
         <div className="notes-list-header">
-          <div>
+          <div className="notes-heading">
             <h1 className="notes-title">便签</h1>
             <span className="notes-count">{filteredNotes.length} 条</span>
           </div>
@@ -532,13 +532,25 @@ export default function Notes() {
           </div>
         </div>
 
-        <div className="notes-filter-row tabs">
-          <button className={`tab ${!showArchived ? 'active' : ''}`} onClick={() => setShowArchived(false)}>当前</button>
-          <button className={`tab ${showArchived ? 'active' : ''}`} onClick={() => setShowArchived(true)}>归档</button>
-        </div>
+        <div className="notes-filter-bar">
+          <div className="notes-status-toggle" role="group" aria-label="便签状态">
+            <button
+              type="button"
+              className={`notes-status-pill ${!showArchived ? 'active' : ''}`}
+              onClick={() => setShowArchived(false)}
+            >
+              当前
+            </button>
+            <button
+              type="button"
+              className={`notes-status-pill ${showArchived ? 'active' : ''}`}
+              onClick={() => setShowArchived(true)}
+            >
+              归档
+            </button>
+          </div>
 
-        <div className={`notes-date-filter ${isDateFilterActive ? 'active' : ''}`}>
-          <div className="notes-date-filter-top">
+          <div className={`notes-date-filter ${isDateFilterActive ? 'active' : ''}`}>
             <select
               className="input notes-date-filter-select"
               value={dateFilter.mode}
@@ -552,11 +564,19 @@ export default function Notes() {
               <option value={DATE_FILTER_OVERLAP}>与时间段交集</option>
             </select>
             {isDateFilterActive && (
-              <button className="btn btn-ghost btn-icon notes-date-filter-clear" onClick={clearDateFilter} title="清除日期筛选">
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon notes-date-filter-clear"
+                onClick={clearDateFilter}
+                title="清除日期筛选"
+              >
                 ×
               </button>
             )}
           </div>
+        </div>
+
+        <div className={`notes-date-filter-fields ${isDateFilterActive ? 'active' : ''}`}>
           {dateFilter.mode === DATE_FILTER_CONTAINS && (
             <input
               className="input notes-date-filter-input"
