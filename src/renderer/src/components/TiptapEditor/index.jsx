@@ -122,6 +122,10 @@ function normalizeExternalUrl(url) {
   return null
 }
 
+const ExternalLink = Link.extend({
+  inclusive: false,
+})
+
 const TiptapEditor = forwardRef(function TiptapEditor(
   {
     value = null,        // JSON object or null
@@ -188,7 +192,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
         },
       }),
       Underline,
-      Link.configure({
+      ExternalLink.configure({
         autolink: true,
         linkOnPaste: true,
         openOnClick: false,

@@ -14,11 +14,42 @@ import Notes from './pages/Notes'
 import Settings from './pages/Settings'
 import './styles/App.css'
 
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+const APP_SIDEBAR_MIN = 160
+const APP_SIDEBAR_MAX = 280
+const APP_SIDEBAR_DEFAULT = 200
+
 function AppContent() {
   const { isInitialized, showToast } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [tmpFiles, setTmpFiles] = useState([])
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = parseInt(localStorage.getItem('mototrace_sidebar_width') || '', 10)
+    return Number.isFinite(saved) ? clamp(saved, APP_SIDEBAR_MIN, APP_SIDEBAR_MAX) : APP_SIDEBAR_DEFAULT
+  })
+
+  const startSidebarResize = (event) => {
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = sidebarWidth
+    document.body.classList.add('is-resizing')
+
+    const handleMove = (moveEvent) => {
+      const nextWidth = clamp(startWidth + moveEvent.clientX - startX, APP_SIDEBAR_MIN, APP_SIDEBAR_MAX)
+      setSidebarWidth(nextWidth)
+      localStorage.setItem('mototrace_sidebar_width', String(nextWidth))
+    }
+
+    const handleUp = () => {
+      document.body.classList.remove('is-resizing')
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+  }
 
   useEffect(() => {
     if (!isInitialized) return
@@ -68,7 +99,11 @@ function AppContent() {
     <div className="app-shell">
       <TitleBar />
       <div className="app-body">
-        <Sidebar onOpenOnboarding={() => setShowOnboarding(true)} />
+        <Sidebar
+          width={sidebarWidth}
+          onResizeStart={startSidebarResize}
+          onOpenOnboarding={() => setShowOnboarding(true)}
+        />
         <main className="app-main">
           <Routes>
             <Route path="/" element={<Today />} />
@@ -99,7 +134,7 @@ function AppContent() {
   )
 }
 
-function Sidebar({ onOpenOnboarding }) {
+function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
   const { theme, toggleTheme } = useApp()
 
   const navItems = [
@@ -112,7 +147,7 @@ function Sidebar({ onOpenOnboarding }) {
   ]
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" style={{ width }}>
       <div className="sidebar-brand">
         <span className="brand-icon">◈</span>
         <span className="brand-name">MotoTrace</span>
@@ -149,6 +184,11 @@ function Sidebar({ onOpenOnboarding }) {
         </button>
         <span className="sidebar-version">v0.2.4</span>
       </div>
+      <div
+        className="sidebar-resize-handle"
+        onMouseDown={onResizeStart}
+        title="拖动调整侧边栏宽度"
+      />
     </aside>
   )
 }

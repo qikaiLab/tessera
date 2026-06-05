@@ -10,6 +10,7 @@ const isDev = !app.isPackaged
 let mainWindow
 let dataDir = ''
 let isQuitting = false
+let lastExternalOpen = { url: '', time: 0 }
 
 function getDefaultDataDir() {
   return path.join(os.homedir(), 'MotoTrace', 'data')
@@ -69,6 +70,40 @@ function ensureDirSync(dir) {
   }
 }
 
+function isAllowedExternalUrl(url) {
+  try {
+    const parsed = new URL(url)
+    return ['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol)
+  } catch {
+    return false
+  }
+}
+
+function isAppNavigationUrl(url) {
+  if (!url) return false
+  if (!isDev) return url.startsWith('file:')
+
+  const rendererUrl = process.env['ELECTRON_RENDERER_URL'] || 'http://localhost:5173'
+  try {
+    return new URL(url).origin === new URL(rendererUrl).origin
+  } catch {
+    return false
+  }
+}
+
+async function openExternalUrl(url) {
+  if (!isAllowedExternalUrl(url)) {
+    throw new Error('Unsupported external link protocol')
+  }
+  const normalizedUrl = new URL(url).toString()
+  const now = Date.now()
+  if (lastExternalOpen.url === normalizedUrl && now - lastExternalOpen.time < 1200) {
+    return
+  }
+  lastExternalOpen = { url: normalizedUrl, time: now }
+  await shell.openExternal(normalizedUrl)
+}
+
 function createWindow() {
   const cfg = loadConfig()
   
@@ -121,6 +156,21 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isAllowedExternalUrl(url)) {
+      openExternalUrl(url).catch(e => console.error('Failed to open external URL:', e))
+    }
+    return { action: 'deny' }
+  })
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (isAppNavigationUrl(url)) return
+    event.preventDefault()
+    if (isAllowedExternalUrl(url)) {
+      openExternalUrl(url).catch(e => console.error('Failed to open external URL:', e))
+    }
+  })
 
   mainWindow.on('maximize', () => mainWindow.webContents.send('window-state-change', 'maximized'))
   mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-state-change', 'normal'))
@@ -524,12 +574,7 @@ ipcMain.handle('shell:showItemInFolder', (_, filePath) => {
 
 ipcMain.handle('shell:openExternal', async (_, url) => {
   try {
-    const parsed = new URL(url)
-    const allowedProtocols = new Set(['http:', 'https:', 'mailto:', 'tel:'])
-    if (!allowedProtocols.has(parsed.protocol)) {
-      throw new Error('Unsupported external link protocol')
-    }
-    await shell.openExternal(parsed.toString())
+    await openExternalUrl(url)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }

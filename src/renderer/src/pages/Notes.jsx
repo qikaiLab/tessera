@@ -9,6 +9,11 @@ const SAVE_UNSAVED = 'unsaved'
 const SAVE_SAVING = 'saving'
 const SAVE_SAVED = 'saved'
 const SAVE_FAILED = 'failed'
+const NOTES_LIST_MIN = 240
+const NOTES_LIST_MAX = 520
+const NOTES_LIST_DEFAULT = 320
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 
 function generateId() {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID()
@@ -88,6 +93,12 @@ export default function Notes() {
   const [showArchived, setShowArchived] = useState(false)
   const [saveStatus, setSaveStatus] = useState(SAVE_IDLE)
   const [loading, setLoading] = useState(true)
+  const [charCount, setCharCount] = useState(0)
+  const [fullScreenNoteId, setFullScreenNoteId] = useState(null)
+  const [notesListWidth, setNotesListWidth] = useState(() => {
+    const saved = parseInt(localStorage.getItem('mototrace_notes_list_width') || '', 10)
+    return Number.isFinite(saved) ? clamp(saved, NOTES_LIST_MIN, NOTES_LIST_MAX) : NOTES_LIST_DEFAULT
+  })
   const [fontSize, setFontSize] = useState(() => {
     return parseInt(localStorage.getItem('mototrace_notes_font_size') || '14', 10)
   })
@@ -176,6 +187,7 @@ export default function Notes() {
     const firstActive = loaded.find(n => !n.archived) || loaded[0] || null
     setSelectedId(firstActive?.id || null)
     setCurrentNote(firstActive || null)
+    setFullScreenNoteId(null)
     setLoading(false)
   }, [showToast])
 
@@ -195,6 +207,7 @@ export default function Notes() {
     await flushPending()
     setSelectedId(note.id)
     setCurrentNote(note)
+    setFullScreenNoteId(null)
     setSaveStatus(SAVE_IDLE)
   }, [flushPending])
 
@@ -252,6 +265,28 @@ export default function Notes() {
     localStorage.setItem('mototrace_notes_font_size', String(size))
   }
 
+  const startNotesListResize = (event) => {
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = notesListWidth
+    document.body.classList.add('is-resizing')
+
+    const handleMove = (moveEvent) => {
+      const nextWidth = clamp(startWidth + moveEvent.clientX - startX, NOTES_LIST_MIN, NOTES_LIST_MAX)
+      setNotesListWidth(nextWidth)
+      localStorage.setItem('mototrace_notes_list_width', String(nextWidth))
+    }
+
+    const handleUp = () => {
+      document.body.classList.remove('is-resizing')
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+  }
+
   const filteredNotes = useMemo(() => {
     const q = query.trim().toLowerCase()
     return notes
@@ -272,7 +307,7 @@ export default function Notes() {
   }[saveStatus]
 
   return (
-    <div className="notes-page">
+    <div className="notes-page" style={{ gridTemplateColumns: `${notesListWidth}px 6px minmax(0, 1fr)` }}>
       <aside className="notes-list-panel">
         <div className="notes-list-header">
           <div>
@@ -330,8 +365,13 @@ export default function Notes() {
           )}
         </div>
       </aside>
+      <div
+        className="notes-resize-handle"
+        onMouseDown={startNotesListResize}
+        title="拖动调整便签列表宽度"
+      />
 
-      <main className="notes-editor-panel">
+      <main className={`notes-editor-panel ${fullScreenNoteId ? 'notes-fullscreen-active-parent' : ''}`}>
         {currentNote ? (
           <>
             <div className="notes-editor-header">
@@ -352,6 +392,31 @@ export default function Notes() {
                     {statusLabel.text}
                   </span>
                 )}
+                <span className="char-count-badge">{charCount} 字</span>
+                <div className="card-font-controls">
+                  <button
+                    className="btn btn-ghost btn-xs font-ctrl-btn"
+                    onClick={() => handleFontSizeChange(Math.max(12, fontSize - 1))}
+                    title="缩小字体"
+                  >
+                    A-
+                  </button>
+                  <span className="font-ctrl-label">{fontSize}</span>
+                  <button
+                    className="btn btn-ghost btn-xs font-ctrl-btn"
+                    onClick={() => handleFontSizeChange(Math.min(24, fontSize + 1))}
+                    title="放大字体"
+                  >
+                    A+
+                  </button>
+                </div>
+                <button
+                  className="btn btn-ghost btn-xs btn-icon fullscreen-btn"
+                  onClick={() => setFullScreenNoteId(prev => prev === currentNote.id ? null : currentNote.id)}
+                  title="全屏记录"
+                >
+                  ⛶
+                </button>
                 <button className={`btn btn-ghost btn-sm ${currentNote.pinned ? 'notes-action-active' : ''}`} onClick={togglePinned}>
                   {currentNote.pinned ? '取消置顶' : '置顶'}
                 </button>
@@ -369,9 +434,12 @@ export default function Notes() {
                 value={currentNote.content || emptyDoc()}
                 onChange={(content) => updateCurrentNote({ content })}
                 placeholder="写下长期计划、灵感、素材或任何不属于某一天的内容..."
+                isFullScreen={fullScreenNoteId === currentNote.id}
+                onToggleFullScreen={() => setFullScreenNoteId(prev => prev === currentNote.id ? null : currentNote.id)}
                 onSave={flushPending}
                 fontSize={fontSize}
                 onFontSizeChange={handleFontSizeChange}
+                onCharCountChange={setCharCount}
               />
             </div>
           </>

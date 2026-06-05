@@ -542,7 +542,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0 8px;
+  padding: 16px 132px 8px 0;
   /* max-width is set dynamically via style prop */
   width: 100%;
   margin: 0 auto;
@@ -627,6 +627,12 @@
   background: rgba(0, 0, 0, 0.1);
   border-color: rgba(0, 0, 0, 0.25);
   color: #000;
+}
+
+@media (max-width: 760px) {
+  .tiptap-fullscreen-header {
+    padding: 54px 0 8px;
+  }
 }
 
 /* Fullscreen window dragging support */
