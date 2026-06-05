@@ -299,10 +299,15 @@
 }
 
 .char-count-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
   font-size: var(--text-xs);
+  line-height: 1;
   color: var(--text-secondary);
   font-weight: 500;
   opacity: 0.85;
+  transform: translateY(1px);
 }
 
 .card-font-controls {

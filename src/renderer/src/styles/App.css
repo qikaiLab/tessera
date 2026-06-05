@@ -216,9 +216,14 @@ body.is-resizing {
 }
 
 .sidebar-version {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
   font-size: var(--text-xs);
+  line-height: 1;
   color: var(--text-muted);
   font-weight: 500;
+  transform: translateY(1px);
 }
 
 .theme-toggle {
