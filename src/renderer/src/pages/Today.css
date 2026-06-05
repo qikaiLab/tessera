@@ -87,6 +87,40 @@
   gap: var(--spacing-3);
 }
 
+.today-notes-toggle {
+  border: 1px solid var(--border);
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.today-notes-toggle:hover,
+.today-notes-toggle.active {
+  border-color: var(--border-hover);
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.today-main-split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.today-record-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  transition: filter var(--transition-base);
+}
+
+.today-main-split.has-notes-drawer .today-record-pane {
+  filter: saturate(0.96);
+}
+
 /* Save status */
 .save-status {
   display: flex;

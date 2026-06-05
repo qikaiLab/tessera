@@ -15,8 +15,14 @@ const NOTES_LIST_DEFAULT = 320
 const NOTE_FONT_MIN = 12
 const NOTE_FONT_MAX = 24
 const NOTE_FONT_DEFAULT = 14
+const DATE_FILTER_ALL = 'all'
+const DATE_FILTER_LINKED = 'linked'
+const DATE_FILTER_UNLINKED = 'unlinked'
+const DATE_FILTER_CONTAINS = 'contains'
+const DATE_FILTER_OVERLAP = 'overlap'
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 function generateId() {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID()
@@ -31,6 +37,29 @@ function notePath(id) {
   return `notes/${id}.json`
 }
 
+function isValidDateString(value) {
+  if (!DATE_RE.test(value || '')) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  )
+}
+
+function normalizeDateLink(value) {
+  if (!value || typeof value !== 'object') return null
+  const start = String(value.start || '')
+  const end = String(value.end || value.start || '')
+  if (!isValidDateString(start) || !isValidDateString(end) || start > end) return null
+  return {
+    type: value.type === 'range' && start !== end ? 'range' : 'single',
+    start,
+    end
+  }
+}
+
 function normalizeMeta(note) {
   return {
     id: note.id,
@@ -39,7 +68,8 @@ function normalizeMeta(note) {
     updatedAt: note.updatedAt,
     pinned: Boolean(note.pinned),
     archived: Boolean(note.archived),
-    fontSize: normalizeFontSize(note.fontSize)
+    fontSize: normalizeFontSize(note.fontSize),
+    dateLink: normalizeDateLink(note.dateLink)
   }
 }
 
@@ -79,11 +109,50 @@ function parseNote(raw, fallbackMeta) {
       updatedAt: parsed.updatedAt || fallbackMeta.updatedAt || new Date().toISOString(),
       pinned: Boolean(parsed.pinned ?? fallbackMeta.pinned),
       archived: Boolean(parsed.archived ?? fallbackMeta.archived),
-      fontSize: normalizeFontSize(parsed.fontSize ?? fallbackMeta.fontSize)
+      fontSize: normalizeFontSize(parsed.fontSize ?? fallbackMeta.fontSize),
+      dateLink: normalizeDateLink(parsed.dateLink ?? fallbackMeta.dateLink)
     }
   } catch {
     return null
   }
+}
+
+function formatDateShort(value) {
+  if (!isValidDateString(value)) return ''
+  const [, month, day] = value.split('-')
+  return `${month}/${day}`
+}
+
+function formatDateLinkLabel(dateLink) {
+  const clean = normalizeDateLink(dateLink)
+  if (!clean) return ''
+  if (clean.type === 'single') return formatDateShort(clean.start)
+  return `${formatDateShort(clean.start)} - ${formatDateShort(clean.end)}`
+}
+
+function dateLinkToDraft(dateLink) {
+  const clean = normalizeDateLink(dateLink)
+  if (!clean) return { type: 'none', start: '', end: '' }
+  return {
+    type: clean.type,
+    start: clean.start,
+    end: clean.end
+  }
+}
+
+function dateLinkMatchesFilter(note, filter) {
+  const dateLink = normalizeDateLink(note.dateLink)
+  if (filter.mode === DATE_FILTER_LINKED) return Boolean(dateLink)
+  if (filter.mode === DATE_FILTER_UNLINKED) return !dateLink
+  if (filter.mode === DATE_FILTER_CONTAINS) {
+    if (!isValidDateString(filter.date)) return true
+    return Boolean(dateLink && dateLink.start <= filter.date && dateLink.end >= filter.date)
+  }
+  if (filter.mode === DATE_FILTER_OVERLAP) {
+    if (!isValidDateString(filter.start) || !isValidDateString(filter.end) || filter.start > filter.end) return true
+    return Boolean(dateLink && dateLink.start <= filter.end && dateLink.end >= filter.start)
+  }
+  return true
 }
 
 function formatTime(value) {
@@ -99,16 +168,24 @@ function formatTime(value) {
 }
 
 export default function Notes() {
-  const { showToast, registerPendingFlush, unregisterPendingFlush } = useApp()
+  const { showToast, confirm, registerPendingFlush, unregisterPendingFlush } = useApp()
   const [notes, setNotes] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [currentNote, setCurrentNote] = useState(null)
   const [query, setQuery] = useState('')
   const [showArchived, setShowArchived] = useState(false)
+  const [dateFilter, setDateFilter] = useState({
+    mode: DATE_FILTER_ALL,
+    date: '',
+    start: '',
+    end: ''
+  })
   const [saveStatus, setSaveStatus] = useState(SAVE_IDLE)
   const [loading, setLoading] = useState(true)
   const [charCount, setCharCount] = useState(0)
   const [fullScreenNoteId, setFullScreenNoteId] = useState(null)
+  const [dateLinkPanelOpen, setDateLinkPanelOpen] = useState(false)
+  const [dateLinkDraft, setDateLinkDraft] = useState(() => dateLinkToDraft(null))
   const [notesListWidth, setNotesListWidth] = useState(() => {
     const saved = parseInt(localStorage.getItem('mototrace_notes_list_width') || '', 10)
     return Number.isFinite(saved) ? clamp(saved, NOTES_LIST_MIN, NOTES_LIST_MAX) : NOTES_LIST_DEFAULT
@@ -127,7 +204,8 @@ export default function Notes() {
       ...note,
       title: note.title?.trim() || '无标题便签',
       content: note.content || emptyDoc(),
-      fontSize: normalizeFontSize(note.fontSize)
+      fontSize: normalizeFontSize(note.fontSize),
+      dateLink: normalizeDateLink(note.dateLink)
     }
     return window.api.fs.writeFile(notePath(payload.id), JSON.stringify(payload, null, 2))
   }, [])
@@ -201,6 +279,7 @@ export default function Notes() {
     setCurrentNote(firstActive || null)
     setCharCount(firstActive ? countNoteChars(firstActive.content) : 0)
     setFullScreenNoteId(null)
+    setDateLinkPanelOpen(false)
     setLoading(false)
   }, [showToast])
 
@@ -222,6 +301,7 @@ export default function Notes() {
     setCurrentNote(note)
     setCharCount(countNoteChars(note.content))
     setFullScreenNoteId(null)
+    setDateLinkPanelOpen(false)
     setSaveStatus(SAVE_IDLE)
   }, [flushPending])
 
@@ -231,7 +311,10 @@ export default function Notes() {
     const nextNote = {
       ...currentNote,
       ...patch,
-      updatedAt
+      updatedAt,
+      dateLink: patch.dateLink !== undefined
+        ? normalizeDateLink(patch.dateLink)
+        : normalizeDateLink(currentNote.dateLink)
     }
     const nextNotes = notes.map(note =>
       note.id === nextNote.id ? { ...note, ...nextNote } : note
@@ -252,7 +335,8 @@ export default function Notes() {
       updatedAt: now,
       pinned: false,
       archived: false,
-      fontSize: normalizeFontSize(localStorage.getItem('mototrace_notes_font_size'))
+      fontSize: normalizeFontSize(localStorage.getItem('mototrace_notes_font_size')),
+      dateLink: null
     }
     const nextNotes = [note, ...notes].sort(compareNotes)
     setNotes(nextNotes)
@@ -275,6 +359,93 @@ export default function Notes() {
     if (!currentNote) return
     updateCurrentNote({ archived: !currentNote.archived, pinned: currentNote.archived ? currentNote.pinned : false })
   }, [currentNote, updateCurrentNote])
+
+  const deleteCurrentNote = useCallback(async () => {
+    if (!currentNote) return
+    const title = currentNote.title?.trim() || '无标题便签'
+    const confirmed = await confirm({
+      title: '删除便签',
+      message: `确定要删除便签「${title}」吗？\n该操作会永久删除便签文件，无法撤销。`,
+      confirmText: '删除',
+      cancelText: '取消',
+      danger: true
+    })
+    if (!confirmed) return
+
+    await flushPending()
+    const nextNotes = notes.filter(note => note.id !== currentNote.id).sort(compareNotes)
+    const indexResult = await writeIndex(nextNotes)
+    if (!indexResult.ok) {
+      showToast('便签索引更新失败', 'error')
+      return
+    }
+
+    const deleteResult = await window.api.fs.deleteFile(notePath(currentNote.id))
+    if (!deleteResult.ok) {
+      showToast('便签文件删除失败', 'error')
+      return
+    }
+
+    const nextSelected = nextNotes.find(note => showArchived ? note.archived : !note.archived) || nextNotes[0] || null
+    setNotes(nextNotes)
+    setCurrentNote(nextSelected)
+    setSelectedId(nextSelected?.id || null)
+    setCharCount(nextSelected ? countNoteChars(nextSelected.content) : 0)
+    setFullScreenNoteId(null)
+    setDateLinkPanelOpen(false)
+    setSaveStatus(SAVE_IDLE)
+    showToast('便签已删除', 'success', 1200)
+  }, [confirm, currentNote, flushPending, notes, showArchived, showToast, writeIndex])
+
+  const openDateLinkPanel = () => {
+    if (!currentNote) return
+    setDateLinkDraft(dateLinkToDraft(currentNote.dateLink))
+    setDateLinkPanelOpen(prev => !prev)
+  }
+
+  const clearDateLink = () => {
+    updateCurrentNote({ dateLink: null })
+    setDateLinkDraft(dateLinkToDraft(null))
+    setDateLinkPanelOpen(false)
+    showToast('已清除关联日期', 'success', 1200)
+  }
+
+  const saveDateLink = () => {
+    if (dateLinkDraft.type === 'none') {
+      clearDateLink()
+      return
+    }
+
+    const start = dateLinkDraft.start
+    const end = dateLinkDraft.type === 'single' ? dateLinkDraft.start : dateLinkDraft.end
+    if (!isValidDateString(start) || !isValidDateString(end)) {
+      showToast('请选择有效日期', 'error')
+      return
+    }
+    if (start > end) {
+      showToast('结束日期不能早于开始日期', 'error')
+      return
+    }
+
+    const nextDateLink = normalizeDateLink({
+      type: dateLinkDraft.type,
+      start,
+      end
+    })
+    updateCurrentNote({ dateLink: nextDateLink })
+    setDateLinkDraft(dateLinkToDraft(nextDateLink))
+    setDateLinkPanelOpen(false)
+    showToast('已更新关联日期', 'success', 1200)
+  }
+
+  const clearDateFilter = () => {
+    setDateFilter({
+      mode: DATE_FILTER_ALL,
+      date: '',
+      start: '',
+      end: ''
+    })
+  }
 
   const handleFontSizeChange = (size) => {
     const nextSize = normalizeFontSize(size)
@@ -312,8 +483,9 @@ export default function Notes() {
         if (!q) return true
         return `${note.title} ${extractText(note.content)}`.toLowerCase().includes(q)
       })
+      .filter(note => dateLinkMatchesFilter(note, dateFilter))
       .sort(compareNotes)
-  }, [notes, query, showArchived])
+  }, [notes, query, showArchived, dateFilter])
 
   const statusLabel = {
     [SAVE_IDLE]: null,
@@ -323,6 +495,7 @@ export default function Notes() {
     [SAVE_FAILED]: { text: '保存失败', cls: 'status-failed' },
   }[saveStatus]
   const activeFontSize = normalizeFontSize(currentNote?.fontSize)
+  const isDateFilterActive = dateFilter.mode !== DATE_FILTER_ALL
 
   return (
     <div className="notes-page" style={{ gridTemplateColumns: `${notesListWidth}px minmax(0, 1fr)` }}>
@@ -346,12 +519,69 @@ export default function Notes() {
               onChange={e => setQuery(e.target.value)}
               placeholder="搜索便签"
             />
+            {query && (
+              <button
+                type="button"
+                className="notes-search-clear"
+                onClick={() => setQuery('')}
+                title="清空搜索"
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
 
         <div className="notes-filter-row tabs">
           <button className={`tab ${!showArchived ? 'active' : ''}`} onClick={() => setShowArchived(false)}>当前</button>
           <button className={`tab ${showArchived ? 'active' : ''}`} onClick={() => setShowArchived(true)}>归档</button>
+        </div>
+
+        <div className={`notes-date-filter ${isDateFilterActive ? 'active' : ''}`}>
+          <div className="notes-date-filter-top">
+            <select
+              className="input notes-date-filter-select"
+              value={dateFilter.mode}
+              onChange={e => setDateFilter(prev => ({ ...prev, mode: e.target.value }))}
+              title="日期筛选"
+            >
+              <option value={DATE_FILTER_ALL}>全部日期</option>
+              <option value={DATE_FILTER_LINKED}>有日期关联</option>
+              <option value={DATE_FILTER_UNLINKED}>无日期关联</option>
+              <option value={DATE_FILTER_CONTAINS}>包含某一天</option>
+              <option value={DATE_FILTER_OVERLAP}>与时间段交集</option>
+            </select>
+            {isDateFilterActive && (
+              <button className="btn btn-ghost btn-icon notes-date-filter-clear" onClick={clearDateFilter} title="清除日期筛选">
+                ×
+              </button>
+            )}
+          </div>
+          {dateFilter.mode === DATE_FILTER_CONTAINS && (
+            <input
+              className="input notes-date-filter-input"
+              type="date"
+              value={dateFilter.date}
+              onChange={e => setDateFilter(prev => ({ ...prev, date: e.target.value }))}
+            />
+          )}
+          {dateFilter.mode === DATE_FILTER_OVERLAP && (
+            <div className="notes-date-filter-range">
+              <input
+                className="input notes-date-filter-input"
+                type="date"
+                value={dateFilter.start}
+                onChange={e => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+              />
+              <span>至</span>
+              <input
+                className="input notes-date-filter-input"
+                type="date"
+                value={dateFilter.end}
+                onChange={e => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+              />
+            </div>
+          )}
         </div>
 
         <div className="notes-list">
@@ -377,7 +607,14 @@ export default function Notes() {
                   {note.pinned && <span className="notes-pin-dot">置顶</span>}
                 </div>
                 <p className="notes-list-snippet">{extractText(note.content) || '空白便签'}</p>
-                <span className="notes-list-time">{formatTime(note.updatedAt)}</span>
+                <div className="notes-list-footer">
+                  <span className="notes-list-time">{formatTime(note.updatedAt)}</span>
+                  {normalizeDateLink(note.dateLink) && (
+                    <span className={`notes-date-badge ${normalizeDateLink(note.dateLink)?.type === 'range' ? 'range' : ''}`}>
+                      {formatDateLinkLabel(note.dateLink)}
+                    </span>
+                  )}
+                </div>
               </button>
             ))
           )}
@@ -456,11 +693,79 @@ export default function Notes() {
                 <button className="btn btn-ghost btn-sm" onClick={toggleArchived}>
                   {currentNote.archived ? '移出归档' : '归档'}
                 </button>
+                <button className="btn btn-ghost btn-sm notes-delete-btn" onClick={deleteCurrentNote}>
+                  删除
+                </button>
               </div>
             </div>
             <div className="notes-editor-meta">
               <span>创建 {formatTime(currentNote.createdAt)}</span>
               <span>更新 {formatTime(currentNote.updatedAt)}</span>
+              <div className="notes-date-link-wrap">
+                <button
+                  className={`notes-date-link-btn ${normalizeDateLink(currentNote.dateLink) ? 'linked' : ''}`}
+                  onClick={openDateLinkPanel}
+                >
+                  {formatDateLinkLabel(currentNote.dateLink) || '未关联日期'}
+                </button>
+                {dateLinkPanelOpen && (
+                  <div className="notes-date-link-panel">
+                    <div className="notes-date-link-panel-title">关联日期</div>
+                    <div className="notes-date-link-type">
+                      <button
+                        className={dateLinkDraft.type === 'none' ? 'active' : ''}
+                        onClick={() => setDateLinkDraft(prev => ({ ...prev, type: 'none' }))}
+                      >
+                        无
+                      </button>
+                      <button
+                        className={dateLinkDraft.type === 'single' ? 'active' : ''}
+                        onClick={() => setDateLinkDraft(prev => ({ ...prev, type: 'single', end: prev.start }))}
+                      >
+                        单日
+                      </button>
+                      <button
+                        className={dateLinkDraft.type === 'range' ? 'active' : ''}
+                        onClick={() => setDateLinkDraft(prev => ({ ...prev, type: 'range', end: prev.end || prev.start }))}
+                      >
+                        时间段
+                      </button>
+                    </div>
+                    {dateLinkDraft.type !== 'none' && (
+                      <div className="notes-date-link-fields">
+                        <label>
+                          <span>{dateLinkDraft.type === 'single' ? '日期' : '开始'}</span>
+                          <input
+                            className="input"
+                            type="date"
+                            value={dateLinkDraft.start}
+                            onChange={e => setDateLinkDraft(prev => ({
+                              ...prev,
+                              start: e.target.value,
+                              end: prev.type === 'single' ? e.target.value : prev.end
+                            }))}
+                          />
+                        </label>
+                        {dateLinkDraft.type === 'range' && (
+                          <label>
+                            <span>结束</span>
+                            <input
+                              className="input"
+                              type="date"
+                              value={dateLinkDraft.end}
+                              onChange={e => setDateLinkDraft(prev => ({ ...prev, end: e.target.value }))}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    )}
+                    <div className="notes-date-link-actions">
+                      <button className="btn btn-ghost btn-sm" onClick={clearDateLink}>清除</button>
+                      <button className="btn btn-primary btn-sm" onClick={saveDateLink}>保存</button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <span>{charCount} 字</span>
             </div>
             <div className="notes-editor-body">

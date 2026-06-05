@@ -3,6 +3,7 @@ import { format, parseISO, addDays, subDays, isToday, isValid } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
 import TiptapEditor from '../components/TiptapEditor'
+import NotesDrawer from '../components/NotesDrawer'
 import './Today.css'
 
 // Save status enum
@@ -13,6 +14,12 @@ const STATUS = {
   FAILED: 'failed',
   IDLE: 'idle'
 }
+
+const NOTES_DRAWER_MIN = 360
+const NOTES_DRAWER_MAX = 620
+const NOTES_DRAWER_DEFAULT = 430
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 
 export default function Today() {
   const {
@@ -29,6 +36,11 @@ export default function Today() {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [jumpInput, setJumpInput] = useState('')
   const [fullScreenSectionId, setFullScreenSectionId] = useState(null)
+  const [notesDrawerOpen, setNotesDrawerOpen] = useState(false)
+  const [notesDrawerWidth, setNotesDrawerWidth] = useState(() => {
+    const saved = parseInt(localStorage.getItem('mototrace_today_notes_drawer_width') || '', 10)
+    return Number.isFinite(saved) ? clamp(saved, NOTES_DRAWER_MIN, NOTES_DRAWER_MAX) : NOTES_DRAWER_DEFAULT
+  })
   // Task 2: track sections manually added by user this session (so empty text
   // sections don't immediately disappear after clicking "+")
   const [manuallyAdded, setManuallyAdded] = useState(new Set())
@@ -248,6 +260,28 @@ export default function Today() {
     }
   }
 
+  const startNotesDrawerResize = (event) => {
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = notesDrawerWidth
+    document.body.classList.add('is-resizing')
+
+    const handleMove = (moveEvent) => {
+      const nextWidth = clamp(startWidth - (moveEvent.clientX - startX), NOTES_DRAWER_MIN, NOTES_DRAWER_MAX)
+      setNotesDrawerWidth(nextWidth)
+      localStorage.setItem('mototrace_today_notes_drawer_width', String(nextWidth))
+    }
+
+    const handleUp = () => {
+      document.body.classList.remove('is-resizing')
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+  }
+
   const statusLabel = {
     [STATUS.IDLE]: null,
     [STATUS.SAVED]: { text: '已保存', cls: 'status-saved' },
@@ -258,123 +292,141 @@ export default function Today() {
 
   return (
     <div className="today-page">
-      {/* Header */}
-      <div className="today-header">
-        <div className="today-nav">
-          <button className="btn btn-ghost btn-icon" onClick={() => goTo(subDays(selectedDate, 1))} title="前一天">
-            ←
-          </button>
-          <div className="today-date-group">
-            <div className="today-date" onClick={() => setShowDatePicker(v => !v)}>
-              <div key={dateStr} className={`today-date-motion date-motion-${dateTransitionDir}`}>
-                <span className="today-date-main">{formatDateDisplay()}</span>
-                <span className="today-date-sub">{format(selectedDate, 'yyyy年MM月dd日')}</span>
+      <div className={`today-main-split ${notesDrawerOpen ? 'has-notes-drawer' : ''}`}>
+        <div className="today-record-pane">
+          {/* Header */}
+          <div className="today-header">
+            <div className="today-nav">
+              <button className="btn btn-ghost btn-icon" onClick={() => goTo(subDays(selectedDate, 1))} title="前一天">
+                ←
+              </button>
+              <div className="today-date-group">
+                <div className="today-date" onClick={() => setShowDatePicker(v => !v)}>
+                  <div key={dateStr} className={`today-date-motion date-motion-${dateTransitionDir}`}>
+                    <span className="today-date-main">{formatDateDisplay()}</span>
+                    <span className="today-date-sub">{format(selectedDate, 'yyyy年MM月dd日')}</span>
+                  </div>
+                </div>
+                {showDatePicker && (
+                  <form className="date-jump-form" onSubmit={handleJump}>
+                    <input
+                      type="date"
+                      className="input"
+                      value={jumpInput}
+                      onChange={e => setJumpInput(e.target.value)}
+                      autoFocus
+                      onKeyDown={e => e.key === 'Escape' && setShowDatePicker(false)}
+                    />
+                    <button type="submit" className="btn btn-primary btn-sm">跳转</button>
+                  </form>
+                )}
               </div>
+              <button
+                className="btn btn-ghost btn-icon"
+                onClick={() => goTo(addDays(selectedDate, 1))}
+                title="后一天"
+              >
+                →
+              </button>
+              {!isToday(selectedDate) && (
+                <button 
+                  className="btn btn-primary btn-sm" 
+                  style={{ marginLeft: 8, borderRadius: 'var(--radius-full)' }} 
+                  onClick={() => goTo(new Date())}
+                >
+                  ✦ 回到今日
+                </button>
+              )}
             </div>
-            {showDatePicker && (
-              <form className="date-jump-form" onSubmit={handleJump}>
-                <input
-                  type="date"
-                  className="input"
-                  value={jumpInput}
-                  onChange={e => setJumpInput(e.target.value)}
-                  autoFocus
-                  onKeyDown={e => e.key === 'Escape' && setShowDatePicker(false)}
-                />
-                <button type="submit" className="btn btn-primary btn-sm">跳转</button>
-              </form>
+            <div className="today-header-right">
+              <button
+                className={`today-notes-toggle btn btn-ghost btn-icon ${notesDrawerOpen ? 'active' : ''}`}
+                onClick={() => setNotesDrawerOpen(prev => !prev)}
+                title={notesDrawerOpen ? '收起便签抽屉' : '打开便签抽屉'}
+              >
+                N
+              </button>
+              {statusLabel && (
+                <span className={`save-status ${statusLabel.cls}`}>
+                  {saveStatus === STATUS.SAVING && <span className="status-dot saving" />}
+                  {saveStatus === STATUS.SAVED && <span className="status-dot saved" />}
+                  {saveStatus === STATUS.UNSAVED && <span className="status-dot unsaved" />}
+                  {saveStatus === STATUS.FAILED && <span className="status-dot failed" />}
+                  {statusLabel.text}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className={`today-content ${transitioningDate ? 'is-date-transitioning' : ''}`}>
+            <div key={`date-flow-${dateStr}`} className={`today-date-flow date-flow-${dateTransitionDir}`} />
+            {loading && showSkeleton ? (
+              <div className="today-skeleton">
+                {[1, 2].map(i => (
+                  <div key={i} className="skeleton-card">
+                    <div className="skeleton" style={{ height: 20, width: '30%', marginBottom: 12 }} />
+                    <div className="skeleton" style={{ height: 80 }} />
+                  </div>
+                ))}
+              </div>
+            ) : loading ? (
+              <div className="today-loading-quiet" />
+            ) : visibleSections.length === 0 && sections.length > 0 ? (
+              <div className="today-empty-day">
+                <div className="empty-state">
+                  <span className="empty-state-icon">📋</span>
+                  <p className="empty-state-title">这天还没有记录</p>
+                  <p className="empty-state-desc">所有常驻版块已显示，点击下方「+」添加非常驻版块的记录</p>
+                </div>
+              </div>
+            ) : (
+              <div key={`sections-${dateStr}`} className="sections-grid">
+                {visibleSections.map((sec, i) => (
+                  <SectionCard
+                    key={sec.id}
+                    section={sec}
+                    value={data[sec.id]?.value ?? (sec.type === 'text' ? '' : '')}
+                    onChange={(val) => handleChange(sec.id, val)}
+                    animationDelay={i * 50}
+                    dateTransitionDir={dateTransitionDir}
+                    isFullScreen={fullScreenSectionId === sec.id}
+                    onToggleFullScreen={() => setFullScreenSectionId(prev => prev === sec.id ? null : sec.id)}
+                    onSave={handleManualSave}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Add non-resident section for today */}
+            {availableToAdd.length > 0 && (
+              <div className="today-add-section">
+                <span className="add-section-label">添加记录</span>
+                <div className="add-section-list">
+                  {availableToAdd.map(sec => (
+                    <button
+                      key={sec.id}
+                      className="add-section-btn"
+                      onClick={() => {
+                        // Task 2: register as manually added so it stays visible
+                        setManuallyAdded(prev => new Set([...prev, sec.id]))
+                        handleChange(sec.id, sec.type === 'text' ? '' : '0')
+                      }}
+                    >
+                      + {sec.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-          <button
-            className="btn btn-ghost btn-icon"
-            onClick={() => goTo(addDays(selectedDate, 1))}
-            title="后一天"
-          >
-            →
-          </button>
-          {!isToday(selectedDate) && (
-            <button 
-              className="btn btn-primary btn-sm" 
-              style={{ marginLeft: 8, borderRadius: 'var(--radius-full)' }} 
-              onClick={() => goTo(new Date())}
-            >
-              ✦ 回到今日
-            </button>
-          )}
         </div>
-        <div className="today-header-right">
-          {statusLabel && (
-            <span className={`save-status ${statusLabel.cls}`}>
-              {saveStatus === STATUS.SAVING && <span className="status-dot saving" />}
-              {saveStatus === STATUS.SAVED && <span className="status-dot saved" />}
-              {saveStatus === STATUS.UNSAVED && <span className="status-dot unsaved" />}
-              {saveStatus === STATUS.FAILED && <span className="status-dot failed" />}
-              {statusLabel.text}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className={`today-content ${transitioningDate ? 'is-date-transitioning' : ''}`}>
-        <div key={`date-flow-${dateStr}`} className={`today-date-flow date-flow-${dateTransitionDir}`} />
-        {loading && showSkeleton ? (
-          <div className="today-skeleton">
-            {[1, 2].map(i => (
-              <div key={i} className="skeleton-card">
-                <div className="skeleton" style={{ height: 20, width: '30%', marginBottom: 12 }} />
-                <div className="skeleton" style={{ height: 80 }} />
-              </div>
-            ))}
-          </div>
-        ) : loading ? (
-          <div className="today-loading-quiet" />
-        ) : visibleSections.length === 0 && sections.length > 0 ? (
-          <div className="today-empty-day">
-            <div className="empty-state">
-              <span className="empty-state-icon">📋</span>
-              <p className="empty-state-title">这天还没有记录</p>
-              <p className="empty-state-desc">所有常驻版块已显示，点击下方「+」添加非常驻版块的记录</p>
-            </div>
-          </div>
-        ) : (
-          <div key={`sections-${dateStr}`} className="sections-grid">
-            {visibleSections.map((sec, i) => (
-              <SectionCard
-                key={sec.id}
-                section={sec}
-                value={data[sec.id]?.value ?? (sec.type === 'text' ? '' : '')}
-                onChange={(val) => handleChange(sec.id, val)}
-                animationDelay={i * 50}
-                dateTransitionDir={dateTransitionDir}
-                isFullScreen={fullScreenSectionId === sec.id}
-                onToggleFullScreen={() => setFullScreenSectionId(prev => prev === sec.id ? null : sec.id)}
-                onSave={handleManualSave}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Add non-resident section for today */}
-        {availableToAdd.length > 0 && (
-          <div className="today-add-section">
-            <span className="add-section-label">添加记录</span>
-            <div className="add-section-list">
-              {availableToAdd.map(sec => (
-                <button
-                  key={sec.id}
-                  className="add-section-btn"
-                  onClick={() => {
-                    // Task 2: register as manually added so it stays visible
-                    setManuallyAdded(prev => new Set([...prev, sec.id]))
-                    handleChange(sec.id, sec.type === 'text' ? '' : '0')
-                  }}
-                >
-                  + {sec.name}
-                </button>
-              ))}
-            </div>
-          </div>
+        {notesDrawerOpen && (
+          <NotesDrawer
+            dateStr={dateStr}
+            width={notesDrawerWidth}
+            onResizeStart={startNotesDrawerResize}
+          />
         )}
       </div>
     </div>
