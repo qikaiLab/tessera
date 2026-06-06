@@ -302,10 +302,13 @@ export function AppProvider({ children }) {
 
   const showToast = useCallback((message, type = 'info', duration = 3000) => {
     const id = Date.now() + Math.random()
-    setToasts(prev => [...prev, { id, message, type }])
+    setToasts(prev => [...prev, { id, message, type, leaving: false }])
+    setTimeout(() => {
+      setToasts(prev => prev.map(t => t.id === id ? { ...t, leaving: true } : t))
+    }, duration)
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
-    }, duration)
+    }, duration + 220)
   }, [])
 
   const readDayData = useCallback(async (dateStr) => {

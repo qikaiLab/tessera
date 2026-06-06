@@ -685,6 +685,14 @@ body.is-resizing .notes-resize-handle::after {
   overflow: visible;
 }
 
+[data-theme='dark'] .notes-editor-body .tiptap-shell.tiptap-fullscreen {
+  background: radial-gradient(circle at center, rgb(28, 28, 31) 0%, rgb(17, 17, 18) 100%);
+}
+
+[data-theme='light'] .notes-editor-body .tiptap-shell.tiptap-fullscreen {
+  background: radial-gradient(circle at center, rgb(255, 255, 255) 0%, rgb(245, 245, 247) 100%);
+}
+
 .notes-editor-body .tiptap-editor-wrapper {
   min-height: calc(100vh - 220px);
 }

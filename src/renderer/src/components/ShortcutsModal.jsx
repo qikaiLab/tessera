@@ -11,7 +11,7 @@ const categories = [
       { keys: ['Ctrl', 'U'], macKeys: ['⌘', 'U'], desc: '下划线文本' },
       { keys: ['Ctrl', 'Shift', 'X'], macKeys: ['⌘', '⇧', 'X'], desc: '删除线文本' },
       { keys: ['Ctrl', 'E'], macKeys: ['⌘', 'E'], desc: '行内代码' },
-      { keys: ['Ctrl', 'Space'], macKeys: ['⌘', 'Space', '或', 'Ctrl', 'Space'], desc: '清除所有字符格式' },
+      { keys: ['Ctrl', '\\'], macKeys: ['⌘', '\\', '或', 'Ctrl', '\\'], desc: '清除所有字符格式' },
       { keys: ['Ctrl', 'Z'], macKeys: ['⌘', 'Z'], desc: '撤销上一次操作' },
       { keys: ['Ctrl', 'Y'], macKeys: ['⌘', 'Y'], desc: '重做（反撤销）' },
     ]

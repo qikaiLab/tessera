@@ -89,17 +89,17 @@ const ExitBlockExtension = Extension.create({
 
 /**
  * ClearFormatting extension:
- * - Ctrl-Space or Mod-Space: clear all marks at the cursor or selection.
+ * - Ctrl-\ or Mod-\: clear all marks at the cursor or selection.
  */
 const ClearFormattingExtension = Extension.create({
   name: 'clearFormatting',
   addKeyboardShortcuts() {
     return {
-      'Ctrl-Space': ({ editor }) => {
-        return editor.chain().focus().unsetAllMarks().run()
+      'Ctrl-\\': ({ editor }) => {
+        return clearCharacterFormatting(editor)
       },
-      'Mod-Space': ({ editor }) => {
-        return editor.chain().focus().unsetAllMarks().run()
+      'Mod-\\': ({ editor }) => {
+        return clearCharacterFormatting(editor)
       },
     }
   },
@@ -125,6 +125,36 @@ function normalizeExternalUrl(url) {
 const ExternalLink = Link.extend({
   inclusive: false,
 })
+
+function isClearFormattingShortcut(event) {
+  if (event.altKey || event.shiftKey) return false
+  if (!event.ctrlKey && !event.metaKey) return false
+  return event.code === 'Backslash' || event.key === '\\'
+}
+
+function clearCharacterFormattingFromView(view) {
+  if (!view) return false
+
+  const { state } = view
+  const { selection, schema } = state
+  const markTypes = Object.values(schema.marks)
+  let tr = state.tr
+
+  if (!selection.empty) {
+    markTypes.forEach(markType => {
+      tr = tr.removeMark(selection.from, selection.to, markType)
+    })
+  }
+
+  tr = tr.setStoredMarks([])
+  view.dispatch(tr)
+  view.focus()
+  return true
+}
+
+function clearCharacterFormatting(editor) {
+  return clearCharacterFormattingFromView(editor?.view)
+}
 
 const TiptapEditor = forwardRef(function TiptapEditor(
   {
@@ -226,6 +256,11 @@ const TiptapEditor = forwardRef(function TiptapEditor(
       attributes: {
         class: 'tiptap-content selectable',
         spellcheck: 'false',
+      },
+      handleKeyDown: (view, event) => {
+        if (!isClearFormattingShortcut(event)) return false
+        event.preventDefault()
+        return clearCharacterFormattingFromView(view)
       },
     },
   })

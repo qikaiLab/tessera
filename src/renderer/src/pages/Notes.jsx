@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TiptapEditor from '../components/TiptapEditor'
+import SaveStatusBadge from '../components/SaveStatusBadge'
 import { useApp } from '../context/AppContext'
 import './Notes.css'
 
@@ -487,13 +488,6 @@ export default function Notes() {
       .sort(compareNotes)
   }, [notes, query, showArchived, dateFilter])
 
-  const statusLabel = {
-    [SAVE_IDLE]: null,
-    [SAVE_SAVED]: { text: '已保存', cls: 'status-saved' },
-    [SAVE_UNSAVED]: { text: '未保存', cls: 'status-unsaved' },
-    [SAVE_SAVING]: { text: '保存中...', cls: 'status-saving' },
-    [SAVE_FAILED]: { text: '保存失败', cls: 'status-failed' },
-  }[saveStatus]
   const activeFontSize = normalizeFontSize(currentNote?.fontSize)
   const isDateFilterActive = dateFilter.mode !== DATE_FILTER_ALL
 
@@ -674,15 +668,7 @@ export default function Notes() {
                 placeholder="无标题便签"
               />
               <div className="notes-editor-actions">
-                {statusLabel && (
-                  <span className={`save-status ${statusLabel.cls}`}>
-                    {saveStatus === SAVE_SAVING && <span className="status-dot saving" />}
-                    {saveStatus === SAVE_SAVED && <span className="status-dot saved" />}
-                    {saveStatus === SAVE_UNSAVED && <span className="status-dot unsaved" />}
-                    {saveStatus === SAVE_FAILED && <span className="status-dot failed" />}
-                    {statusLabel.text}
-                  </span>
-                )}
+                <SaveStatusBadge status={saveStatus} />
                 <div className="card-font-controls">
                   <button
                     className="btn btn-ghost btn-xs font-ctrl-btn"

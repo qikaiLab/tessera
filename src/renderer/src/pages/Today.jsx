@@ -4,6 +4,7 @@ import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
 import TiptapEditor from '../components/TiptapEditor'
 import NotesDrawer from '../components/NotesDrawer'
+import SaveStatusBadge from '../components/SaveStatusBadge'
 import './Today.css'
 
 // Save status enum
@@ -15,7 +16,7 @@ const STATUS = {
   IDLE: 'idle'
 }
 
-const NOTES_DRAWER_MIN = 360
+const NOTES_DRAWER_MIN = 270
 const NOTES_DRAWER_MAX = 620
 const NOTES_DRAWER_DEFAULT = 430
 
@@ -320,14 +321,6 @@ export default function Today() {
     }
   }
 
-  const statusLabel = {
-    [STATUS.IDLE]: null,
-    [STATUS.SAVED]: { text: '已保存', cls: 'status-saved' },
-    [STATUS.UNSAVED]: { text: '未保存', cls: 'status-unsaved' },
-    [STATUS.SAVING]: { text: '保存中...', cls: 'status-saving' },
-    [STATUS.FAILED]: { text: '保存失败', cls: 'status-failed' },
-  }[saveStatus]
-
   return (
     <div className="today-page">
       <div className={`today-main-split ${notesDrawerMounted ? 'has-notes-drawer' : ''}`}>
@@ -385,15 +378,7 @@ export default function Today() {
               >
                 <span className="today-notes-toggle-mark">{notesDrawerOpen ? '›' : '‹'}</span>
               </button>
-              {statusLabel && (
-                <span className={`save-status ${statusLabel.cls}`}>
-                  {saveStatus === STATUS.SAVING && <span className="status-dot saving" />}
-                  {saveStatus === STATUS.SAVED && <span className="status-dot saved" />}
-                  {saveStatus === STATUS.UNSAVED && <span className="status-dot unsaved" />}
-                  {saveStatus === STATUS.FAILED && <span className="status-dot failed" />}
-                  {statusLabel.text}
-                </span>
-              )}
+              <SaveStatusBadge status={saveStatus} />
             </div>
           </div>
 

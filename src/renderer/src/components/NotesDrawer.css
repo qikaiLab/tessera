@@ -95,6 +95,12 @@ body.is-resizing .notes-drawer-resize::after {
   transform: translateY(-1px);
 }
 
+.notes-drawer-new:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
 .notes-drawer-search {
   margin: 0 var(--spacing-5) var(--spacing-4);
   flex-shrink: 0;
@@ -282,6 +288,10 @@ body.is-resizing .notes-drawer-resize::after {
   gap: var(--spacing-3);
   overflow-y: auto;
   padding: 0 var(--spacing-5) var(--spacing-6);
+}
+
+.notes-drawer-list.is-refreshing-date {
+  pointer-events: none;
 }
 
 .notes-drawer-card {

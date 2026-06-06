@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TiptapEditor from './TiptapEditor'
+import SaveStatusBadge from './SaveStatusBadge'
 import { useApp } from '../context/AppContext'
 import './NotesDrawer.css'
 
@@ -12,6 +13,7 @@ const SAVE_FAILED = 'failed'
 const NOTE_FONT_MIN = 12
 const NOTE_FONT_MAX = 24
 const NOTE_FONT_DEFAULT = 14
+const DRAWER_STATE_KEY = 'mototrace_notes_drawer_state_v1'
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -119,6 +121,50 @@ function isLinkedToDate(note, dateStr) {
   return Boolean(dateLink && dateLink.start <= dateStr && dateLink.end >= dateStr)
 }
 
+function readDrawerState(dateStr) {
+  try {
+    const parsed = JSON.parse(window.sessionStorage?.getItem(DRAWER_STATE_KEY) || '{}')
+    return parsed?.[dateStr] || null
+  } catch {
+    return null
+  }
+}
+
+function writeDrawerState(dateStr, patch) {
+  try {
+    const parsed = JSON.parse(window.sessionStorage?.getItem(DRAWER_STATE_KEY) || '{}')
+    parsed[dateStr] = {
+      ...(parsed[dateStr] || {}),
+      ...patch
+    }
+    window.sessionStorage?.setItem(DRAWER_STATE_KEY, JSON.stringify(parsed))
+  } catch {
+    // State memory is a convenience feature; ignore storage failures.
+  }
+}
+
+function forgetDrawerSelected(dateStr) {
+  writeDrawerState(dateStr, { selectedId: null })
+}
+
+function getDrawerVisibleNotes(notes, { mode, dateStr, query, selectedId }) {
+  const q = query.trim().toLowerCase()
+  return notes
+    .filter(note => !note.archived || note.id === selectedId)
+    .filter(note => {
+      if (note.id === selectedId) return true
+      if (mode === 'linked') return isLinkedToDate(note, dateStr)
+      if (mode === 'pinned') return note.pinned
+      return true
+    })
+    .filter(note => {
+      if (note.id === selectedId) return true
+      if (!q) return true
+      return `${note.title} ${extractText(note.content)}`.toLowerCase().includes(q)
+    })
+    .sort(mode === 'latest' ? compareLatest : compareNotes)
+}
+
 export default function NotesDrawer({ dateStr, width, onResizeStart, closing = false, onAnimationEnd }) {
   const { showToast, registerPendingFlush, unregisterPendingFlush } = useApp()
   const [notes, setNotes] = useState([])
@@ -128,9 +174,14 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
   const [mode, setMode] = useState('linked')
   const [saveStatus, setSaveStatus] = useState(SAVE_IDLE)
   const [loading, setLoading] = useState(true)
+  const [refreshingDate, setRefreshingDate] = useState(false)
+  const [viewDateStr, setViewDateStr] = useState(dateStr)
+  const [viewOrder, setViewOrder] = useState([])
   const titleInputRef = useRef(null)
   const saveTimerRef = useRef(null)
   const pendingNoteRef = useRef(null)
+  const hasLoadedRef = useRef(false)
+  const loadSeqRef = useRef(0)
 
   const writeIndex = useCallback(async (nextNotes) => {
     return window.api.fs.writeFile(NOTES_INDEX_PATH, JSON.stringify(nextNotes.map(normalizeMeta), null, 2))
@@ -190,7 +241,15 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
   }, [persistNoteNow])
 
   const loadNotes = useCallback(async () => {
-    setLoading(true)
+    const seq = loadSeqRef.current + 1
+    loadSeqRef.current = seq
+    const isInitialLoad = !hasLoadedRef.current
+    if (isInitialLoad) {
+      setLoading(true)
+    } else {
+      setRefreshingDate(true)
+    }
+
     const indexResult = await window.api.fs.readFile(NOTES_INDEX_PATH)
     let metas = []
     if (indexResult.ok) {
@@ -209,11 +268,29 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
         return parseNote(result.data, meta) || normalizeMeta(meta)
       })
     )
+    if (loadSeqRef.current !== seq) return
+
     loaded.sort(compareNotes)
+    const savedState = readDrawerState(dateStr)
+    const savedMode = ['linked', 'pinned', 'latest'].includes(savedState?.mode) ? savedState.mode : 'linked'
+    const restoredNote = savedState?.selectedId ? loaded.find(note => note.id === savedState.selectedId) : null
+    const restoredSelectedId = restoredNote?.id || null
+    if (savedState?.selectedId && !restoredNote) forgetDrawerSelected(dateStr)
+
     setNotes(loaded)
-    setSelectedId(null)
-    setCurrentNote(null)
+    setMode(savedMode)
+    setSelectedId(restoredSelectedId)
+    setCurrentNote(restoredNote || null)
+    setViewDateStr(dateStr)
+    setViewOrder(getDrawerVisibleNotes(loaded, {
+      mode: savedMode,
+      dateStr,
+      query: '',
+      selectedId: restoredSelectedId
+    }).map(note => note.id))
+    hasLoadedRef.current = true
     setLoading(false)
+    setRefreshingDate(false)
   }, [dateStr, showToast])
 
   useEffect(() => {
@@ -238,42 +315,50 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
     }
   }, [flushPending, registerPendingFlush, unregisterPendingFlush, writeIndex, writeNote])
 
+  const sortedFilteredNotes = useMemo(() => {
+    return getDrawerVisibleNotes(notes, { mode, dateStr: viewDateStr, query, selectedId })
+  }, [mode, notes, query, selectedId, viewDateStr])
+
   const filteredNotes = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    const filtered = notes
-      .filter(note => !note.archived)
-      .filter(note => {
-        if (mode === 'linked') return isLinkedToDate(note, dateStr)
-        if (mode === 'pinned') return note.pinned
-        return true
-      })
-      .filter(note => {
-        if (note.id === selectedId) return true
-        if (!q) return true
-        return `${note.title} ${extractText(note.content)}`.toLowerCase().includes(q)
-      })
-    return filtered.sort(mode === 'latest' ? compareLatest : compareNotes)
-  }, [dateStr, mode, notes, query, selectedId])
+    if (viewOrder.length === 0) return sortedFilteredNotes
+    const frozenIndex = new Map(viewOrder.map((id, index) => [id, index]))
+    const liveIndex = new Map(sortedFilteredNotes.map((note, index) => [note.id, index]))
+    return [...sortedFilteredNotes].sort((a, b) => {
+      const aFrozen = frozenIndex.has(a.id)
+      const bFrozen = frozenIndex.has(b.id)
+      if (aFrozen && bFrozen) return frozenIndex.get(a.id) - frozenIndex.get(b.id)
+      if (aFrozen) return -1
+      if (bFrozen) return 1
+      return liveIndex.get(a.id) - liveIndex.get(b.id)
+    })
+  }, [viewOrder, sortedFilteredNotes])
 
   const selectNote = useCallback(async (note) => {
     await flushPending()
+    if (viewOrder.length === 0) {
+      setViewOrder(getDrawerVisibleNotes(notes, { mode, dateStr: viewDateStr, query, selectedId: note.id }).map(item => item.id))
+    }
     setSelectedId(note.id)
     setCurrentNote(note)
     setSaveStatus(SAVE_IDLE)
+    writeDrawerState(viewDateStr, { mode, selectedId: note.id })
     setTimeout(() => titleInputRef.current?.focus(), 40)
-  }, [flushPending])
+  }, [flushPending, mode, notes, query, viewDateStr, viewOrder.length])
 
   const closeEditor = useCallback(async () => {
     await flushPending()
     setSelectedId(null)
     setCurrentNote(null)
     setSaveStatus(SAVE_IDLE)
-  }, [flushPending])
+    forgetDrawerSelected(viewDateStr)
+  }, [flushPending, viewDateStr])
 
   const handleModeChange = useCallback(async (nextMode) => {
     await closeEditor()
     setMode(nextMode)
-  }, [closeEditor])
+    setViewOrder(getDrawerVisibleNotes(notes, { mode: nextMode, dateStr: viewDateStr, query, selectedId: null }).map(note => note.id))
+    writeDrawerState(viewDateStr, { mode: nextMode, selectedId: null })
+  }, [closeEditor, notes, query, viewDateStr])
 
   const updateCurrentNote = useCallback((patch) => {
     if (!currentNote) return
@@ -308,15 +393,17 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
       pinned: mode === 'pinned',
       archived: false,
       fontSize: normalizeFontSize(localStorage.getItem('mototrace_notes_font_size')),
-      dateLink: mode === 'linked' ? { type: 'single', start: dateStr, end: dateStr } : null
+      dateLink: mode === 'linked' ? { type: 'single', start: viewDateStr, end: viewDateStr } : null
     }
     const nextNotes = [note, ...notes].sort(compareNotes)
     setNotes(nextNotes)
     setSelectedId(note.id)
     setCurrentNote(note)
+    setViewOrder(getDrawerVisibleNotes(nextNotes, { mode, dateStr: viewDateStr, query, selectedId: note.id }).map(item => item.id))
+    writeDrawerState(viewDateStr, { mode, selectedId: note.id })
     const ok = await persistNoteNow(note, nextNotes)
     if (ok) setTimeout(() => titleInputRef.current?.focus(), 40)
-  }, [dateStr, flushPending, mode, notes, persistNoteNow])
+  }, [flushPending, mode, notes, persistNoteNow, query, viewDateStr])
 
   const activeFontSize = normalizeFontSize(currentNote?.fontSize)
 
@@ -334,7 +421,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
           <h2>便签</h2>
           <span>{filteredNotes.length} 条</span>
         </div>
-        <button className="notes-drawer-new" onClick={createNote} title="新建便签">+</button>
+        <button className="notes-drawer-new" onClick={createNote} title="新建便签" disabled={refreshingDate}>+</button>
       </div>
 
       <div className="notes-drawer-search search-wrap">
@@ -349,7 +436,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
         <button className={mode === 'latest' ? 'active' : ''} onClick={() => handleModeChange('latest')}>最新</button>
       </div>
 
-      <div className="notes-drawer-list">
+      <div className={`notes-drawer-list ${refreshingDate ? 'is-refreshing-date' : ''}`}>
         {loading ? (
           <>
             <div className="notes-drawer-skeleton skeleton" />
@@ -376,10 +463,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
                 <div className="notes-drawer-edit-subbar">
                   <div className="notes-drawer-editor-meta">
                     <span>{formatTime(currentNote.updatedAt)}</span>
-                    {saveStatus === SAVE_UNSAVED && <span>未保存</span>}
-                    {saveStatus === SAVE_SAVING && <span>保存中...</span>}
-                    {saveStatus === SAVE_SAVED && <span>已保存</span>}
-                    {saveStatus === SAVE_FAILED && <span className="failed">保存失败</span>}
+                    <SaveStatusBadge status={saveStatus} compact />
                   </div>
                   <div className="notes-drawer-font">
                     <button onClick={() => updateFontSize(activeFontSize - 1)} title="缩小字体">A-</button>
