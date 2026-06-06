@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useState, useRef, forwardRef, useImperat
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
+import Link from '@tiptap/extension-link'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import CharacterCount from '@tiptap/extension-character-count'
@@ -88,17 +89,17 @@ const ExitBlockExtension = Extension.create({
 
 /**
  * ClearFormatting extension:
- * - Ctrl-Space or Mod-Space: clear all marks at the cursor or selection.
+ * - Ctrl-\ or Mod-\: clear all marks at the cursor or selection.
  */
 const ClearFormattingExtension = Extension.create({
   name: 'clearFormatting',
   addKeyboardShortcuts() {
     return {
-      'Ctrl-Space': ({ editor }) => {
-        return editor.chain().focus().unsetAllMarks().run()
+      'Ctrl-\\': ({ editor }) => {
+        return clearCharacterFormatting(editor)
       },
-      'Mod-Space': ({ editor }) => {
-        return editor.chain().focus().unsetAllMarks().run()
+      'Mod-\\': ({ editor }) => {
+        return clearCharacterFormatting(editor)
       },
     }
   },
@@ -107,6 +108,52 @@ const ClearFormattingExtension = Extension.create({
 function countChars(editor) {
   if (!editor) return 0
   return editor.storage.characterCount?.characters?.() ?? 0
+}
+
+function normalizeExternalUrl(url) {
+  if (!url) return null
+  const trimmed = url.trim()
+  if (/^https?:\/\//i.test(trimmed) || /^mailto:/i.test(trimmed) || /^tel:/i.test(trimmed)) {
+    return trimmed
+  }
+  if (/^www\./i.test(trimmed)) {
+    return `https://${trimmed}`
+  }
+  return null
+}
+
+const ExternalLink = Link.extend({
+  inclusive: false,
+})
+
+function isClearFormattingShortcut(event) {
+  if (event.altKey || event.shiftKey) return false
+  if (!event.ctrlKey && !event.metaKey) return false
+  return event.code === 'Backslash' || event.key === '\\'
+}
+
+function clearCharacterFormattingFromView(view) {
+  if (!view) return false
+
+  const { state } = view
+  const { selection, schema } = state
+  const markTypes = Object.values(schema.marks)
+  let tr = state.tr
+
+  if (!selection.empty) {
+    markTypes.forEach(markType => {
+      tr = tr.removeMark(selection.from, selection.to, markType)
+    })
+  }
+
+  tr = tr.setStoredMarks([])
+  view.dispatch(tr)
+  view.focus()
+  return true
+}
+
+function clearCharacterFormatting(editor) {
+  return clearCharacterFormattingFromView(editor?.view)
 }
 
 const TiptapEditor = forwardRef(function TiptapEditor(
@@ -175,6 +222,16 @@ const TiptapEditor = forwardRef(function TiptapEditor(
         },
       }),
       Underline,
+      ExternalLink.configure({
+        autolink: true,
+        linkOnPaste: true,
+        openOnClick: false,
+        protocols: ['http', 'https', 'mailto', 'tel'],
+        HTMLAttributes: {
+          rel: 'noopener noreferrer',
+          target: null,
+        },
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
       CharacterCount,
@@ -199,6 +256,11 @@ const TiptapEditor = forwardRef(function TiptapEditor(
       attributes: {
         class: 'tiptap-content selectable',
         spellcheck: 'false',
+      },
+      handleKeyDown: (view, event) => {
+        if (!isClearFormattingShortcut(event)) return false
+        event.preventDefault()
+        return clearCharacterFormattingFromView(view)
       },
     },
   })
@@ -265,6 +327,21 @@ const TiptapEditor = forwardRef(function TiptapEditor(
       }
     }
   }, [isFullScreen, handleToggleFullScreen])
+
+  const handleEditorClick = useCallback((event) => {
+    const linkEl = event.target?.closest?.('a[href]')
+    if (!linkEl) {
+      editor?.commands.focus()
+      return
+    }
+
+    const url = normalizeExternalUrl(linkEl.getAttribute('href'))
+    if (!url) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    window.api?.shell?.openExternal?.(url)
+  }, [editor])
 
   const charCount = countChars(editor)
 
@@ -333,7 +410,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
           '--editor-line-height': editorLineHeight || '1.8',
           '--editor-letter-spacing': formatCSSLetterSpacing(editorLetterSpacing, '0px')
         }}
-        onClick={() => editor?.commands.focus()}
+        onClick={handleEditorClick}
       >
         <EditorContent editor={editor} />
       </div>

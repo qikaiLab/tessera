@@ -211,6 +211,15 @@ body {
   to { opacity: 1; transform: none; }
 }
 
+@keyframes pageSoftIn {
+  from {
+    opacity: 0.86;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes slideInLeft {
   from { opacity: 0; transform: translateX(-8px); }
   to { opacity: 1; transform: none; }
@@ -247,6 +256,17 @@ body {
 .animate-slide-right { animation: slideInRight var(--transition-base) both; }
 .animate-spin { animation: spin 1s linear infinite; }
 .animate-pulse { animation: pulse 1.5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}
 
 /* ─── Button Base ────────────────────────────────────────────────────────── */
 .btn {
@@ -401,7 +421,7 @@ body {
 /* ─── Toast ──────────────────────────────────────────────────────────────── */
 .toast-container {
   position: fixed;
-  bottom: var(--spacing-5);
+  top: var(--spacing-5);
   left: 50%;
   transform: translateX(-50%);
   z-index: 2000;
@@ -421,13 +441,40 @@ body {
   font-size: var(--text-sm);
   font-weight: 500;
   backdrop-filter: blur(12px);
-  animation: fadeIn 200ms ease both;
+  animation: toastSlideIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
   box-shadow: var(--shadow-lg);
+  will-change: opacity, transform;
+}
+
+.toast.is-leaving {
+  animation: toastSlideOut 200ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 .toast-success { background: rgba(52, 211, 153, 0.2); color: var(--success); border: 1px solid rgba(52, 211, 153, 0.3); }
 .toast-error { background: rgba(248, 113, 113, 0.2); color: var(--error); border: 1px solid rgba(248, 113, 113, 0.3); }
 .toast-info { background: rgba(96, 165, 250, 0.2); color: var(--info); border: 1px solid rgba(96, 165, 250, 0.3); }
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
 
 /* ─── Tooltip ────────────────────────────────────────────────────────────── */
 [data-tooltip] {

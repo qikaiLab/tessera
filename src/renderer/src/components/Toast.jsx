@@ -7,7 +7,7 @@ export default function Toast() {
   return (
     <div className="toast-container">
       {toasts.map(t => (
-        <div key={t.id} className={`toast toast-${t.type}`}>
+        <div key={t.id} className={`toast toast-${t.type} ${t.leaving ? 'is-leaving' : ''}`}>
           {t.type === 'success' && '✓'}
           {t.type === 'error' && '✕'}
           {t.type === 'info' && '•'}

@@ -59,7 +59,8 @@ const api = {
   },
   // Shell
   shell: {
-    showItemInFolder: (filePath) => ipcRenderer.invoke('shell:showItemInFolder', filePath)
+    showItemInFolder: (filePath) => ipcRenderer.invoke('shell:showItemInFolder', filePath),
+    openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url)
   },
   // Fix #8: App lifecycle — flush pending data before close
   lifecycle: {
