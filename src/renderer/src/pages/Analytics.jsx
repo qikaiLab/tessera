@@ -249,9 +249,25 @@ function getAllDaysInRange(card) {
 
 // ─── Chart Data Builder ───────────────────────────────────────────────────────
 
+function hasChartBindingData(dateStr, bindings, loadedData) {
+  return bindings.some(b => {
+    const entry = loadedData[dateStr]?.[b.sectionId]
+    if (!entry || entry.value === undefined || entry.value === null) return false
+
+    if (b.metric === 'wordcount') {
+      return extractText(entry.value).replace(/\s+/g, '').length > 0
+    }
+
+    return String(entry.value).trim() !== ''
+  })
+}
+
 function buildChartData(card, sections, loadedData, datesWithData) {
-  const dates = getDateRange(card, datesWithData).sort()
+  const dateCandidates = getDateRange(card, datesWithData).sort()
   const bindings = card.bindings || []
+  const dates = card.type === 'line' || card.type === 'bar'
+    ? dateCandidates.filter(d => hasChartBindingData(d, bindings, loadedData))
+    : dateCandidates
 
   if (card.type === 'pie') {
     return bindings.map((b, i) => {
