@@ -8,6 +8,14 @@ import './Settings.css'
 import JSZip from 'jszip'
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
+const NUMBER_DEFAULT_MODE_MANUAL = 'manual'
+const NUMBER_DEFAULT_MODE_CARRY = 'carry'
+
+const getNumberDefaultMode = (section) => {
+  return section?.numberDefaultMode === NUMBER_DEFAULT_MODE_CARRY
+    ? NUMBER_DEFAULT_MODE_CARRY
+    : NUMBER_DEFAULT_MODE_MANUAL
+}
 
 export default function Settings() {
   const {
@@ -26,6 +34,7 @@ export default function Settings() {
   const [newSectionName, setNewSectionName] = useState('')
   const [newSectionUnit, setNewSectionUnit] = useState('')
   const [newSectionColor, setNewSectionColor] = useState('#7c6aff')
+  const [newSectionNumberDefaultMode, setNewSectionNumberDefaultMode] = useState(NUMBER_DEFAULT_MODE_MANUAL)
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false, sec: null, hasData: false, checking: false })
 
   useEffect(() => { loadBackups() }, [])
@@ -60,6 +69,7 @@ export default function Settings() {
       name: newSectionName.trim(),
       type: newSectionType,
       unit: newSectionType === 'number' ? newSectionUnit.trim() : '',
+      numberDefaultMode: newSectionType === 'number' ? newSectionNumberDefaultMode : undefined,
       color: newSectionColor,
       resident: false,
       order: sections.length
@@ -68,6 +78,7 @@ export default function Settings() {
     setNewSectionName('')
     setNewSectionUnit('')
     setNewSectionColor('#7c6aff')
+    setNewSectionNumberDefaultMode(NUMBER_DEFAULT_MODE_MANUAL)
     showToast('已添加新数据版块', 'success')
   }
 
@@ -115,6 +126,16 @@ export default function Settings() {
     const next = sections.map(s => s.id === id ? { ...s, name: trimmed } : s)
     await saveSections(next)
     showToast('已重命名版块', 'success')
+  }
+
+  const changeSectionNumberDefaultMode = async (id, mode) => {
+    const normalizedMode = mode === NUMBER_DEFAULT_MODE_CARRY ? NUMBER_DEFAULT_MODE_CARRY : NUMBER_DEFAULT_MODE_MANUAL
+    const next = sections.map(s => (
+      s.id === id && s.type === 'number'
+        ? { ...s, numberDefaultMode: normalizedMode }
+        : s
+    ))
+    await saveSections(next)
   }
 
   // Data Directory
@@ -243,6 +264,7 @@ export default function Settings() {
                     onToggleResident={() => toggleResident(sec.id)}
                     onChangeColor={(color) => changeSectionColor(sec.id, color)}
                     onRename={(name) => renameSection(sec.id, name)}
+                    onChangeNumberDefaultMode={(mode) => changeSectionNumberDefaultMode(sec.id, mode)}
                     onDelete={() => handleDeleteClick(sec.id)}
                   />
                 ))}
@@ -278,6 +300,7 @@ export default function Settings() {
               required
             />
             {newSectionType === 'number' && (
+              <>
               <input
                 className="input"
                 placeholder="单位 (如: kg, min)"
@@ -285,6 +308,16 @@ export default function Settings() {
                 onChange={e => setNewSectionUnit(e.target.value)}
                 style={{ width: 100 }}
               />
+                <select
+                  className="input section-default-mode-select"
+                  value={newSectionNumberDefaultMode}
+                  onChange={e => setNewSectionNumberDefaultMode(e.target.value)}
+                  title="数字默认填充方式"
+                >
+                  <option value={NUMBER_DEFAULT_MODE_MANUAL}>每日手动输入，默认 0</option>
+                  <option value={NUMBER_DEFAULT_MODE_CARRY}>延续前一日数据</option>
+                </select>
+              </>
             )}
             <button className="btn btn-secondary" type="submit">添加版块</button>
           </form>
@@ -454,7 +487,7 @@ export default function Settings() {
   )
 }
 
-function SortableSection({ section, onToggleResident, onChangeColor, onRename, onDelete }) {
+function SortableSection({ section, onToggleResident, onChangeColor, onRename, onChangeNumberDefaultMode, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(section.name)
@@ -516,6 +549,18 @@ function SortableSection({ section, onToggleResident, onChangeColor, onRename, o
         <span className="sec-item-type">{section.type === 'text' ? '📝 文字' : `🔢 数字 ${section.unit ? `[${section.unit}]` : ''}`}</span>
       </div>
       <div className="sec-item-actions">
+        {section.type === 'number' && (
+          <select
+            className="input section-default-mode-select section-default-mode-select--compact"
+            value={getNumberDefaultMode(section)}
+            onChange={e => onChangeNumberDefaultMode(e.target.value)}
+            onPointerDown={e => e.stopPropagation()}
+            title="数字默认填充方式"
+          >
+            <option value={NUMBER_DEFAULT_MODE_MANUAL}>每日手动输入</option>
+            <option value={NUMBER_DEFAULT_MODE_CARRY}>延续前一日</option>
+          </select>
+        )}
         <label className="color-swatch-btn" title="修改版块颜色" style={{ '--swatch-color': section.color || '#7c6aff' }}>
           <input
             type="color"
