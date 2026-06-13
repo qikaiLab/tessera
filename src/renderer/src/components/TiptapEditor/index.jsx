@@ -349,6 +349,15 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     onCharCountChange?.(charCount)
   }, [charCount, onCharCountChange])
 
+  useEffect(() => {
+    if (!isFullScreen) return
+
+    document.body.classList.add('editor-fullscreen-active')
+    return () => {
+      document.body.classList.remove('editor-fullscreen-active')
+    }
+  }, [isFullScreen])
+
   return (
     <div className={`tiptap-shell ${isFullScreen ? 'tiptap-fullscreen' : ''}`}>
       {isFullScreen && <div className="tiptap-fullscreen-drag-handle" />}

@@ -138,6 +138,16 @@ body.is-resizing .sidebar-resize-handle::after {
   background: var(--accent);
 }
 
+body.editor-fullscreen-active .sidebar-resize-handle {
+  pointer-events: none;
+  cursor: default;
+}
+
+body.editor-fullscreen-active .sidebar-resize-handle::after,
+body.editor-fullscreen-active.is-resizing .sidebar-resize-handle::after {
+  background: transparent;
+}
+
 body.is-resizing {
   cursor: col-resize;
   user-select: none;

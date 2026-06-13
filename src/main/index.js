@@ -12,8 +12,28 @@ let dataDir = ''
 let isQuitting = false
 let lastExternalOpen = { url: '', time: 0 }
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+
+if (!gotSingleInstanceLock) {
+  app.quit()
+}
+
 function getDefaultDataDir() {
   return path.join(os.homedir(), 'MotoTrace', 'data')
+}
+
+function focusMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore()
+  }
+
+  if (!mainWindow.isVisible()) {
+    mainWindow.show()
+  }
+
+  mainWindow.focus()
 }
 
 // ─── Path Safety (#5) ─────────────────────────────────────────────────────────
@@ -176,6 +196,9 @@ function createWindow() {
   mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-state-change', 'normal'))
   mainWindow.on('enter-full-screen', () => mainWindow.webContents.send('window-state-change', 'fullscreen'))
   mainWindow.on('leave-full-screen', () => mainWindow.webContents.send('window-state-change', 'normal'))
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
 
   // ─── Fix #8: Graceful close — flush pending data before quitting ────────────
   mainWindow.on('close', (e) => {
@@ -196,10 +219,13 @@ function createWindow() {
 // Fix #8: Renderer confirms it's safe to close
 ipcMain.handle('app:confirmClose', () => {
   isQuitting = true
-  mainWindow.close()
+  mainWindow?.close()
 })
 
-app.whenReady().then(createWindow)
+if (gotSingleInstanceLock) {
+  app.on('second-instance', focusMainWindow)
+  app.whenReady().then(createWindow)
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
