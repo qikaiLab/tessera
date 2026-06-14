@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const fsp = require('fs').promises
@@ -12,8 +12,56 @@ let dataDir = ''
 let isQuitting = false
 let lastExternalOpen = { url: '', time: 0 }
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+
+if (!gotSingleInstanceLock) {
+  app.quit()
+}
+
 function getDefaultDataDir() {
   return path.join(os.homedir(), 'MotoTrace', 'data')
+}
+
+function focusMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore()
+  }
+
+  if (!mainWindow.isVisible()) {
+    mainWindow.show()
+  }
+
+  mainWindow.focus()
+}
+
+function buildContextMenuTemplate(items, context, sender) {
+  if (!Array.isArray(items)) return []
+
+  return items
+    .filter(item => item && item.visible !== false)
+    .map(item => {
+      if (item.type === 'separator') return { type: 'separator' }
+
+      const menuItem = {
+        label: String(item.label || ''),
+        enabled: item.enabled !== false
+      }
+
+      if (item.role) {
+        menuItem.role = item.role
+      } else if (item.id) {
+        menuItem.click = () => {
+          sender.send('context-menu:command', {
+            id: item.id,
+            context: context || {}
+          })
+        }
+      }
+
+      return menuItem
+    })
 }
 
 // ─── Path Safety (#5) ─────────────────────────────────────────────────────────
@@ -176,6 +224,9 @@ function createWindow() {
   mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-state-change', 'normal'))
   mainWindow.on('enter-full-screen', () => mainWindow.webContents.send('window-state-change', 'fullscreen'))
   mainWindow.on('leave-full-screen', () => mainWindow.webContents.send('window-state-change', 'normal'))
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
 
   // ─── Fix #8: Graceful close — flush pending data before quitting ────────────
   mainWindow.on('close', (e) => {
@@ -196,10 +247,13 @@ function createWindow() {
 // Fix #8: Renderer confirms it's safe to close
 ipcMain.handle('app:confirmClose', () => {
   isQuitting = true
-  mainWindow.close()
+  mainWindow?.close()
 })
 
-app.whenReady().then(createWindow)
+if (gotSingleInstanceLock) {
+  app.on('second-instance', focusMainWindow)
+  app.whenReady().then(createWindow)
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
@@ -215,6 +269,23 @@ ipcMain.handle('window:maximize', () => {
 })
 ipcMain.handle('window:close', () => mainWindow.close())
 ipcMain.handle('window:isMaximized', () => mainWindow.isMaximized())
+
+ipcMain.handle('context-menu:show', (event, { items, context, x, y } = {}) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (!win) return false
+
+  const template = buildContextMenuTemplate(items, context, event.sender)
+  if (!template.length) return false
+
+  const menu = Menu.buildFromTemplate(template)
+  const popupOptions = { window: win }
+  if (Number.isFinite(x) && Number.isFinite(y)) {
+    popupOptions.x = Math.round(x)
+    popupOptions.y = Math.round(y)
+  }
+  menu.popup(popupOptions)
+  return true
+})
 
 // Config
 ipcMain.handle('config:getDataDir', () => dataDir)

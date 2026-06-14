@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { format, parseISO, addDays, subDays, isToday, isValid } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import TiptapEditor from '../components/TiptapEditor'
 import NotesDrawer from '../components/NotesDrawer'
 import SaveStatusBadge from '../components/SaveStatusBadge'
+import {
+  editMenuItems,
+  focusEditableTarget,
+  getEditableSelectionState,
+  isEditableMenuTarget,
+  separator,
+  showContextMenu,
+  useContextMenuCommand
+} from '../utils/contextMenu'
 import './Today.css'
 
 // Save status enum
@@ -21,14 +31,27 @@ const NOTES_DRAWER_MAX = 620
 const NOTES_DRAWER_DEFAULT = 430
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+const NUMBER_DEFAULT_MODE_CARRY = 'carry'
+
+const getNumberDefaultMode = (section) => {
+  return section?.numberDefaultMode === NUMBER_DEFAULT_MODE_CARRY ? NUMBER_DEFAULT_MODE_CARRY : 'manual'
+}
+
+const hasStoredValue = (entry) => {
+  return entry?.value !== undefined && entry?.value !== null && String(entry.value).trim() !== ''
+}
+
+const isNumericText = (value) => /^-?\d+(\.\d+)?$/.test(String(value || '').trim())
 
 export default function Today() {
+  const navigate = useNavigate()
   const {
-    sections, readDayData, writeDayData, selectedDate, setSelectedDate, showToast,
+    sections, datesWithData, readDayData, writeDayData, selectedDate, setSelectedDate, showToast,
     registerPendingFlush, unregisterPendingFlush
   } = useApp()
 
   const [data, setData] = useState({})
+  const [numberDefaults, setNumberDefaults] = useState({})
   const [saveStatus, setSaveStatus] = useState(STATUS.IDLE)
   const [loading, setLoading] = useState(true)
   const [transitioningDate, setTransitioningDate] = useState(false)
@@ -58,9 +81,41 @@ export default function Today() {
   const escapeTimeoutRef = useRef(null)
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
+  const datesWithDataRef = useRef(datesWithData)
+  datesWithDataRef.current = datesWithData
   // Keep a ref to dateStr so flush can use latest value
   const dateStrRef = useRef(dateStr)
   dateStrRef.current = dateStr
+
+  const findRecentNumberValue = useCallback(async (targetDateStr, sectionId) => {
+    const candidates = datesWithDataRef.current
+      .filter(d => d < targetDateStr)
+      .sort((a, b) => b.localeCompare(a))
+
+    for (const d of candidates) {
+      const dayData = await readDayData(d)
+      const entry = dayData[sectionId]
+      if (hasStoredValue(entry)) {
+        return String(entry.value)
+      }
+    }
+
+    return '0'
+  }, [readDayData])
+
+  const buildNumberDefaults = useCallback(async (targetDateStr, loadedData) => {
+    const defaults = {}
+
+    for (const section of sections) {
+      if (section.type !== 'number' || hasStoredValue(loadedData[section.id])) continue
+
+      defaults[section.id] = getNumberDefaultMode(section) === NUMBER_DEFAULT_MODE_CARRY
+        ? await findRecentNumberValue(targetDateStr, section.id)
+        : '0'
+    }
+
+    return defaults
+  }, [findRecentNumberValue, sections])
 
   // Load data when date changes
   useEffect(() => {
@@ -77,15 +132,18 @@ export default function Today() {
     setSaveStatus(STATUS.IDLE)
     setFullScreenSectionId(null) // Exit full screen on date change
     setManuallyAdded(new Set())  // Task 2: clear manual additions on date change
+    setNumberDefaults({})
 
     if (!hasLoadedOnce) {
       skeletonTimer = setTimeout(() => setShowSkeleton(true), 180)
     }
 
     readDayData(dateStr)
-      .then(d => {
+      .then(async d => {
+        const defaults = await buildNumberDefaults(dateStr, d)
         if (loadSeqRef.current !== seq) return
         setData(d)
+        setNumberDefaults(defaults)
       })
       .catch(error => {
         console.error('Failed to load day data:', error)
@@ -104,7 +162,7 @@ export default function Today() {
     return () => {
       if (skeletonTimer) clearTimeout(skeletonTimer)
     }
-  }, [dateStr, readDayData, showToast])
+  }, [dateStr, readDayData, showToast, buildNumberDefaults])
 
   useEffect(() => {
     return () => {
@@ -215,6 +273,53 @@ export default function Today() {
     })
   }, [scheduleSave])
 
+  const clearSection = useCallback((sectionId) => {
+    setData(prev => {
+      const next = { ...prev }
+      delete next[sectionId]
+      scheduleSave(next)
+      return next
+    })
+    setManuallyAdded(prev => {
+      if (!prev.has(sectionId)) return prev
+      const next = new Set(prev)
+      next.delete(sectionId)
+      return next
+    })
+    showToast('已清空记录', 'success', 1200)
+  }, [scheduleSave, showToast])
+
+  const handleSectionContextMenu = useCallback((event, section) => {
+    if (isEditableMenuTarget(event.target)) return
+
+    showContextMenu(event, [
+      { id: 'clear', label: '清空' },
+      separator,
+      { id: 'edit-settings', label: '在设置中编辑' }
+    ], {
+      scope: 'today-section',
+      sectionId: section.id
+    })
+  }, [])
+
+  useContextMenuCommand('today-section', useCallback((id, context) => {
+    if (!context?.sectionId) return
+    if (id === 'clear') {
+      clearSection(context.sectionId)
+      return
+    }
+    if (id === 'edit-settings') {
+      navigate('/settings')
+    }
+  }, [clearSection, navigate]))
+
+  const getSectionDisplayValue = useCallback((section) => {
+    const stored = data[section.id]?.value
+    if (stored !== undefined && stored !== null) return stored
+    if (section.type === 'number') return numberDefaults[section.id] ?? '0'
+    return ''
+  }, [data, numberDefaults])
+
   // Fix #3: goTo() now catches write errors and shows user feedback
   const goTo = (date) => {
     if (saveTimerRef.current) {
@@ -252,7 +357,7 @@ export default function Today() {
     if (manuallyAdded.has(sec.id)) return true
     const entry = data[sec.id]
     const hasValue = entry && (
-      sec.type === 'text' ? entry.value && entry.value.trim() !== '' : entry.value !== undefined && entry.value !== ''
+      sec.type === 'text' ? entry.value && entry.value.trim() !== '' : hasStoredValue(entry)
     )
     return hasValue
   })
@@ -264,7 +369,7 @@ export default function Today() {
     if (manuallyAdded.has(sec.id)) return false
     const entry = data[sec.id]
     const hasValue = entry && (
-      sec.type === 'text' ? entry.value && entry.value.trim() !== '' : entry.value !== undefined && entry.value !== ''
+      sec.type === 'text' ? entry.value && entry.value.trim() !== '' : hasStoredValue(entry)
     )
     return !hasValue
   })
@@ -410,8 +515,11 @@ export default function Today() {
                   <SectionCard
                     key={sec.id}
                     section={sec}
-                    value={data[sec.id]?.value ?? (sec.type === 'text' ? '' : '')}
+                    value={getSectionDisplayValue(sec)}
                     onChange={(val) => handleChange(sec.id, val)}
+                    onContextMenu={(event) => handleSectionContextMenu(event, sec)}
+                    onUseRecentNumberValue={() => findRecentNumberValue(dateStr, sec.id)}
+                    showToast={showToast}
                     animationDelay={i * 50}
                     dateTransitionDir={dateTransitionDir}
                     isFullScreen={fullScreenSectionId === sec.id}
@@ -434,7 +542,9 @@ export default function Today() {
                       onClick={() => {
                         // Task 2: register as manually added so it stays visible
                         setManuallyAdded(prev => new Set([...prev, sec.id]))
-                        handleChange(sec.id, sec.type === 'text' ? '' : '0')
+                        if (sec.type === 'number') {
+                          handleChange(sec.id, getSectionDisplayValue(sec))
+                        }
                       }}
                     >
                       + {sec.name}
@@ -459,7 +569,19 @@ export default function Today() {
   )
 }
 
-function SectionCard({ section, value, onChange, animationDelay, dateTransitionDir, isFullScreen, onToggleFullScreen, onSave }) {
+function SectionCard({
+  section,
+  value,
+  onChange,
+  onContextMenu,
+  onUseRecentNumberValue,
+  showToast,
+  animationDelay,
+  dateTransitionDir,
+  isFullScreen,
+  onToggleFullScreen,
+  onSave
+}) {
   const [charCount, setCharCount] = useState(0)
   const [fontSize, setFontSize] = useState(() => {
     return parseInt(localStorage.getItem('mototrace_font_size') || '14', 10)
@@ -491,6 +613,7 @@ function SectionCard({ section, value, onChange, animationDelay, dateTransitionD
       <div
         className={`section-card number-card date-card-${dateTransitionDir}`}
         style={{ animationDelay: `${animationDelay}ms` }}
+        onContextMenu={onContextMenu}
       >
         <div className="number-card-content">
           <div className="number-card-left">
@@ -501,9 +624,12 @@ function SectionCard({ section, value, onChange, animationDelay, dateTransitionD
           </div>
           <div className="number-card-right">
             <NumberInput
+              sectionId={section.id}
               value={value}
               unit={section.unit}
               onChange={onChange}
+              onUseRecentValue={onUseRecentNumberValue}
+              showToast={showToast}
             />
           </div>
         </div>
@@ -515,6 +641,7 @@ function SectionCard({ section, value, onChange, animationDelay, dateTransitionD
     <div
       className={`section-card date-card-${dateTransitionDir} ${isFullScreen ? 'fullscreen-active-parent' : ''}`}
       style={{ animationDelay: `${animationDelay}ms` }}
+      onContextMenu={onContextMenu}
     >
       <div className="section-card-header">
         <div className="section-card-header-left">
@@ -572,7 +699,7 @@ function SectionCard({ section, value, onChange, animationDelay, dateTransitionD
   )
 }
 
-function NumberInput({ value, unit, onChange }) {
+function NumberInput({ sectionId, value, unit, onChange, onUseRecentValue, showToast }) {
   const numVal = value === '' ? '' : String(value)
 
   const handleChange = (e) => {
@@ -585,8 +712,71 @@ function NumberInput({ value, unit, onChange }) {
     onChange(String(parseFloat((n + delta).toFixed(4))))
   }
 
+  useContextMenuCommand('today-number', useCallback(async (id, context) => {
+    if (context?.sectionId !== sectionId) return
+
+    if (id === 'reset-zero') {
+      onChange('0')
+      return
+    }
+
+    if (id === 'use-recent') {
+      const recentValue = await onUseRecentValue?.()
+      onChange(String(recentValue ?? '0'))
+      return
+    }
+
+    if (id === 'copy-value') {
+      window.api?.clipboard?.writeText?.(numVal || '0')
+      showToast?.('已复制数值', 'success', 1000)
+      return
+    }
+
+    if (id === 'paste-number') {
+      const text = window.api?.clipboard?.readText?.() || ''
+      const trimmed = text.trim()
+      if (isNumericText(trimmed)) {
+        onChange(trimmed)
+      }
+    }
+  }, [numVal, onChange, onUseRecentValue, sectionId, showToast]))
+
+  const handleContextMenu = async (event) => {
+    const clipboardText = window.api?.clipboard?.readText?.() || ''
+    const canPasteNumber = isNumericText(clipboardText)
+    const selectionState = getEditableSelectionState(event.target)
+    const isInputMenu = Boolean(selectionState?.target?.matches?.('input, textarea'))
+    if (isInputMenu) focusEditableTarget(selectionState.target)
+
+    const textMenuItems = isInputMenu
+      ? [
+          ...editMenuItems({
+            canUndo: selectionState.canEdit,
+            canRedo: selectionState.canEdit,
+            canCut: selectionState.canCut,
+            canCopy: selectionState.canCopy,
+            canPaste: selectionState.canPaste && canPasteNumber,
+            canSelectAll: selectionState.canSelectAll
+          }),
+          separator
+        ]
+      : []
+
+    showContextMenu(event, [
+      ...textMenuItems,
+      { id: 'reset-zero', label: '重置为 0' },
+      { id: 'use-recent', label: '使用最近一次数值' },
+      separator,
+      { id: 'copy-value', label: '复制数值' },
+      { id: 'paste-number', label: '粘贴', visible: !isInputMenu && canPasteNumber }
+    ], {
+      scope: 'today-number',
+      sectionId
+    })
+  }
+
   return (
-    <div className="number-input-wrap">
+    <div className="number-input-wrap" onContextMenu={handleContextMenu}>
       <button className="num-btn" onClick={() => increment(-1)}>−</button>
       <input
         className="input number-input selectable"

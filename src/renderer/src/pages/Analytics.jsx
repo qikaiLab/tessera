@@ -14,6 +14,7 @@ import {
   rectSortingStrategy, useSortable
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
 import './Analytics.css'
 
 const CHART_TYPES = [
@@ -32,8 +33,39 @@ const DATE_RANGES = [
 ]
 
 const PALETTE = ['#7c6aff', '#34d399', '#f87171', '#fbbf24', '#60a5fa', '#f472b6']
+const DATE_AXIS_RECORDED = 'recorded'
+const DATE_AXIS_CONTINUOUS = 'continuous'
+const LINE_STYLE_SMOOTH = 'smooth'
+const LINE_STYLE_STRAIGHT = 'straight'
+const NUMBER_DEFAULT_MODE_CARRY = 'carry'
+
+const DATE_AXIS_MODES = [
+  { id: DATE_AXIS_RECORDED, label: '仅显示有数据日期' },
+  { id: DATE_AXIS_CONTINUOUS, label: '连续日期横坐标' }
+]
+
+const LINE_STYLE_MODES = [
+  { id: LINE_STYLE_SMOOTH, label: '曲线' },
+  { id: LINE_STYLE_STRAIGHT, label: '直线折线' }
+]
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
+
+function getDateAxisMode(card) {
+  return card.dateAxisMode === DATE_AXIS_CONTINUOUS ? DATE_AXIS_CONTINUOUS : DATE_AXIS_RECORDED
+}
+
+function getLineStyle(card) {
+  return card.lineStyle === LINE_STYLE_STRAIGHT ? LINE_STYLE_STRAIGHT : LINE_STYLE_SMOOTH
+}
+
+function isCarryNumberSection(section) {
+  return section?.type === 'number' && section.numberDefaultMode === NUMBER_DEFAULT_MODE_CARRY
+}
+
+function hasStoredValue(entry) {
+  return entry?.value !== undefined && entry?.value !== null && String(entry.value).trim() !== ''
+}
 
 /**
  * Extract plain text from a persisted value (Tiptap JSON string or plain string).
@@ -62,6 +94,8 @@ function defaultCard(idx) {
     type: 'bar',
     bindings: [],
     dateRange: '30',
+    dateAxisMode: DATE_AXIS_RECORDED,
+    lineStyle: LINE_STYLE_SMOOTH,
     dateFrom: '',
     dateTo: ''
   }
@@ -225,7 +259,7 @@ export default function Analytics() {
 
 // ─── Date Range ───────────────────────────────────────────────────────────────
 
-function getDateRange(card, datesWithData) {
+function getRecordedDateRange(card, datesWithData) {
   if (card.dateRange === 'all') return datesWithData
   if (card.dateRange === 'custom' && card.dateFrom && card.dateTo) {
     return datesWithData.filter(d => d >= card.dateFrom && d <= card.dateTo)
@@ -233,6 +267,40 @@ function getDateRange(card, datesWithData) {
   const days = parseInt(card.dateRange)
   const cutoff = format(subDays(new Date(), days), 'yyyy-MM-dd')
   return datesWithData.filter(d => d >= cutoff)
+}
+
+function getContinuousDateRange(card, datesWithData, bindings = [], loadedData = {}) {
+  let start
+  let end
+
+  if (card.dateRange === 'custom' && card.dateFrom && card.dateTo) {
+    start = parseISO(card.dateFrom)
+    end = parseISO(card.dateTo)
+  } else if (card.dateRange === 'all') {
+    const boundDates = datesWithData.filter(d => hasChartBindingData(d, bindings, loadedData))
+    const sorted = (boundDates.length ? boundDates : datesWithData).sort()
+    if (!sorted.length) return []
+    start = parseISO(sorted[0])
+    end = parseISO(sorted[sorted.length - 1])
+  } else {
+    const days = parseInt(card.dateRange) || 30
+    end = new Date()
+    start = subDays(end, days - 1)
+  }
+
+  if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+    return []
+  }
+
+  return eachDayOfInterval({ start, end }).map(d => format(d, 'yyyy-MM-dd'))
+}
+
+function getDateRange(card, datesWithData, bindings = [], loadedData = {}) {
+  if ((card.type === 'line' || card.type === 'bar') && getDateAxisMode(card) === DATE_AXIS_CONTINUOUS) {
+    return getContinuousDateRange(card, datesWithData, bindings, loadedData)
+  }
+
+  return getRecordedDateRange(card, datesWithData)
 }
 
 // Generate all calendar days in range (for heatmap), aligned to Mon-Sun columns
@@ -249,9 +317,71 @@ function getAllDaysInRange(card) {
 
 // ─── Chart Data Builder ───────────────────────────────────────────────────────
 
+function hasChartBindingData(dateStr, bindings, loadedData) {
+  return bindings.some(b => {
+    const entry = loadedData[dateStr]?.[b.sectionId]
+    if (!hasStoredValue(entry)) return false
+
+    if (b.metric === 'wordcount') {
+      return extractText(entry.value).replace(/\s+/g, '').length > 0
+    }
+
+    return String(entry.value).trim() !== ''
+  })
+}
+
+function findRecentNumberValue(dateStr, sectionId, loadedData) {
+  const previousDates = Object.keys(loadedData)
+    .filter(d => d < dateStr)
+    .sort((a, b) => b.localeCompare(a))
+
+  for (const d of previousDates) {
+    const entry = loadedData[d]?.[sectionId]
+    if (hasStoredValue(entry)) return parseFloat(entry.value) || 0
+  }
+
+  return 0
+}
+
+function resolveBindingValue(dateStr, binding, section, loadedData) {
+  const entry = loadedData[dateStr]?.[binding.sectionId]
+
+  if (hasStoredValue(entry)) {
+    if (binding.metric === 'wordcount') return extractText(entry.value).replace(/\s+/g, '').length
+    return parseFloat(entry.value) || 0
+  }
+
+  if (binding.metric === 'value' && isCarryNumberSection(section)) {
+    return findRecentNumberValue(dateStr, binding.sectionId, loadedData)
+  }
+
+  return 0
+}
+
+function formatAxisDate(value) {
+  try {
+    return format(parseISO(value), 'MM/dd')
+  } catch {
+    return value
+  }
+}
+
+function formatTooltipDate(value) {
+  try {
+    return format(parseISO(value), 'yyyy-MM-dd')
+  } catch {
+    return value
+  }
+}
+
 function buildChartData(card, sections, loadedData, datesWithData) {
-  const dates = getDateRange(card, datesWithData).sort()
   const bindings = card.bindings || []
+  const dateCandidates = getDateRange(card, datesWithData, bindings, loadedData).sort()
+  const dates = card.type === 'line' || card.type === 'bar'
+    ? getDateAxisMode(card) === DATE_AXIS_CONTINUOUS
+      ? dateCandidates
+      : dateCandidates.filter(d => hasChartBindingData(d, bindings, loadedData))
+    : dateCandidates
 
   if (card.type === 'pie') {
     return bindings.map((b, i) => {
@@ -289,17 +419,11 @@ function buildChartData(card, sections, loadedData, datesWithData) {
   }
 
   return dates.map(d => {
-    const point = { date: format(parseISO(d), 'MM/dd') }
+    const point = { date: d }
     bindings.forEach(b => {
       const sec = sections.find(s => s.id === b.sectionId)
       if (!sec) return
-      const entry = loadedData[d]?.[b.sectionId]
-      let val = 0
-      if (entry) {
-        if (b.metric === 'wordcount') val = extractText(entry.value).replace(/\s+/g, '').length
-        else val = parseFloat(entry.value) || 0
-      }
-      point[sec.name] = val
+      point[sec.name] = resolveBindingValue(d, b, sec, loadedData)
     })
     return point
   })
@@ -341,8 +465,37 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, o
     return PALETTE[Math.max(0, idx) % PALETTE.length]
   }, [card.type, bindings, sections])
 
+  useContextMenuCommand('analytics-card', useCallback((id, context) => {
+    if (context?.cardId !== card.id) return
+    if (id === 'edit') {
+      onEdit()
+      return
+    }
+    if (id === 'duplicate') {
+      onDuplicate()
+      return
+    }
+    if (id === 'delete') {
+      onDelete()
+    }
+  }, [card.id, onDelete, onDuplicate, onEdit]))
+
+  const handleContextMenu = useCallback((event) => {
+    if (isEditableMenuTarget(event.target)) return
+
+    showContextMenu(event, [
+      { id: 'edit', label: isEditing ? '收起编辑' : '编辑' },
+      { id: 'duplicate', label: '复制' },
+      separator,
+      { id: 'delete', label: '删除' }
+    ], {
+      scope: 'analytics-card',
+      cardId: card.id
+    })
+  }, [card.id, isEditing])
+
   return (
-    <div className={`analytics-card card ${isEditing ? 'editing' : ''}`}>
+    <div className={`analytics-card card ${isEditing ? 'editing' : ''}`} onContextMenu={handleContextMenu}>
       <div className="analytics-card-header">
         {/* Drag handle */}
         <span
@@ -392,6 +545,7 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, o
 
 function CardEditor({ card, sections, onUpdate }) {
   const isHeatmap = card.type === 'heatmap'
+  const supportsDateAxisMode = card.type === 'line' || card.type === 'bar'
   const hasMaxBindings = isHeatmap && (card.bindings || []).length >= 1 // Task 5.1: heatmap max 1
 
   const addBinding = () => {
@@ -450,6 +604,42 @@ function CardEditor({ card, sections, onUpdate }) {
         </div>
       </div>
 
+      {/* Date axis mode */}
+      {supportsDateAxisMode && (
+        <div className="editor-row">
+          <label className="editor-label">日期横坐标</label>
+          <div className="segmented-control">
+            {DATE_AXIS_MODES.map(mode => (
+              <button
+                key={mode.id}
+                className={`segmented-btn ${getDateAxisMode(card) === mode.id ? 'active' : ''}`}
+                onClick={() => onUpdate({ dateAxisMode: mode.id })}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Line style */}
+      {card.type === 'line' && (
+        <div className="editor-row">
+          <label className="editor-label">线条样式</label>
+          <div className="segmented-control">
+            {LINE_STYLE_MODES.map(mode => (
+              <button
+                key={mode.id}
+                className={`segmented-btn ${getLineStyle(card) === mode.id ? 'active' : ''}`}
+                onClick={() => onUpdate({ lineStyle: mode.id })}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Bindings */}
       <div className="editor-row">
         <label className="editor-label">
@@ -502,7 +692,8 @@ const TooltipStyle = {
     fontSize: '12px',
     color: 'var(--text-primary)'
   },
-  labelStyle: { color: 'var(--text-secondary)' }
+  labelStyle: { color: 'var(--text-secondary)' },
+  labelFormatter: formatTooltipDate
 }
 
 function ChartRenderer({ card, data, sections, heatmapColor }) {
@@ -517,11 +708,19 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
   const yMode = keys.length <= 1 ? 'single' : keys.length === 2 ? 'dual' : 'none'
 
   if (card.type === 'line') {
+    const lineType = getLineStyle(card) === LINE_STYLE_STRAIGHT ? 'linear' : 'monotone'
+
     return (
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={formatAxisDate}
+            tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+            minTickGap={18}
+            interval="preserveStartEnd"
+          />
           {yMode === 'single' && (
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
           )}
@@ -539,7 +738,7 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
             return (
               <Line
                 key={k}
-                type="monotone"
+                type={lineType}
                 dataKey={k}
                 stroke={color}
                 strokeWidth={2}
@@ -559,7 +758,13 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={formatAxisDate}
+            tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+            minTickGap={18}
+            interval="preserveStartEnd"
+          />
           {yMode === 'single' && (
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
           )}

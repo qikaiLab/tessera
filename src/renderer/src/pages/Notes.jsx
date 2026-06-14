@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TiptapEditor from '../components/TiptapEditor'
 import SaveStatusBadge from '../components/SaveStatusBadge'
 import { useApp } from '../context/AppContext'
+import { separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
 import './Notes.css'
 
 const NOTES_INDEX_PATH = 'notes/index.json'
@@ -32,6 +33,18 @@ function generateId() {
 
 function emptyDoc() {
   return { type: 'doc', content: [{ type: 'paragraph' }] }
+}
+
+function cloneNoteContent(content) {
+  try {
+    return JSON.parse(JSON.stringify(content || emptyDoc()))
+  } catch {
+    return emptyDoc()
+  }
+}
+
+function buildDuplicateTitle(title) {
+  return `${title?.trim() || '无标题便签'} 副本`
 }
 
 function notePath(id) {
@@ -351,6 +364,141 @@ export default function Notes() {
     }
   }, [flushPending, notes, persistNoteNow, showToast])
 
+  const duplicateNoteById = useCallback(async (noteId) => {
+    const source = notes.find(note => note.id === noteId)
+    if (!source) return
+
+    await flushPending()
+    const now = new Date().toISOString()
+    const duplicate = {
+      ...source,
+      id: generateId(),
+      title: buildDuplicateTitle(source.title),
+      content: cloneNoteContent(source.content),
+      createdAt: now,
+      updatedAt: now,
+      pinned: Boolean(source.pinned),
+      archived: Boolean(source.archived),
+      fontSize: normalizeFontSize(source.fontSize),
+      dateLink: normalizeDateLink(source.dateLink)
+    }
+    const nextNotes = [duplicate, ...notes].sort(compareNotes)
+    setNotes(nextNotes)
+    setCurrentNote(duplicate)
+    setSelectedId(duplicate.id)
+    setCharCount(countNoteChars(duplicate.content))
+    setFullScreenNoteId(null)
+    setDateLinkPanelOpen(false)
+
+    const ok = await persistNoteNow(duplicate, nextNotes)
+    if (ok) {
+      showToast('已新建便签副本', 'success', 1200)
+      setTimeout(() => titleInputRef.current?.focus(), 40)
+    }
+  }, [flushPending, notes, persistNoteNow, showToast])
+
+  const togglePinnedById = useCallback(async (noteId) => {
+    const target = notes.find(note => note.id === noteId)
+    if (!target) return
+
+    await flushPending()
+    const nextNote = {
+      ...target,
+      pinned: !target.pinned,
+      updatedAt: new Date().toISOString()
+    }
+    const nextNotes = notes.map(note =>
+      note.id === noteId ? { ...note, ...nextNote } : note
+    ).sort(compareNotes)
+    setNotes(nextNotes)
+    if (currentNote?.id === noteId) setCurrentNote(nextNote)
+    await persistNoteNow(nextNote, nextNotes)
+  }, [currentNote, flushPending, notes, persistNoteNow])
+
+  const deleteNoteById = useCallback(async (noteId) => {
+    const target = notes.find(note => note.id === noteId)
+    if (!target) return
+
+    const title = target.title?.trim() || '无标题便签'
+    const confirmed = await confirm({
+      title: '删除便签',
+      message: `确定要删除便签「${title}」吗？\n该操作会永久删除便签文件，无法撤销。`,
+      confirmText: '删除',
+      cancelText: '取消',
+      danger: true
+    })
+    if (!confirmed) return
+
+    await flushPending()
+    const nextNotes = notes.filter(note => note.id !== noteId).sort(compareNotes)
+    const indexResult = await writeIndex(nextNotes)
+    if (!indexResult.ok) {
+      showToast('便签索引更新失败', 'error')
+      return
+    }
+
+    const deleteResult = await window.api.fs.deleteFile(notePath(noteId))
+    if (!deleteResult.ok) {
+      showToast('便签文件删除失败', 'error')
+      return
+    }
+
+    const nextSelected = currentNote?.id === noteId
+      ? (nextNotes.find(note => showArchived ? note.archived : !note.archived) || nextNotes[0] || null)
+      : currentNote
+
+    setNotes(nextNotes)
+    setCurrentNote(nextSelected)
+    setSelectedId(nextSelected?.id || null)
+    setCharCount(nextSelected ? countNoteChars(nextSelected.content) : 0)
+    setFullScreenNoteId(null)
+    setDateLinkPanelOpen(false)
+    setSaveStatus(SAVE_IDLE)
+    showToast('便签已删除', 'success', 1200)
+  }, [confirm, currentNote, flushPending, notes, showArchived, showToast, writeIndex])
+
+  useContextMenuCommand('notes-list', useCallback((id, context) => {
+    const note = context?.noteId ? notes.find(item => item.id === context.noteId) : null
+    if (id === 'new') {
+      createNote()
+      return
+    }
+    if (!note) return
+    if (id === 'duplicate') {
+      duplicateNoteById(note.id)
+      return
+    }
+    if (id === 'toggle-pin') {
+      togglePinnedById(note.id)
+      return
+    }
+    if (id === 'delete') {
+      deleteNoteById(note.id)
+    }
+  }, [createNote, deleteNoteById, duplicateNoteById, notes, togglePinnedById]))
+
+  const handleNoteListContextMenu = useCallback((event, note) => {
+    showContextMenu(event, [
+      { id: 'new', label: '新建' },
+      { id: 'duplicate', label: '新建副本' },
+      { id: 'toggle-pin', label: note.pinned ? '取消置顶' : '置顶' },
+      separator,
+      { id: 'delete', label: '删除' }
+    ], {
+      scope: 'notes-list',
+      noteId: note.id
+    })
+  }, [])
+
+  const handleNotesListBlankContextMenu = useCallback((event) => {
+    if (event.target !== event.currentTarget && !event.target.closest?.('.notes-empty-list')) return
+    showContextMenu(event, [
+      { id: 'new', label: '新建' }
+    ], {
+      scope: 'notes-list'
+    })
+  }, [])
+
   const togglePinned = useCallback(() => {
     if (!currentNote) return
     updateCurrentNote({ pinned: !currentNote.pinned })
@@ -598,7 +746,7 @@ export default function Notes() {
           )}
         </div>
 
-        <div className="notes-list">
+        <div className="notes-list" onContextMenu={handleNotesListBlankContextMenu}>
           {loading ? (
             <div className="notes-list-loading">
               <div className="skeleton" />
@@ -615,6 +763,7 @@ export default function Notes() {
                 key={note.id}
                 className={`notes-list-item ${selectedId === note.id ? 'active' : ''}`}
                 onClick={() => selectNote(note)}
+                onContextMenu={(event) => handleNoteListContextMenu(event, note)}
               >
                 <div className="notes-list-item-top">
                   <span className="notes-list-title">{note.title?.trim() || '无标题便签'}</span>

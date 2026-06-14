@@ -47,6 +47,7 @@ jobs:
             release/*.zip
             release/*.blockmap
             release/latest.yml
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
+          generate_release_notes: false
           draft: false
           prerelease: false

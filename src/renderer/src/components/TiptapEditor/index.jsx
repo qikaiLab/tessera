@@ -11,6 +11,7 @@ import { Extension } from '@tiptap/core'
 import { BubbleToolbar } from './BubbleToolbar'
 import { SlashExtension } from './slashExtension'
 import { useApp } from '../../context/AppContext'
+import { separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
 import './TiptapEditor.css'
 
 // Custom save extension (Ctrl+S / Cmd+S)
@@ -110,6 +111,31 @@ function countChars(editor) {
   return editor.storage.characterCount?.characters?.() ?? 0
 }
 
+function canRunEditorCommand(editor, command) {
+  try {
+    const can = editor?.can?.()
+    return typeof can?.[command] === 'function' ? can[command]() : true
+  } catch {
+    return true
+  }
+}
+
+function getSelectedEditorText(editor) {
+  const selection = editor?.state?.selection
+  if (!editor || !selection || selection.empty) return ''
+  return editor.state.doc.textBetween(selection.from, selection.to, '\n\n')
+}
+
+function insertPlainText(editor, text) {
+  if (!editor) return false
+  return editor.chain().focus().command(({ state, dispatch }) => {
+    if (dispatch) {
+      dispatch(state.tr.insertText(String(text ?? ''), state.selection.from, state.selection.to))
+    }
+    return true
+  }).run()
+}
+
 function normalizeExternalUrl(url) {
   if (!url) return null
   const trimmed = url.trim()
@@ -184,6 +210,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
   const isExternalUpdateRef = useRef(false)
   // Fix #11: Track setTimeout IDs for cleanup
   const toggleTimeoutRef = useRef(null)
+  const contextMenuIdRef = useRef(`tiptap-${Date.now()}-${Math.random().toString(36).slice(2)}`)
 
   const formatCSSWidth = (val, fallback = '700px') => {
     if (!val) return fallback
@@ -343,11 +370,80 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     window.api?.shell?.openExternal?.(url)
   }, [editor])
 
+  const copyEditorSelection = useCallback(() => {
+    const selectedText = getSelectedEditorText(editor)
+    if (!selectedText) return false
+    window.api?.clipboard?.writeText?.(selectedText)
+    return true
+  }, [editor])
+
+  useContextMenuCommand('tiptap-editor', useCallback(async (id, context) => {
+    if (context?.editorId !== contextMenuIdRef.current || !editor) return
+
+    if (id === 'undo') {
+      editor.chain().focus().undo().run()
+      return
+    }
+
+    if (id === 'redo') {
+      editor.chain().focus().redo().run()
+      return
+    }
+
+    if (id === 'cut') {
+      if (copyEditorSelection()) editor.chain().focus().deleteSelection().run()
+      return
+    }
+
+    if (id === 'copy') {
+      copyEditorSelection()
+      return
+    }
+
+    if (id === 'paste') {
+      const text = window.api?.clipboard?.readText?.() || ''
+      insertPlainText(editor, text)
+      return
+    }
+
+    if (id === 'select-all') {
+      editor.chain().focus().selectAll().run()
+    }
+  }, [copyEditorSelection, editor]))
+
+  const handleEditorContextMenu = useCallback((event) => {
+    editor?.commands.focus()
+    const hasSelection = Boolean(editor && !editor.state.selection.empty)
+
+    showContextMenu(event, [
+      { id: 'undo', label: '撤销', enabled: canRunEditorCommand(editor, 'undo') },
+      { id: 'redo', label: '重做', enabled: canRunEditorCommand(editor, 'redo') },
+      separator,
+      { id: 'cut', label: '剪切', enabled: hasSelection },
+      { id: 'copy', label: '复制', enabled: hasSelection },
+      { id: 'paste', label: '粘贴' },
+      separator,
+      { id: 'select-all', label: '全选', enabled: countChars(editor) > 0 }
+    ], {
+      scope: 'tiptap-editor',
+      editorId: contextMenuIdRef.current
+    })
+  }, [editor])
+
   const charCount = countChars(editor)
 
   useEffect(() => {
     onCharCountChange?.(charCount)
   }, [charCount, onCharCountChange])
+
+  useEffect(() => {
+    if (!isFullScreen) return
+
+    document.body.classList.add('editor-fullscreen-active')
+    return () => {
+      document.body.classList.remove('editor-fullscreen-active')
+    }
+  }, [isFullScreen])
 
   return (
     <div className={`tiptap-shell ${isFullScreen ? 'tiptap-fullscreen' : ''}`}>
@@ -411,6 +507,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
           '--editor-letter-spacing': formatCSSLetterSpacing(editorLetterSpacing, '0px')
         }}
         onClick={handleEditorClick}
+        onContextMenu={handleEditorContextMenu}
       >
         <EditorContent editor={editor} />
       </div>

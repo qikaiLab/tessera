@@ -62,7 +62,8 @@
 }
 
 .sec-item-info {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
@@ -74,6 +75,10 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Editable name: show pencil icon on hover */
@@ -113,13 +118,16 @@
   background: var(--bg-surface-3);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
 
 .sec-item-actions {
   display: flex;
+  flex: 0 0 auto;
   gap: var(--spacing-2);
   align-items: center;
+  min-width: 0;
 }
 
 /* Color swatch button (round color picker trigger) */
@@ -158,12 +166,53 @@
 
 .add-section-form {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-2);
   padding: var(--spacing-3);
   background: var(--bg-surface-2);
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
   margin-top: var(--spacing-2);
+}
+
+.settings-page .section-default-mode-select {
+  width: 190px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+}
+
+.settings-page select.input.section-default-mode-select--compact {
+  width: 126px;
+  min-width: 126px;
+  max-width: 126px;
+  height: 32px;
+  font-size: var(--text-xs);
+  padding: 0 24px 0 8px;
+}
+
+@media (max-width: 760px) {
+  .settings-section-item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .sec-item-info {
+    flex-basis: calc(100% - 32px);
+  }
+
+  .sec-item-actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-left: 32px;
+  }
+
+  .settings-page select.input.section-default-mode-select--compact {
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+  }
 }
 
 /* Storage & Backup */

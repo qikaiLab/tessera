@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, clipboard } = require('electron')
 
 const api = {
   // Window
@@ -61,6 +61,18 @@ const api = {
   shell: {
     showItemInFolder: (filePath) => ipcRenderer.invoke('shell:showItemInFolder', filePath),
     openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url)
+  },
+  clipboard: {
+    readText: () => clipboard.readText(),
+    writeText: (text) => clipboard.writeText(String(text ?? ''))
+  },
+  contextMenu: {
+    show: (payload) => ipcRenderer.invoke('context-menu:show', payload),
+    onCommand: (cb) => {
+      const handler = (_, payload) => cb(payload)
+      ipcRenderer.on('context-menu:command', handler)
+      return () => ipcRenderer.removeListener('context-menu:command', handler)
+    }
   },
   // Fix #8: App lifecycle — flush pending data before close
   lifecycle: {
