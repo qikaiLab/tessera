@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const fsp = require('fs').promises
@@ -34,6 +34,34 @@ function focusMainWindow() {
   }
 
   mainWindow.focus()
+}
+
+function buildContextMenuTemplate(items, context, sender) {
+  if (!Array.isArray(items)) return []
+
+  return items
+    .filter(item => item && item.visible !== false)
+    .map(item => {
+      if (item.type === 'separator') return { type: 'separator' }
+
+      const menuItem = {
+        label: String(item.label || ''),
+        enabled: item.enabled !== false
+      }
+
+      if (item.role) {
+        menuItem.role = item.role
+      } else if (item.id) {
+        menuItem.click = () => {
+          sender.send('context-menu:command', {
+            id: item.id,
+            context: context || {}
+          })
+        }
+      }
+
+      return menuItem
+    })
 }
 
 // ─── Path Safety (#5) ─────────────────────────────────────────────────────────
@@ -241,6 +269,23 @@ ipcMain.handle('window:maximize', () => {
 })
 ipcMain.handle('window:close', () => mainWindow.close())
 ipcMain.handle('window:isMaximized', () => mainWindow.isMaximized())
+
+ipcMain.handle('context-menu:show', (event, { items, context, x, y } = {}) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (!win) return false
+
+  const template = buildContextMenuTemplate(items, context, event.sender)
+  if (!template.length) return false
+
+  const menu = Menu.buildFromTemplate(template)
+  const popupOptions = { window: win }
+  if (Number.isFinite(x) && Number.isFinite(y)) {
+    popupOptions.x = Math.round(x)
+    popupOptions.y = Math.round(y)
+  }
+  menu.popup(popupOptions)
+  return true
+})
 
 // Config
 ipcMain.handle('config:getDataDir', () => dataDir)

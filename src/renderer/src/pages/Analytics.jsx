@@ -14,6 +14,7 @@ import {
   rectSortingStrategy, useSortable
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
 import './Analytics.css'
 
 const CHART_TYPES = [
@@ -464,8 +465,37 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, o
     return PALETTE[Math.max(0, idx) % PALETTE.length]
   }, [card.type, bindings, sections])
 
+  useContextMenuCommand('analytics-card', useCallback((id, context) => {
+    if (context?.cardId !== card.id) return
+    if (id === 'edit') {
+      onEdit()
+      return
+    }
+    if (id === 'duplicate') {
+      onDuplicate()
+      return
+    }
+    if (id === 'delete') {
+      onDelete()
+    }
+  }, [card.id, onDelete, onDuplicate, onEdit]))
+
+  const handleContextMenu = useCallback((event) => {
+    if (isEditableMenuTarget(event.target)) return
+
+    showContextMenu(event, [
+      { id: 'edit', label: isEditing ? '收起编辑' : '编辑' },
+      { id: 'duplicate', label: '复制' },
+      separator,
+      { id: 'delete', label: '删除' }
+    ], {
+      scope: 'analytics-card',
+      cardId: card.id
+    })
+  }, [card.id, isEditing])
+
   return (
-    <div className={`analytics-card card ${isEditing ? 'editing' : ''}`}>
+    <div className={`analytics-card card ${isEditing ? 'editing' : ''}`} onContextMenu={handleContextMenu}>
       <div className="analytics-card-header">
         {/* Drag handle */}
         <span

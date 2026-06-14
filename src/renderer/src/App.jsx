@@ -12,6 +12,7 @@ import Calendar from './pages/Calendar'
 import Analytics from './pages/Analytics'
 import Notes from './pages/Notes'
 import Settings from './pages/Settings'
+import { editMenuItems, focusEditableTarget, getEditableSelectionState, showContextMenu } from './utils/contextMenu'
 import './styles/App.css'
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
@@ -76,6 +77,28 @@ function AppContent() {
     }
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [])
+
+  useEffect(() => {
+    const handleGlobalTextContextMenu = (event) => {
+      if (event.defaultPrevented) return
+
+      const selectionState = getEditableSelectionState(event.target)
+      if (!selectionState || selectionState.isProseMirror) return
+
+      focusEditableTarget(selectionState.target)
+      showContextMenu(event, editMenuItems({
+        canUndo: selectionState.canEdit,
+        canRedo: selectionState.canEdit,
+        canCut: selectionState.canCut,
+        canCopy: selectionState.canCopy,
+        canPaste: selectionState.canPaste,
+        canSelectAll: selectionState.canSelectAll
+      }), { scope: 'native-edit' })
+    }
+
+    window.addEventListener('contextmenu', handleGlobalTextContextMenu)
+    return () => window.removeEventListener('contextmenu', handleGlobalTextContextMenu)
   }, [])
 
   const handleOnboardingDone = () => {

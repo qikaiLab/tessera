@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TiptapEditor from './TiptapEditor'
 import SaveStatusBadge from './SaveStatusBadge'
 import { useApp } from '../context/AppContext'
+import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
 import './NotesDrawer.css'
 
 const NOTES_INDEX_PATH = 'notes/index.json'
@@ -19,6 +20,18 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const emptyDoc = () => ({ type: 'doc', content: [{ type: 'paragraph' }] })
 const notePath = (id) => `notes/${id}.json`
+
+function cloneNoteContent(content) {
+  try {
+    return JSON.parse(JSON.stringify(content || emptyDoc()))
+  } catch {
+    return emptyDoc()
+  }
+}
+
+function buildDuplicateTitle(title) {
+  return `${title?.trim() || '无标题便签'} 副本`
+}
 
 function generateId() {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID()
@@ -166,7 +179,7 @@ function getDrawerVisibleNotes(notes, { mode, dateStr, query, selectedId }) {
 }
 
 export default function NotesDrawer({ dateStr, width, onResizeStart, closing = false, onAnimationEnd }) {
-  const { showToast, registerPendingFlush, unregisterPendingFlush } = useApp()
+  const { showToast, confirm, registerPendingFlush, unregisterPendingFlush } = useApp()
   const [notes, setNotes] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [currentNote, setCurrentNote] = useState(null)
@@ -405,6 +418,128 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
     if (ok) setTimeout(() => titleInputRef.current?.focus(), 40)
   }, [flushPending, mode, notes, persistNoteNow, query, viewDateStr])
 
+  const duplicateNoteById = useCallback(async (noteId) => {
+    const source = notes.find(note => note.id === noteId)
+    if (!source) return
+
+    await flushPending()
+    const now = new Date().toISOString()
+    const duplicate = {
+      ...source,
+      id: generateId(),
+      title: buildDuplicateTitle(source.title),
+      content: cloneNoteContent(source.content),
+      createdAt: now,
+      updatedAt: now,
+      pinned: Boolean(source.pinned),
+      archived: Boolean(source.archived),
+      fontSize: normalizeFontSize(source.fontSize),
+      dateLink: normalizeDateLink(source.dateLink)
+    }
+    const nextNotes = [duplicate, ...notes].sort(compareNotes)
+    setNotes(nextNotes)
+    setSelectedId(duplicate.id)
+    setCurrentNote(duplicate)
+    setSaveStatus(SAVE_IDLE)
+    setViewOrder(getDrawerVisibleNotes(nextNotes, {
+      mode,
+      dateStr: viewDateStr,
+      query,
+      selectedId: duplicate.id
+    }).map(note => note.id))
+    writeDrawerState(viewDateStr, { mode, selectedId: duplicate.id })
+
+    const ok = await persistNoteNow(duplicate, nextNotes)
+    if (ok) {
+      showToast('已新建便签副本', 'success', 1200)
+      setTimeout(() => titleInputRef.current?.focus(), 40)
+    }
+  }, [flushPending, mode, notes, persistNoteNow, query, showToast, viewDateStr])
+
+
+  const deleteNoteById = useCallback(async (noteId) => {
+    const target = notes.find(note => note.id === noteId)
+    if (!target) return
+
+    const title = target.title?.trim() || '无标题便签'
+    const confirmed = await confirm({
+      title: '删除便签',
+      message: `确定要删除便签「${title}」吗？\n该操作会永久删除便签文件，无法撤销。`,
+      confirmText: '删除',
+      cancelText: '取消',
+      danger: true
+    })
+    if (!confirmed) return
+
+    await flushPending()
+    const nextNotes = notes.filter(note => note.id !== noteId).sort(compareNotes)
+    const indexResult = await writeIndex(nextNotes)
+    if (!indexResult.ok) {
+      showToast('便签索引更新失败', 'error')
+      return
+    }
+
+    const deleteResult = await window.api.fs.deleteFile(notePath(noteId))
+    if (!deleteResult.ok) {
+      showToast('便签文件删除失败', 'error')
+      return
+    }
+
+    const nextSelectedId = selectedId === noteId ? null : selectedId
+    const nextCurrentNote = currentNote?.id === noteId ? null : currentNote
+    setNotes(nextNotes)
+    setSelectedId(nextSelectedId)
+    setCurrentNote(nextCurrentNote)
+    setSaveStatus(SAVE_IDLE)
+    setViewOrder(getDrawerVisibleNotes(nextNotes, {
+      mode,
+      dateStr: viewDateStr,
+      query,
+      selectedId: nextSelectedId
+    }).map(note => note.id))
+    if (selectedId === noteId) forgetDrawerSelected(viewDateStr)
+    showToast('便签已删除', 'success', 1200)
+  }, [confirm, currentNote, flushPending, mode, notes, query, selectedId, showToast, viewDateStr, writeIndex])
+
+  useContextMenuCommand('notes-drawer-list', useCallback((id, context) => {
+    const note = context?.noteId ? notes.find(item => item.id === context.noteId) : null
+    if (id === 'new') {
+      createNote()
+      return
+    }
+    if (!note) return
+    if (id === 'duplicate') {
+      duplicateNoteById(note.id)
+      return
+    }
+    if (id === 'delete') {
+      deleteNoteById(note.id)
+    }
+  }, [createNote, deleteNoteById, duplicateNoteById, notes]))
+
+  const handleNoteContextMenu = useCallback((event, note) => {
+    if (isEditableMenuTarget(event.target)) return
+
+    showContextMenu(event, [
+      { id: 'new', label: '新建' },
+      { id: 'duplicate', label: '新建副本' },
+      separator,
+      { id: 'delete', label: '删除' }
+    ], {
+      scope: 'notes-drawer-list',
+      noteId: note.id
+    })
+  }, [])
+
+  const handleListBlankContextMenu = useCallback((event) => {
+    if (event.target !== event.currentTarget && !event.target.closest?.('.notes-drawer-empty')) return
+    showContextMenu(event, [
+      { id: 'new', label: '新建' }
+    ], {
+      scope: 'notes-drawer-list'
+    })
+  }, [])
+
   const activeFontSize = normalizeFontSize(currentNote?.fontSize)
 
   return (
@@ -436,7 +571,10 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
         <button className={mode === 'latest' ? 'active' : ''} onClick={() => handleModeChange('latest')}>最新</button>
       </div>
 
-      <div className={`notes-drawer-list ${refreshingDate ? 'is-refreshing-date' : ''}`}>
+      <div
+        className={`notes-drawer-list ${refreshingDate ? 'is-refreshing-date' : ''}`}
+        onContextMenu={handleListBlankContextMenu}
+      >
         {loading ? (
           <>
             <div className="notes-drawer-skeleton skeleton" />
@@ -447,7 +585,11 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
         ) : (
           filteredNotes.map(note => (
             selectedId === note.id && currentNote?.id === note.id ? (
-              <article key={note.id} className="notes-drawer-card active editing">
+              <article
+                key={note.id}
+                className="notes-drawer-card active editing"
+                onContextMenu={(event) => handleNoteContextMenu(event, note)}
+              >
                 <div className="notes-drawer-edit-header">
                   <input
                     ref={titleInputRef}
@@ -487,6 +629,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
                 key={note.id}
                 className="notes-drawer-card"
                 onClick={() => selectNote(note)}
+                onContextMenu={(event) => handleNoteContextMenu(event, note)}
                 title="点击编辑便签"
               >
                 <span className="notes-drawer-card-title">{note.title?.trim() || '无标题便签'}</span>
