@@ -4,12 +4,27 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities'
 import { format } from 'date-fns'
 import { useApp } from '../context/AppContext'
+import {
+  INTERFACE_STYLE_IDS,
+  SELECTABLE_INTERFACE_STYLES,
+  THEME_ACCENT_OPTIONS
+} from '../theme/appearanceRegistry'
+import { APPEARANCE_MESSAGE_KEYS, appearanceText } from '../theme/appearanceMessages'
+import defaultStylePreview from '../assets/themes/default-preview.png'
+import linenStylePreview from '../assets/themes/linen-preview.png'
+import jadeStylePreview from '../assets/themes/jade-preview.png'
 import './Settings.css'
 import JSZip from 'jszip'
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
 const NUMBER_DEFAULT_MODE_MANUAL = 'manual'
 const NUMBER_DEFAULT_MODE_CARRY = 'carry'
+
+const STYLE_PREVIEW_BY_ID = Object.freeze({
+  [INTERFACE_STYLE_IDS.DEFAULT]: defaultStylePreview,
+  [INTERFACE_STYLE_IDS.LINEN_STUDY]: linenStylePreview,
+  [INTERFACE_STYLE_IDS.JADE_ARCHIVE]: jadeStylePreview
+})
 
 const getNumberDefaultMode = (section) => {
   return section?.numberDefaultMode === NUMBER_DEFAULT_MODE_CARRY
@@ -24,6 +39,8 @@ export default function Settings() {
     fullscreenWideWidth, updateFullscreenWideWidth,
     editorLineHeight, updateEditorLineHeight,
     editorLetterSpacing, updateEditorLetterSpacing,
+    interfaceStyle, updateInterfaceStyle,
+    themeAccent, updateThemeAccent,
     confirm
   } = useApp()
   const [backups, setBackups] = useState([])
@@ -249,6 +266,70 @@ export default function Settings() {
         <span className="page-title">设置</span>
       </div>
       <div className="settings-content">
+
+        <div className="settings-card appearance-settings-card">
+          <div className="settings-card-title">{appearanceText(APPEARANCE_MESSAGE_KEYS.sectionTitle)}</div>
+          <div className="settings-card-desc">{appearanceText(APPEARANCE_MESSAGE_KEYS.sectionDescription)}</div>
+
+          <div className="appearance-style-grid" role="radiogroup" aria-label={appearanceText(APPEARANCE_MESSAGE_KEYS.sectionTitle)}>
+            {SELECTABLE_INTERFACE_STYLES.map(style => {
+              const selected = style.id === interfaceStyle
+              return (
+                <button
+                  key={style.id}
+                  type="button"
+                  className={`appearance-style-option ${selected ? 'selected' : ''}`}
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => updateInterfaceStyle(style.id)}
+                >
+                  <img
+                    className="appearance-style-preview"
+                    src={STYLE_PREVIEW_BY_ID[style.id]}
+                    alt=""
+                    draggable="false"
+                  />
+                  <span className="appearance-style-copy">
+                    <span className="appearance-style-name">{appearanceText(style.labelKey)}</span>
+                    <span className="appearance-style-description">{appearanceText(style.descriptionKey)}</span>
+                  </span>
+                  <span className="appearance-style-check" aria-hidden="true">✓</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {interfaceStyle === INTERFACE_STYLE_IDS.DEFAULT ? (
+            <div className="appearance-accent-panel">
+              <div className="appearance-accent-copy">
+                <span className="appearance-accent-title">{appearanceText(APPEARANCE_MESSAGE_KEYS.themeColorTitle)}</span>
+                <span className="appearance-accent-description">{appearanceText(APPEARANCE_MESSAGE_KEYS.themeColorDescription)}</span>
+              </div>
+              <div className="appearance-accent-options" role="radiogroup" aria-label={appearanceText(APPEARANCE_MESSAGE_KEYS.themeColorTitle)}>
+                {THEME_ACCENT_OPTIONS.map(accent => {
+                  const label = appearanceText(accent.labelKey)
+                  const selected = accent.id === themeAccent
+                  return (
+                    <button
+                      key={accent.id}
+                      type="button"
+                      className={`appearance-accent-option ${selected ? 'selected' : ''}`}
+                      style={{ '--accent-preview': accent.preview }}
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={label}
+                      title={label}
+                      onClick={() => updateThemeAccent(accent.id)}
+                    >
+                      <span className="appearance-accent-swatch" aria-hidden="true" />
+                      <span>{label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+        </div>
         
         {/* Section Management */}
         <div className="settings-card">

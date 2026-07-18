@@ -12,6 +12,8 @@ import Calendar from './pages/Calendar'
 import Analytics from './pages/Analytics'
 import Notes from './pages/Notes'
 import Settings from './pages/Settings'
+import { INTERFACE_STYLE_IDS } from './theme/appearanceRegistry'
+import { APPEARANCE_MESSAGE_KEYS, appearanceText } from './theme/appearanceMessages'
 import { editMenuItems, focusEditableTarget, getEditableSelectionState, showContextMenu } from './utils/contextMenu'
 import './styles/App.css'
 
@@ -158,7 +160,8 @@ function AppContent() {
 }
 
 function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
-  const { theme, toggleTheme } = useApp()
+  const { theme, toggleTheme, interfaceStyle } = useApp()
+  const isDefaultStyle = interfaceStyle === INTERFACE_STYLE_IDS.DEFAULT
 
   const navItems = [
     { to: '/today', icon: '◎', label: '记录', exact: false },
@@ -201,7 +204,12 @@ function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
         <button
           className="theme-toggle btn btn-ghost btn-icon"
           onClick={toggleTheme}
-          title={theme === 'dark' ? '切换亮色模式' : '切换暗色模式'}
+          disabled={!isDefaultStyle}
+          title={isDefaultStyle
+            ? appearanceText(theme === 'dark'
+              ? APPEARANCE_MESSAGE_KEYS.switchToLight
+              : APPEARANCE_MESSAGE_KEYS.switchToDark)
+            : appearanceText(APPEARANCE_MESSAGE_KEYS.fixedTheme)}
         >
           {theme === 'dark' ? '○' : '●'}
         </button>

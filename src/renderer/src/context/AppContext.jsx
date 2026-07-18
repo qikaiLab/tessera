@@ -1,4 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import {
+  INTERFACE_STYLE_IDS,
+  THEME_ACCENT_IDS,
+  applyAppearanceToRoot,
+  normalizeInterfaceStyleId,
+  normalizeTheme,
+  normalizeThemeAccentId
+} from '../theme/appearanceRegistry'
 
 const AppContext = createContext(null)
 
@@ -27,6 +35,8 @@ const isEntryEmpty = (val) => {
 
 export function AppProvider({ children }) {
   const [theme, setTheme] = useState('dark')
+  const [interfaceStyle, setInterfaceStyle] = useState(INTERFACE_STYLE_IDS.DEFAULT)
+  const [themeAccent, setThemeAccent] = useState(THEME_ACCENT_IDS.VIOLET)
   const [sections, setSections] = useState([])
   const [datesWithData, setDatesWithData] = useState([])
   const [toasts, setToasts] = useState([])
@@ -238,11 +248,26 @@ export function AppProvider({ children }) {
 
 
   const toggleTheme = useCallback(() => {
+    if (interfaceStyle !== INTERFACE_STYLE_IDS.DEFAULT) return
     const next = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
-    document.documentElement.setAttribute('data-theme', next)
+    applyAppearanceToRoot(document.documentElement, { interfaceStyle, theme: next, themeAccent })
     window.api.config.set('theme', next)
-  }, [theme])
+  }, [interfaceStyle, theme, themeAccent])
+
+  const updateInterfaceStyle = useCallback((value) => {
+    const next = normalizeInterfaceStyleId(value)
+    setInterfaceStyle(next)
+    applyAppearanceToRoot(document.documentElement, { interfaceStyle: next, theme, themeAccent })
+    window.api.config.set('interfaceStyle', next)
+  }, [theme, themeAccent])
+
+  const updateThemeAccent = useCallback((value) => {
+    const next = normalizeThemeAccentId(value)
+    setThemeAccent(next)
+    applyAppearanceToRoot(document.documentElement, { interfaceStyle, theme, themeAccent: next })
+    window.api.config.set('themeAccent', next)
+  }, [interfaceStyle, theme])
 
   const updateFullscreenWidthMode = useCallback((val) => {
     setFullscreenWidthMode(val)
@@ -323,9 +348,17 @@ export function AppProvider({ children }) {
     async function init() {
       try {
         const cfg = await window.api.config.get()
-        const savedTheme = cfg.theme || 'dark'
+        const savedTheme = normalizeTheme(cfg.theme)
+        const savedInterfaceStyle = normalizeInterfaceStyleId(cfg.interfaceStyle)
+        const savedThemeAccent = normalizeThemeAccentId(cfg.themeAccent)
         setTheme(savedTheme)
-        document.documentElement.setAttribute('data-theme', savedTheme)
+        setInterfaceStyle(savedInterfaceStyle)
+        setThemeAccent(savedThemeAccent)
+        applyAppearanceToRoot(document.documentElement, {
+          interfaceStyle: savedInterfaceStyle,
+          theme: savedTheme,
+          themeAccent: savedThemeAccent
+        })
 
         setFullscreenWidthMode(cfg.fullscreenWidthMode || 'standard')
         setFullscreenStandardWidth(cfg.fullscreenStandardWidth || '700px')
@@ -391,6 +424,8 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       theme, toggleTheme,
+      interfaceStyle, updateInterfaceStyle,
+      themeAccent, updateThemeAccent,
       sections, setSections, loadSections, saveSections,
       datesWithData, refreshDates,
       toasts, showToast,

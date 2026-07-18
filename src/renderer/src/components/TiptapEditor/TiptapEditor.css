@@ -25,7 +25,7 @@
   line-height: var(--editor-line-height, 1.8);
   letter-spacing: var(--editor-letter-spacing, normal);
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-editor, var(--font-sans));
   caret-color: var(--accent);
   /* Prevent layout shifts from float-based elements */
   position: relative;

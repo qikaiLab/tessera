@@ -57,7 +57,21 @@
   position: relative;
 }
 
+.app-main::before,
+.sidebar::before,
+.titlebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--theme-texture-image);
+  background-size: var(--theme-texture-size);
+  opacity: var(--theme-texture-opacity);
+  pointer-events: none;
+}
+
 .app-main > * {
+  position: relative;
+  z-index: 1;
   animation: pageSoftIn var(--transition-base) both;
 }
 
@@ -67,6 +81,8 @@
 
 /* ─── Titlebar ───────────────────────────────────────────────────────────── */
 .titlebar {
+  position: relative;
+  overflow: hidden;
   height: 40px;
   display: flex;
   align-items: center;
@@ -79,6 +95,8 @@
 }
 
 .titlebar-controls {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 6px;
   -webkit-app-region: no-drag;
@@ -125,6 +143,12 @@ body.editor-fullscreen-active .titlebar-controls:focus-within {
   flex-shrink: 0;
   padding: var(--spacing-3) 0;
   position: relative;
+  overflow: hidden;
+}
+
+.sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .sidebar-resize-handle {
@@ -253,4 +277,19 @@ body.is-resizing {
 .theme-toggle {
   color: var(--text-tertiary);
   font-size: 16px;
+}
+
+.theme-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[data-interface-style='linen-study'] .notes-page,
+[data-interface-style='jade-archive'] .notes-page {
+  background: color-mix(in srgb, var(--bg-app) 95%, transparent);
+}
+
+[data-interface-style='linen-study'] .notes-list-panel,
+[data-interface-style='jade-archive'] .notes-list-panel {
+  background: color-mix(in srgb, var(--bg-sidebar) 94%, transparent);
 }
