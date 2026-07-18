@@ -185,37 +185,6 @@ export function AppProvider({ children }) {
     return () => unregisterPendingFlush('metadata')
   }, [countdowns, analytics, registerPendingFlush, unregisterPendingFlush])
 
-  // Initialize
-  useEffect(() => {
-    async function init() {
-      try {
-        const cfg = await window.api.config.get()
-        const savedTheme = cfg.theme || 'dark'
-        setTheme(savedTheme)
-        document.documentElement.setAttribute('data-theme', savedTheme)
-
-        // Load typesetting config
-        setFullscreenWidthMode(cfg.fullscreenWidthMode || 'standard')
-        setFullscreenStandardWidth(cfg.fullscreenStandardWidth || '700px')
-        setFullscreenWideWidth(cfg.fullscreenWideWidth || '1000px')
-        setEditorLineHeight(cfg.editorLineHeight || '1.8')
-        setEditorLetterSpacing(cfg.editorLetterSpacing || '0px')
-
-        const dir = await window.api.config.getDataDir()
-        setDataDir(dir)
-
-        await loadSections()
-        await refreshDates()
-        await loadMetadata()
-        setIsInitialized(true)
-      } catch (e) {
-        console.error('Init error:', e)
-        setIsInitialized(true)
-      }
-    }
-    init()
-  }, [loadMetadata])
-
   // Fix #8: Listen for app-before-close and flush all pending saves
   useEffect(() => {
     const cleanup = window.api.lifecycle.onBeforeClose(async () => {
@@ -233,6 +202,10 @@ export function AppProvider({ children }) {
       window.api.lifecycle.confirmClose()
     })
     return cleanup
+  }, [])
+
+  const saveSectionsData = useCallback(async (secs) => {
+    await window.api.fs.writeFile('sections.json', JSON.stringify(secs, null, 2))
   }, [])
 
   const loadSections = useCallback(async () => {
@@ -256,11 +229,7 @@ export function AppProvider({ children }) {
     await saveSectionsData(defaults)
     setSections(defaults)
     return defaults
-  }, [])
-
-  const saveSectionsData = useCallback(async (secs) => {
-    await window.api.fs.writeFile('sections.json', JSON.stringify(secs, null, 2))
-  }, [])
+  }, [saveSectionsData])
 
   const saveSections = useCallback(async (secs) => {
     setSections(secs)
@@ -348,6 +317,36 @@ export function AppProvider({ children }) {
     setDatesWithData(datesWithRealData)
     return datesWithRealData
   }, [readDayData])
+
+  // Initialize after the stable loading callbacks are defined.
+  useEffect(() => {
+    async function init() {
+      try {
+        const cfg = await window.api.config.get()
+        const savedTheme = cfg.theme || 'dark'
+        setTheme(savedTheme)
+        document.documentElement.setAttribute('data-theme', savedTheme)
+
+        setFullscreenWidthMode(cfg.fullscreenWidthMode || 'standard')
+        setFullscreenStandardWidth(cfg.fullscreenStandardWidth || '700px')
+        setFullscreenWideWidth(cfg.fullscreenWideWidth || '1000px')
+        setEditorLineHeight(cfg.editorLineHeight || '1.8')
+        setEditorLetterSpacing(cfg.editorLetterSpacing || '0px')
+
+        const dir = await window.api.config.getDataDir()
+        setDataDir(dir)
+
+        await loadSections()
+        await refreshDates()
+        await loadMetadata()
+        setIsInitialized(true)
+      } catch (e) {
+        console.error('Init error:', e)
+        setIsInitialized(true)
+      }
+    }
+    init()
+  }, [loadMetadata, loadSections, refreshDates])
 
   // Fix #9: Use functional update for setDatesWithData to eliminate stale closure dependency
   const writeDayData = useCallback(async (dateStr, data) => {

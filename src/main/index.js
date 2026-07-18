@@ -3,6 +3,11 @@ const path = require('path')
 const fs = require('fs')
 const fsp = require('fs').promises
 const os = require('os')
+const {
+  resolveSafePath,
+  isAllowedExternalUrl,
+  isAppNavigationUrl: isAllowedAppNavigation
+} = require('./security')
 
 // Platform path helpers
 const isDev = !app.isPackaged
@@ -68,17 +73,7 @@ function buildContextMenuTemplate(items, context, sender) {
 // Prevent path traversal attacks by ensuring resolved paths stay within dataDir
 
 function safePath(filePath) {
-  // Reject absolute paths — all operations must be relative to dataDir
-  if (path.isAbsolute(filePath)) {
-    throw new Error('Absolute paths are not allowed')
-  }
-  const resolved = path.resolve(dataDir, filePath)
-  // Ensure the resolved path is within dataDir
-  const normalizedDataDir = path.resolve(dataDir)
-  if (!resolved.startsWith(normalizedDataDir + path.sep) && resolved !== normalizedDataDir) {
-    throw new Error('Path traversal detected')
-  }
-  return resolved
+  return resolveSafePath(dataDir, filePath)
 }
 
 // ─── Config (uses app userData, not dataDir — no safePath needed) ──────────────
@@ -118,25 +113,9 @@ function ensureDirSync(dir) {
   }
 }
 
-function isAllowedExternalUrl(url) {
-  try {
-    const parsed = new URL(url)
-    return ['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol)
-  } catch {
-    return false
-  }
-}
-
 function isAppNavigationUrl(url) {
-  if (!url) return false
-  if (!isDev) return url.startsWith('file:')
-
   const rendererUrl = process.env['ELECTRON_RENDERER_URL'] || 'http://localhost:5173'
-  try {
-    return new URL(url).origin === new URL(rendererUrl).origin
-  } catch {
-    return false
-  }
+  return isAllowedAppNavigation(url, { isDev, rendererUrl })
 }
 
 async function openExternalUrl(url) {

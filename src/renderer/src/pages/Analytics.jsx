@@ -454,7 +454,7 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, o
     [card, sections, loadedData, datesWithData]
   )
 
-  const bindings = card.bindings || []
+  const bindings = useMemo(() => card.bindings || [], [card.bindings])
 
   // Task 5.3: get heatmap color from section palette index
   const heatmapColor = useMemo(() => {
@@ -648,7 +648,6 @@ function CardEditor({ card, sections, onUpdate }) {
         </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {(card.bindings || []).map((b, i) => {
-            const sec = sections.find(s => s.id === b.sectionId)
             // Task 3: show metric as read-only badge
             const metricLabel = b.metric === 'wordcount' ? '字数' : '数值'
             return (

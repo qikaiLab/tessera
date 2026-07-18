@@ -1,0 +1,25 @@
+name: 功能建议
+description: 提议一项明确的产品改进
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 描述当前场景和痛点，而不仅是期望的按钮或页面。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 怎样算完成？是否影响旧数据、备份或现有操作？
+    validations:
+      required: true
