@@ -18,13 +18,15 @@ npm run check
 ## 日常开发流程
 
 1. 从最新 `main` 创建分支。
-2. 分支使用 `feat/`、`fix/`、`refactor/`、`test/`、`docs/` 或 `chore/` 前缀。
+2. 人工开发分支使用 `feat/`、`fix/`、`refactor/`、`test/`、`docs/` 或 `chore/` 前缀；Codex 管理的分支统一使用 `codex/<type>-<name>`。
 3. 小步提交，提交信息建议采用 Conventional Commits，例如 `feat: add weekly summary`。
 4. 提交前执行 `npm run check`。
 5. 推送分支并通过 Pull Request 合并；CI 未通过时不得合并。
 6. 合并后删除本地和远端功能分支。
 
 紧急情况下可以直接更新 `main`，但必须先在本地通过 `npm run check`，并确认远端 CI 成功。
+
+用户已将本项目的常规 Git/GitHub 管理授权给 Codex。Codex 完成自然语言开发任务后，应自行执行检查、提交、推送、PR、CI 跟踪和已合并分支清理；只有正式版本发布、共享历史改写、破坏性操作或范围不明确时需要额外确认。具体自动执行边界以根目录 `AGENTS.md` 为准。
 
 ## 完成标准
 
