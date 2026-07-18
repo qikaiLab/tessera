@@ -16,22 +16,28 @@ export default function TitleBar() {
       <div className="titlebar-controls">
         <button
           className="titlebar-btn"
+          type="button"
           onClick={() => window.api.window.minimize()}
           title="最小化"
+          aria-label="最小化窗口"
         >
           ─
         </button>
         <button
           className="titlebar-btn"
+          type="button"
           onClick={() => window.api.window.maximize()}
           title={isMaximized ? '还原' : '最大化'}
+          aria-label={isMaximized ? '还原窗口' : '最大化窗口'}
         >
           {isMaximized ? '⊟' : '⊡'}
         </button>
         <button
           className="titlebar-btn close"
+          type="button"
           onClick={() => window.api.window.close()}
           title="关闭"
+          aria-label="关闭软件"
         >
           ✕
         </button>

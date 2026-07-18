@@ -84,6 +84,21 @@
   -webkit-app-region: no-drag;
 }
 
+body.editor-fullscreen-active .titlebar-controls {
+  position: fixed;
+  top: 6px;
+  right: 8px;
+  z-index: 1200;
+  gap: 2px;
+  opacity: 0.72;
+  transition: opacity var(--transition-fast);
+}
+
+body.editor-fullscreen-active .titlebar-controls:hover,
+body.editor-fullscreen-active .titlebar-controls:focus-within {
+  opacity: 1;
+}
+
 .titlebar-btn {
   width: 28px;
   height: 28px;

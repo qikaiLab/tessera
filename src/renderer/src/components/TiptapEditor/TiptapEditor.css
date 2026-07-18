@@ -599,13 +599,14 @@
 /* Highly visible exit button positioned at top right - does NOT fade when typing */
 .tiptap-fullscreen .fullscreen-exit-btn {
   position: absolute;
-  top: 16px;
-  right: 20px;
+  top: 6px;
+  right: 112px;
   z-index: 1100;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  min-height: 28px;
+  padding: 4px 12px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-sm, 4px);

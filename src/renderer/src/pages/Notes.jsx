@@ -3,6 +3,7 @@ import TiptapEditor from '../components/TiptapEditor'
 import SaveStatusBadge from '../components/SaveStatusBadge'
 import { useApp } from '../context/AppContext'
 import { separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
+import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
 import './Notes.css'
 
 const NOTES_INDEX_PATH = 'notes/index.json'
@@ -838,7 +839,8 @@ export default function Notes() {
                 <button
                   className="btn btn-ghost btn-xs btn-icon fullscreen-btn"
                   onClick={() => setFullScreenNoteId(prev => prev === currentNote.id ? null : currentNote.id)}
-                  title="全屏记录"
+                  title={`全屏编辑 (${FULLSCREEN_EDITOR_SHORTCUT_LABEL})`}
+                  aria-label={`进入全屏编辑，快捷键 ${FULLSCREEN_EDITOR_SHORTCUT_LABEL}`}
                 >
                   ⛶
                 </button>

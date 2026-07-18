@@ -15,6 +15,7 @@ import {
   showContextMenu,
   useContextMenuCommand
 } from '../utils/contextMenu'
+import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
 import './Today.css'
 
 // Save status enum
@@ -674,7 +675,8 @@ function SectionCard({
               <button
                 className="btn btn-ghost btn-xs btn-icon fullscreen-btn"
                 onClick={onToggleFullScreen}
-                title="全屏写作 (专注模式)"
+                title={`全屏写作 (${FULLSCREEN_EDITOR_SHORTCUT_LABEL})`}
+                aria-label={`进入全屏写作，快捷键 ${FULLSCREEN_EDITOR_SHORTCUT_LABEL}`}
               >
                 ⛶
               </button>

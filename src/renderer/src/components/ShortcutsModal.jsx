@@ -34,6 +34,7 @@ const categories = [
     label: '系统与控制',
     shortcuts: [
       { keys: ['Ctrl', 'S'], macKeys: ['⌘', 'S'], desc: '手动保存当前修改' },
+      { keys: ['Ctrl', 'Shift', 'Enter'], macKeys: ['⌘', '⇧', 'Enter'], desc: '进入/切换沉浸式全屏编辑' },
       { keys: ['Ctrl', 'Enter'], macKeys: ['⌘', 'Enter'], desc: '退出代码块/引用块并新建段落' },
       { keys: ['Shift', 'Enter'], macKeys: ['Shift', 'Enter'], desc: '列表项内换行或代码块换行' },
       { keys: ['F1'], macKeys: ['F1'], desc: '全局打开“使用说明”指南' },

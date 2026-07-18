@@ -12,6 +12,7 @@ import { BubbleToolbar } from './BubbleToolbar'
 import { SlashExtension } from './slashExtension'
 import { useApp } from '../../context/AppContext'
 import { separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { isFullscreenEditorShortcut } from '../../utils/editorShortcuts'
 import './TiptapEditor.css'
 
 // Custom save extension (Ctrl+S / Cmd+S)
@@ -202,6 +203,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
 
   const onSaveRef = useRef(onSave)
   const onChangeRef = useRef(onChange)
+  const onToggleFullScreenRef = useRef(onToggleFullScreen)
   const isExternalUpdateRef = useRef(false)
   // Fix #11: Track setTimeout IDs for cleanup
   const toggleTimeoutRef = useRef(null)
@@ -231,6 +233,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
 
   useEffect(() => { onSaveRef.current = onSave }, [onSave])
   useEffect(() => { onChangeRef.current = onChange }, [onChange])
+  useEffect(() => { onToggleFullScreenRef.current = onToggleFullScreen }, [onToggleFullScreen])
 
   const editor = useEditor({
     extensions: [
@@ -280,6 +283,11 @@ const TiptapEditor = forwardRef(function TiptapEditor(
         spellcheck: 'false',
       },
       handleKeyDown: (view, event) => {
+        if (isFullscreenEditorShortcut(event) && onToggleFullScreenRef.current) {
+          event.preventDefault()
+          onToggleFullScreenRef.current()
+          return true
+        }
         if (!isClearFormattingShortcut(event)) return false
         event.preventDefault()
         return clearCharacterFormattingFromView(view)
@@ -330,11 +338,11 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     }, 80)
   }, [onToggleFullScreen, editor])
 
-  // Keyboard shortcut: Esc to exit fullscreen
+  // Keyboard shortcuts while fullscreen: Esc exits; Ctrl/Cmd+Shift+Enter toggles.
   useEffect(() => {
     if (!isFullScreen) return
     const handleKey = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' || (!e.defaultPrevented && isFullscreenEditorShortcut(e))) {
         e.preventDefault()
         handleToggleFullScreen()
       }
@@ -485,8 +493,10 @@ const TiptapEditor = forwardRef(function TiptapEditor(
       {isFullScreen && onToggleFullScreen && (
         <button
           className="fullscreen-exit-btn"
+          type="button"
           onClick={handleToggleFullScreen}
           title="退出全屏 (Esc)"
+          aria-label="退出全屏编辑"
         >
           ✕ 退出全屏
         </button>

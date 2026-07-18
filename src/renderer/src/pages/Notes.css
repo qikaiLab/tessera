@@ -2,6 +2,7 @@
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   background: var(--bg-app);
   position: relative;
@@ -12,6 +13,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   background: var(--bg-sidebar);
   animation: slideInLeft var(--transition-base) both;
 }
@@ -244,7 +246,10 @@ body.is-resizing .notes-resize-handle::after {
 
 .notes-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
   padding: 0 var(--spacing-4) var(--spacing-3);
 }
 
