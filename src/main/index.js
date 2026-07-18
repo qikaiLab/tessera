@@ -3,11 +3,11 @@ const path = require('path')
 const fs = require('fs')
 const fsp = require('fs').promises
 const os = require('os')
-const {
+import {
   resolveSafePath,
   isAllowedExternalUrl,
-  isAppNavigationUrl: isAllowedAppNavigation
-} = require('./security')
+  isAppNavigationUrl as isAllowedAppNavigation
+} from './security.js'
 
 // Platform path helpers
 const isDev = !app.isPackaged

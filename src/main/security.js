@@ -42,7 +42,7 @@ function isAppNavigationUrl(url, { isDev, rendererUrl } = {}) {
   }
 }
 
-module.exports = {
+export {
   resolveSafePath,
   isAllowedExternalUrl,
   isAppNavigationUrl

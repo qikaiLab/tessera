@@ -31,7 +31,14 @@ export default [
     }
   },
   {
-    files: ['src/main/**/*.js', 'src/preload/**/*.js'],
+    files: ['src/main/**/*.js'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: globals.node
+    }
+  },
+  {
+    files: ['src/preload/**/*.js'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: globals.node

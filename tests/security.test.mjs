@@ -1,9 +1,6 @@
 import path from 'node:path'
-import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
-
-const require = createRequire(import.meta.url)
-const { resolveSafePath, isAllowedExternalUrl, isAppNavigationUrl } = require('../src/main/security.js')
+import { resolveSafePath, isAllowedExternalUrl, isAppNavigationUrl } from '../src/main/security.js'
 
 describe('resolveSafePath', () => {
   const baseDir = path.resolve('C:/MotoTrace/data')
