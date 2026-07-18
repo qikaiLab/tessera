@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
+import { format, parseISO, startOfDay, endOfDay } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
 import EasterEgg from '../components/EasterEgg'
@@ -77,7 +77,6 @@ export default function Timeline() {
   const [filterSection, setFilterSection] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const [cards, setCards] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadedDates, setLoadedDates] = useState({})
 
@@ -427,7 +426,7 @@ export default function Timeline() {
 }
 
 function TimelineCard({ card, query, onClick, filterSection, sections, isManageMode, isSelected, onToggleSelect }) {
-  const { dateStr, totalWords, recordedSections, sectionResults, dayData } = card
+  const { dateStr, totalWords, recordedSections, sectionResults } = card
   const date = parseISO(dateStr)
   const dayOfWeek = format(date, 'EEEE', { locale: zhCN })
   const dateDisplay = format(date, 'MM月dd日')

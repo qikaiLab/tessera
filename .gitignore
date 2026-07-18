@@ -28,6 +28,9 @@ dist-ssr
 out/
 release/
 pack/
+coverage/
+.eslintcache
+test-results/
 
 # Environment Variables
 .env

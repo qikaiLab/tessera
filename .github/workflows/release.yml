@@ -8,9 +8,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-release:
     runs-on: windows-latest
+    timeout-minutes: 20
     
     steps:
       - name: Checkout Code
@@ -19,20 +24,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
-          
-      - name: Align package.json version with Git Tag
-        shell: bash
-        run: |
-          # Extract version from GITHUB_REF_NAME (removes 'v' prefix)
-          VERSION=$(echo $GITHUB_REF_NAME | sed 's/^v//')
-          echo "Syncing package.json to version: $VERSION"
-          npm version $VERSION --no-git-tag-version --allow-same-version
           
       - name: Install Dependencies
         run: npm ci
-        
+
+      - name: Run Quality Gate
+        run: npm run check
+
       - name: Build Application
         run: npm run dist -- --publish never
         

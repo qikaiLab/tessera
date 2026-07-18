@@ -1,11 +1,10 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameMonth, isSameDay, isToday,
   addMonths, subMonths, addWeeks, subWeeks, addYears, subYears,
-  parseISO, startOfYear, endOfYear, eachMonthOfInterval,
-  getWeek, setWeek, startOfWeek as startOfWeekFn
+  parseISO, startOfYear, endOfYear, eachMonthOfInterval
 } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
@@ -117,6 +116,7 @@ export default function Calendar() {
           countdowns={countdowns}
           onSave={saveCountdowns}
           onClose={() => setShowCountdownModal(false)}
+          confirm={confirm}
         />
       )}
     </div>
@@ -241,7 +241,7 @@ function YearView({ cursor, getDayStatus, onDayClick }) {
 
 const COLORS = ['#7c6aff', '#34d399', '#f87171', '#fbbf24', '#60a5fa', '#f472b6', '#a78bfa']
 
-function CountdownModal({ countdowns, onSave, onClose }) {
+function CountdownModal({ countdowns, onSave, onClose, confirm }) {
   const [list, setList] = useState(countdowns)
   const [newName, setNewName] = useState('')
   const [newDate, setNewDate] = useState('')

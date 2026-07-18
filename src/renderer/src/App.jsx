@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import TitleBar from './components/TitleBar'
 import Toast from './components/Toast'
@@ -21,7 +21,7 @@ const APP_SIDEBAR_MAX = 280
 const APP_SIDEBAR_DEFAULT = 200
 
 function AppContent() {
-  const { isInitialized, showToast } = useApp()
+  const { isInitialized } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [tmpFiles, setTmpFiles] = useState([])

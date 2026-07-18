@@ -2,9 +2,9 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-0.2.5-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.2.6-blue.svg)](package.json)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
-[![Build](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/release.yml?label=CI%2FCD)](https://github.com/qikaiLab/tessera/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/ci.yml?branch=main&label=CI)](https://github.com/qikaiLab/tessera/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/qikaiLab/tessera?include_prereleases)](https://github.com/qikaiLab/tessera/releases)
 
 **MotoTrace** 是一款专为追求极致记录体验的用户打造的 Windows 桌面端自我追踪与分析软件。  
@@ -89,7 +89,7 @@ Electron (electron-vite)
 
 | 库 | 版本 | 用途 |
 |----|------|------|
-| [Electron](https://www.electronjs.org/) | 33.x | 桌面外壳 |
+| [Electron](https://www.electronjs.org/) | 43.x | 桌面外壳 |
 | [React](https://reactjs.org/) | 18.x | UI 框架 |
 | [Tiptap](https://tiptap.dev/) | 3.x | 富文本与所见即所得编辑器引擎 |
 | [Recharts](https://recharts.org/) | 2.x | 图表渲染 |
@@ -101,7 +101,8 @@ Electron (electron-vite)
 
 ```
 Project_SlefTracker/
-├── .github/workflows/    # GitHub Actions CI/CD — 打 Tag 自动构建并发布 Release
+├── .github/workflows/    # GitHub Actions — 日常质量门禁与 Tag 自动发布
+├── docs/                 # 工程化管理与维护文档
 ├── src/
 │   ├── main/             # 主进程：文件读写、IPC handler、备份逻辑
 │   ├── preload/          # 预加载脚本：安全桥接 electronAPI
@@ -109,6 +110,7 @@ Project_SlefTracker/
 │       ├── context/      # AppContext — selectedDate、sections 全局状态
 │       ├── pages/        # Record / Calendar / Timeline / Analytics / Settings
 │       └── components/   # TiptapEditor、Modal、各类图表组件
+├── tests/                # Vitest 自动化测试
 ├── electron.vite.config.js
 └── package.json
 ```
@@ -119,7 +121,8 @@ Project_SlefTracker/
 
 ### 环境准备
 
-- [Node.js](https://nodejs.org/) >= 18（推荐 20 LTS）
+- [Node.js](https://nodejs.org/) >= 22.12
+- npm >= 10
 - Windows 10 / 11（打包目标平台）
 
 ### 安装与启动
@@ -139,21 +142,37 @@ npm run dev
 npm run dist
 ```
 
+### 质量检查与贡献规范
+
+提交代码前执行与 CI 完全相同的质量门禁：
+
+```bash
+npm run check
+```
+
+该命令会运行 ESLint、Vitest、版本一致性检查和生产构建。分支、提交、评审、依赖维护与发布规则见 [贡献规范](CONTRIBUTING.md) 和 [工程化管理指南](docs/ENGINEERING_GUIDE.md)。
+
 ### 发布新版本（CI/CD 自动化）
 
 本项目配置了 GitHub Actions 全自动构建 & 发布流水线。只需在本地打一个符合 `v*` 格式的 Git Tag 并推送，CI 即会在 Windows 云端完成构建，并自动将安装包（`.exe`）附加到对应的 GitHub Release：
 
 ```bash
-# 1. 提交所有变更
-git add .
-git commit -m "feat: some new feature"
+# 1. 在 main 上同步版本与发布文档
+npm version patch --no-git-tag-version
+# 更新 README.md 与 RELEASE_NOTES.md 后执行完整门禁
+npm run check
+git add package.json package-lock.json README.md RELEASE_NOTES.md
+git commit -m "chore(release): vX.Y.Z"
+git push origin main
 
-# 2. 创建版本 Tag
-git tag v0.1.1
+# 2. 确认 main 的 CI 成功后创建附注标签
+git tag -a vX.Y.Z -m "MotoTrace vX.Y.Z"
 
-# 3. 推送代码与 Tag
-git push origin main --tags
+# 3. 只推送本次标签
+git push origin vX.Y.Z
 ```
+
+已推送的版本标签不得删除、移动或复用。若发布失败，应修复后增加补丁版本重新发布。
 
 ---
 
@@ -170,6 +189,17 @@ MotoTrace 将数据安全视为头等大事，采用三层防护：
 ---
 
 ## 📋 更新日志
+
+### v0.2.6 *(2026-06-14)*
+
+**新特性**
+- 新增覆盖编辑器、数字输入、图表和便签的全局右键菜单。
+- 数字版块支持“每日手动输入”和“延续前一日数据”两种默认值模式。
+- 分析图表支持连续日期/仅有数据日期两种横坐标，以及平滑/直线两种折线样式。
+
+**修复与优化**
+- 修复重复启动产生多个进程、全屏侧边栏拖动线误触发，以及图表混入非目标版块数据的问题。
+- 优化数字设置项布局，并保持旧数据兼容。
 
 ### v0.2.5 *(2026-06-06)*
 
@@ -228,7 +258,7 @@ MotoTrace 将数据安全视为头等大事，采用三层防护：
 
 ---
 
-### v0.2.1 *(2026-05-18)*
+### v0.2.1 *(2026-04-03)*
 
 **新特性**
 - **版块重命名**：设置页支持对已有版块重命名，并自动关联所有历史 JSON 文件中的 Key 以保证数据连贯。
@@ -237,7 +267,7 @@ MotoTrace 将数据安全视为头等大事，采用三层防护：
 
 ---
 
-### v0.2.0 *(2026-05-14)*
+### v0.2.0 *(2026-04-02)*
 
 **改进与修复**
 - 优化了 CodeMirror 编辑器中文字数实时防抖统计逻辑。

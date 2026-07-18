@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState, useRef, forwardRef, useImperativeHandle } from 'react'
+import React, { useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -41,10 +41,6 @@ const ExitBlockExtension = Extension.create({
     return {
       // Mod+Enter: exit code block or blockquote, insert paragraph after
       'Mod-Enter': ({ editor }) => {
-        const { state } = editor
-        const { selection } = state
-        const { $from } = selection
-
         // Check if we're inside a code block
         if (editor.isActive('codeBlock')) {
           return editor.chain().focus().exitCode().run()
@@ -64,7 +60,6 @@ const ExitBlockExtension = Extension.create({
                 while (depth > 0) {
                   const node = $from.node(depth)
                   if (node.type.name === 'blockquote') {
-                    const blockquoteEnd = $from.end(depth)
                     const insertPos = $from.after(depth)
                     const paragraph = state.schema.nodes.paragraph.create()
                     tr.insert(insertPos, paragraph)
