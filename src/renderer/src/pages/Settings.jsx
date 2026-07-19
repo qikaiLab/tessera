@@ -10,6 +10,11 @@ import {
   THEME_ACCENT_OPTIONS
 } from '../theme/appearanceRegistry'
 import { APPEARANCE_MESSAGE_KEYS, appearanceText } from '../theme/appearanceMessages'
+import {
+  INTERFACE_FONT_OPTIONS,
+  INTERFACE_WEIGHT_OPTIONS,
+  INTERFACE_ZOOM
+} from '../theme/interfacePreferences'
 import defaultStylePreview from '../assets/themes/default-preview.png'
 import linenStylePreview from '../assets/themes/linen-preview.png'
 import jadeStylePreview from '../assets/themes/jade-preview.png'
@@ -41,6 +46,9 @@ export default function Settings() {
     editorLetterSpacing, updateEditorLetterSpacing,
     interfaceStyle, updateInterfaceStyle,
     themeAccent, updateThemeAccent,
+    interfaceZoom, updateInterfaceZoom,
+    interfaceFont, updateInterfaceFont,
+    interfaceWeight, updateInterfaceWeight,
     confirm
   } = useApp()
   const [backups, setBackups] = useState([])
@@ -329,6 +337,88 @@ export default function Settings() {
               </div>
             </div>
           ) : null}
+        </div>
+
+        <div className="settings-card interface-display-card">
+          <div className="settings-card-title">{appearanceText(APPEARANCE_MESSAGE_KEYS.displaySectionTitle)}</div>
+          <div className="settings-card-desc">{appearanceText(APPEARANCE_MESSAGE_KEYS.displaySectionDescription)}</div>
+
+          <div className="interface-preference-panel">
+            <div className="interface-preference-row interface-zoom-row">
+              <div className="interface-preference-copy">
+                <span className="interface-preference-title">{appearanceText(APPEARANCE_MESSAGE_KEYS.zoomTitle)}</span>
+                <span className="interface-preference-description">{appearanceText(APPEARANCE_MESSAGE_KEYS.zoomDescription)}</span>
+              </div>
+              <div className="interface-zoom-control">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm interface-zoom-button"
+                  onClick={() => updateInterfaceZoom(interfaceZoom - INTERFACE_ZOOM.STEP)}
+                  disabled={interfaceZoom <= INTERFACE_ZOOM.MIN}
+                  aria-label="缩小界面"
+                >
+                  −
+                </button>
+                <input
+                  className="interface-zoom-slider"
+                  type="range"
+                  min={INTERFACE_ZOOM.MIN}
+                  max={INTERFACE_ZOOM.MAX}
+                  step={INTERFACE_ZOOM.STEP}
+                  value={interfaceZoom}
+                  onChange={event => updateInterfaceZoom(event.target.value)}
+                  aria-label={appearanceText(APPEARANCE_MESSAGE_KEYS.zoomTitle)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm interface-zoom-button"
+                  onClick={() => updateInterfaceZoom(interfaceZoom + INTERFACE_ZOOM.STEP)}
+                  disabled={interfaceZoom >= INTERFACE_ZOOM.MAX}
+                  aria-label="放大界面"
+                >
+                  +
+                </button>
+                <output className="interface-zoom-value" aria-live="polite">{interfaceZoom}%</output>
+              </div>
+            </div>
+
+            <div className="interface-preference-row">
+              <div className="interface-preference-copy">
+                <span className="interface-preference-title">{appearanceText(APPEARANCE_MESSAGE_KEYS.fontTitle)}</span>
+                <span className="interface-preference-description">{appearanceText(APPEARANCE_MESSAGE_KEYS.fontDescription)}</span>
+              </div>
+              <select
+                className="input interface-preference-select"
+                value={interfaceFont}
+                onChange={event => updateInterfaceFont(event.target.value)}
+              >
+                {INTERFACE_FONT_OPTIONS.map(option => (
+                  <option key={option.id} value={option.id}>{appearanceText(option.labelKey)}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="interface-preference-row">
+              <div className="interface-preference-copy">
+                <span className="interface-preference-title">{appearanceText(APPEARANCE_MESSAGE_KEYS.weightTitle)}</span>
+                <span className="interface-preference-description">{appearanceText(APPEARANCE_MESSAGE_KEYS.weightDescription)}</span>
+              </div>
+              <div className="interface-weight-options" role="radiogroup" aria-label={appearanceText(APPEARANCE_MESSAGE_KEYS.weightTitle)}>
+                {INTERFACE_WEIGHT_OPTIONS.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`interface-weight-option ${interfaceWeight === option.id ? 'selected' : ''}`}
+                    role="radio"
+                    aria-checked={interfaceWeight === option.id}
+                    onClick={() => updateInterfaceWeight(option.id)}
+                  >
+                    {appearanceText(option.labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Section Management */}

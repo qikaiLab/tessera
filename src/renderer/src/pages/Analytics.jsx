@@ -32,7 +32,7 @@ const DATE_RANGES = [
   { id: 'all', label: '全部' }
 ]
 
-const PALETTE = ['#7c6aff', '#34d399', '#f87171', '#fbbf24', '#60a5fa', '#f472b6']
+const SECONDARY_PALETTE = ['#34d399', '#f87171', '#fbbf24', '#60a5fa', '#f472b6']
 const DATE_AXIS_RECORDED = 'recorded'
 const DATE_AXIS_CONTINUOUS = 'continuous'
 const LINE_STYLE_SMOOTH = 'smooth'
@@ -65,6 +65,11 @@ function isCarryNumberSection(section) {
 
 function hasStoredValue(entry) {
   return entry?.value !== undefined && entry?.value !== null && String(entry.value).trim() !== ''
+}
+
+function getRenderedAccentColor() {
+  const value = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
+  return /^#[0-9a-f]{6}$/i.test(value) ? value : '#7c6aff'
 }
 
 /**
@@ -102,10 +107,14 @@ function defaultCard(idx) {
 }
 
 export default function Analytics() {
-  const { sections, datesWithData, analytics: cards, saveAnalytics: setCards } = useApp()
+  const {
+    sections, datesWithData, analytics: cards, saveAnalytics: setCards
+  } = useApp()
   const [editingCard, setEditingCard] = useState(null)
   const [loadedData, setLoadedData] = useState({})
   const [deleteConfirm, setDeleteConfirm] = useState(null) // card id pending deletion
+  const accentColor = getRenderedAccentColor()
+  const palette = useMemo(() => [accentColor, ...SECONDARY_PALETTE], [accentColor])
 
   useEffect(() => {
     if (!datesWithData.length) return
@@ -221,6 +230,7 @@ export default function Analytics() {
                     sections={sections}
                     loadedData={loadedData}
                     datesWithData={datesWithData}
+                    palette={palette}
                     isEditing={editingCard === card.id}
                     onEdit={() => setEditingCard(editingCard === card.id ? null : card.id)}
                     onUpdate={(u) => updateCard(card.id, u)}
@@ -374,7 +384,7 @@ function formatTooltipDate(value) {
   }
 }
 
-function buildChartData(card, sections, loadedData, datesWithData) {
+function buildChartData(card, sections, loadedData, datesWithData, palette) {
   const bindings = card.bindings || []
   const dateCandidates = getDateRange(card, datesWithData, bindings, loadedData).sort()
   const dates = card.type === 'line' || card.type === 'bar'
@@ -398,7 +408,7 @@ function buildChartData(card, sections, loadedData, datesWithData) {
           }
         }
       }
-      return { name: sec.name, value: parseFloat(total.toFixed(2)), fill: sec.color || PALETTE[i % PALETTE.length] }
+      return { name: sec.name, value: parseFloat(total.toFixed(2)), fill: sec.color || palette[i % palette.length] }
     }).filter(Boolean)
   }
 
@@ -448,22 +458,22 @@ function SortableCard(props) {
 
 // ─── Analytics Card ───────────────────────────────────────────────────────────
 
-function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, onEdit, onUpdate, onDelete, onDuplicate, dragHandleProps }) {
+function AnalyticsCard({ card, sections, loadedData, datesWithData, palette, isEditing, onEdit, onUpdate, onDelete, onDuplicate, dragHandleProps }) {
   const chartData = useMemo(
-    () => buildChartData(card, sections, loadedData, datesWithData),
-    [card, sections, loadedData, datesWithData]
+    () => buildChartData(card, sections, loadedData, datesWithData, palette),
+    [card, sections, loadedData, datesWithData, palette]
   )
 
   const bindings = useMemo(() => card.bindings || [], [card.bindings])
 
   // Task 5.3: get heatmap color from section palette index
   const heatmapColor = useMemo(() => {
-    if (card.type !== 'heatmap' || !bindings[0]) return PALETTE[0]
+    if (card.type !== 'heatmap' || !bindings[0]) return palette[0]
     const sec = sections.find(s => s.id === bindings[0].sectionId)
     if (sec && sec.color) return sec.color
     const idx = sections.findIndex(s => s.id === bindings[0].sectionId)
-    return PALETTE[Math.max(0, idx) % PALETTE.length]
-  }, [card.type, bindings, sections])
+    return palette[Math.max(0, idx) % palette.length]
+  }, [card.type, bindings, palette, sections])
 
   useContextMenuCommand('analytics-card', useCallback((id, context) => {
     if (context?.cardId !== card.id) return
@@ -534,7 +544,7 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, isEditing, o
             <p>绑定数据版块后显示图表</p>
           </div>
         ) : (
-          <ChartRenderer card={card} data={chartData} sections={sections} heatmapColor={heatmapColor} />
+          <ChartRenderer card={card} data={chartData} sections={sections} heatmapColor={heatmapColor} palette={palette} />
         )}
       </div>
     </div>
@@ -695,7 +705,7 @@ const TooltipStyle = {
   labelFormatter: formatTooltipDate
 }
 
-function ChartRenderer({ card, data, sections, heatmapColor }) {
+function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
   const keys = sections
     .filter(s => (card.bindings || []).some(b => b.sectionId === s.id))
     .map(s => s.name)
@@ -725,15 +735,15 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
           )}
           {yMode === 'dual' && (
             <>
-              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[0])?.color || PALETTE[0] }} width={40} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[1])?.color || PALETTE[1] }} width={40} />
+              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[0])?.color || palette[0] }} width={40} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[1])?.color || palette[1] }} width={40} />
             </>
           )}
           <Tooltip {...TooltipStyle} />
           {(yMode === 'dual' || yMode === 'none' || keys.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
           {keys.map((k, i) => {
             const sec = sections.find(s => s.name === k)
-            const color = sec?.color || PALETTE[i % PALETTE.length]
+            const color = sec?.color || palette[i % palette.length]
             return (
               <Line
                 key={k}
@@ -769,15 +779,15 @@ function ChartRenderer({ card, data, sections, heatmapColor }) {
           )}
           {yMode === 'dual' && (
             <>
-              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[0])?.color || PALETTE[0] }} width={40} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[1])?.color || PALETTE[1] }} width={40} />
+              <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[0])?.color || palette[0] }} width={40} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[1])?.color || palette[1] }} width={40} />
             </>
           )}
           <Tooltip {...TooltipStyle} />
           {(yMode === 'dual' || yMode === 'none' || keys.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
           {keys.map((k, i) => {
             const sec = sections.find(s => s.name === k)
-            const color = sec?.color || PALETTE[i % PALETTE.length]
+            const color = sec?.color || palette[i % palette.length]
             return (
               <Bar
                 key={k}
@@ -845,6 +855,7 @@ function Heatmap({ data, color, dateRange }) {
     const el = scrollRef.current
     if (!el) return
     const onWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) return
       // Only intercept if overflow is occurring (content wider than container)
       if (el.scrollWidth > el.clientWidth) {
         e.preventDefault()

@@ -11,7 +11,11 @@ export const THEME_ACCENT_IDS = Object.freeze({
   VIOLET: 'violet',
   OCEAN: 'ocean',
   FOREST: 'forest',
-  EMBER: 'ember'
+  EMBER: 'ember',
+  CYAN: 'cyan',
+  YELLOW: 'yellow',
+  PINK: 'pink',
+  GRAPHITE: 'graphite'
 })
 
 export const INTERFACE_STYLE_REGISTRY = Object.freeze([
@@ -54,7 +58,11 @@ export const THEME_ACCENT_OPTIONS = Object.freeze([
   Object.freeze({ id: THEME_ACCENT_IDS.VIOLET, labelKey: APPEARANCE_MESSAGE_KEYS.violetAccentLabel, preview: '#7c6aff' }),
   Object.freeze({ id: THEME_ACCENT_IDS.OCEAN, labelKey: APPEARANCE_MESSAGE_KEYS.oceanAccentLabel, preview: '#5b8cff' }),
   Object.freeze({ id: THEME_ACCENT_IDS.FOREST, labelKey: APPEARANCE_MESSAGE_KEYS.forestAccentLabel, preview: '#45b58a' }),
-  Object.freeze({ id: THEME_ACCENT_IDS.EMBER, labelKey: APPEARANCE_MESSAGE_KEYS.emberAccentLabel, preview: '#d88d58' })
+  Object.freeze({ id: THEME_ACCENT_IDS.EMBER, labelKey: APPEARANCE_MESSAGE_KEYS.emberAccentLabel, preview: '#d88d58' }),
+  Object.freeze({ id: THEME_ACCENT_IDS.CYAN, labelKey: APPEARANCE_MESSAGE_KEYS.cyanAccentLabel, preview: '#2bb7b3' }),
+  Object.freeze({ id: THEME_ACCENT_IDS.YELLOW, labelKey: APPEARANCE_MESSAGE_KEYS.yellowAccentLabel, preview: '#d9b24c' }),
+  Object.freeze({ id: THEME_ACCENT_IDS.PINK, labelKey: APPEARANCE_MESSAGE_KEYS.pinkAccentLabel, preview: '#e184a8' }),
+  Object.freeze({ id: THEME_ACCENT_IDS.GRAPHITE, labelKey: APPEARANCE_MESSAGE_KEYS.graphiteAccentLabel, preview: '#66707c' })
 ])
 
 const STYLE_BY_ID = new Map(INTERFACE_STYLE_REGISTRY.map(style => [style.id, style]))

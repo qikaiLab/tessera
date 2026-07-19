@@ -7,6 +7,15 @@ import {
   normalizeTheme,
   normalizeThemeAccentId
 } from '../theme/appearanceRegistry'
+import {
+  INTERFACE_FONT_IDS,
+  INTERFACE_WEIGHT_IDS,
+  INTERFACE_ZOOM,
+  applyInterfacePreferencesToRoot,
+  normalizeInterfaceFontId,
+  normalizeInterfaceWeightId,
+  normalizeInterfaceZoom
+} from '../theme/interfacePreferences'
 
 const AppContext = createContext(null)
 
@@ -37,6 +46,9 @@ export function AppProvider({ children }) {
   const [theme, setTheme] = useState('dark')
   const [interfaceStyle, setInterfaceStyle] = useState(INTERFACE_STYLE_IDS.DEFAULT)
   const [themeAccent, setThemeAccent] = useState(THEME_ACCENT_IDS.VIOLET)
+  const [interfaceZoom, setInterfaceZoom] = useState(INTERFACE_ZOOM.DEFAULT)
+  const [interfaceFont, setInterfaceFont] = useState(INTERFACE_FONT_IDS.THEME)
+  const [interfaceWeight, setInterfaceWeight] = useState(INTERFACE_WEIGHT_IDS.STANDARD)
   const [sections, setSections] = useState([])
   const [datesWithData, setDatesWithData] = useState([])
   const [toasts, setToasts] = useState([])
@@ -62,6 +74,7 @@ export function AppProvider({ children }) {
 
   // Fix #8: Registry of pending flush callbacks for graceful shutdown
   const pendingFlushesRef = useRef(new Map())
+  const interfaceZoomRef = useRef(INTERFACE_ZOOM.DEFAULT)
 
   const registerPendingFlush = useCallback((key, flushFn) => {
     pendingFlushesRef.current.set(key, flushFn)
@@ -269,6 +282,38 @@ export function AppProvider({ children }) {
     window.api.config.set('themeAccent', next)
   }, [interfaceStyle, theme])
 
+  const updateInterfaceZoom = useCallback((value) => {
+    const next = normalizeInterfaceZoom(value)
+    interfaceZoomRef.current = next
+    setInterfaceZoom(next)
+    window.api.zoom.setFactor(next / 100)
+    window.api.config.set('interfaceZoom', next)
+  }, [])
+
+  const adjustInterfaceZoom = useCallback((delta) => {
+    updateInterfaceZoom(interfaceZoomRef.current + delta)
+  }, [updateInterfaceZoom])
+
+  const updateInterfaceFont = useCallback((value) => {
+    const next = normalizeInterfaceFontId(value)
+    setInterfaceFont(next)
+    applyInterfacePreferencesToRoot(document.documentElement, {
+      interfaceFont: next,
+      interfaceWeight
+    })
+    window.api.config.set('interfaceFont', next)
+  }, [interfaceWeight])
+
+  const updateInterfaceWeight = useCallback((value) => {
+    const next = normalizeInterfaceWeightId(value)
+    setInterfaceWeight(next)
+    applyInterfacePreferencesToRoot(document.documentElement, {
+      interfaceFont,
+      interfaceWeight: next
+    })
+    window.api.config.set('interfaceWeight', next)
+  }, [interfaceFont])
+
   const updateFullscreenWidthMode = useCallback((val) => {
     setFullscreenWidthMode(val)
     window.api.config.set('fullscreenWidthMode', val)
@@ -351,14 +396,26 @@ export function AppProvider({ children }) {
         const savedTheme = normalizeTheme(cfg.theme)
         const savedInterfaceStyle = normalizeInterfaceStyleId(cfg.interfaceStyle)
         const savedThemeAccent = normalizeThemeAccentId(cfg.themeAccent)
+        const savedInterfaceZoom = normalizeInterfaceZoom(cfg.interfaceZoom)
+        const savedInterfaceFont = normalizeInterfaceFontId(cfg.interfaceFont)
+        const savedInterfaceWeight = normalizeInterfaceWeightId(cfg.interfaceWeight)
         setTheme(savedTheme)
         setInterfaceStyle(savedInterfaceStyle)
         setThemeAccent(savedThemeAccent)
+        interfaceZoomRef.current = savedInterfaceZoom
+        setInterfaceZoom(savedInterfaceZoom)
+        setInterfaceFont(savedInterfaceFont)
+        setInterfaceWeight(savedInterfaceWeight)
         applyAppearanceToRoot(document.documentElement, {
           interfaceStyle: savedInterfaceStyle,
           theme: savedTheme,
           themeAccent: savedThemeAccent
         })
+        applyInterfacePreferencesToRoot(document.documentElement, {
+          interfaceFont: savedInterfaceFont,
+          interfaceWeight: savedInterfaceWeight
+        })
+        window.api.zoom.setFactor(savedInterfaceZoom / 100)
 
         setFullscreenWidthMode(cfg.fullscreenWidthMode || 'standard')
         setFullscreenStandardWidth(cfg.fullscreenStandardWidth || '700px')
@@ -426,6 +483,9 @@ export function AppProvider({ children }) {
       theme, toggleTheme,
       interfaceStyle, updateInterfaceStyle,
       themeAccent, updateThemeAccent,
+      interfaceZoom, updateInterfaceZoom, adjustInterfaceZoom,
+      interfaceFont, updateInterfaceFont,
+      interfaceWeight, updateInterfaceWeight,
       sections, setSections, loadSections, saveSections,
       datesWithData, refreshDates,
       toasts, showToast,

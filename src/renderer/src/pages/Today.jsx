@@ -60,6 +60,7 @@ export default function Today() {
   const [dateLeavingDir, setDateLeavingDir] = useState('jump')
   const [showSkeleton, setShowSkeleton] = useState(false)
   const [dateTransitionDir, setDateTransitionDir] = useState('jump')
+  const [returningToToday, setReturningToToday] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [jumpInput, setJumpInput] = useState('')
   const [fullScreenSectionId, setFullScreenSectionId] = useState(null)
@@ -77,6 +78,7 @@ export default function Today() {
   const hasLoadedOnceRef = useRef(false)
   const loadSeqRef = useRef(0)
   const dateSwitchTimerRef = useRef(null)
+  const returnTodayTimerRef = useRef(null)
   const suppressNextLoadTransitionRef = useRef(false)
   // Fix #11: Track escape-handler setTimeout for cleanup
   const escapeTimeoutRef = useRef(null)
@@ -168,6 +170,7 @@ export default function Today() {
   useEffect(() => {
     return () => {
       if (dateSwitchTimerRef.current) clearTimeout(dateSwitchTimerRef.current)
+      if (returnTodayTimerRef.current) clearTimeout(returnTodayTimerRef.current)
     }
   }, [])
 
@@ -390,6 +393,17 @@ export default function Today() {
     }
   }
 
+  const handleReturnToToday = () => {
+    if (returningToToday) return
+    setReturningToToday(true)
+    goTo(new Date())
+    if (returnTodayTimerRef.current) clearTimeout(returnTodayTimerRef.current)
+    returnTodayTimerRef.current = setTimeout(() => {
+      returnTodayTimerRef.current = null
+      setReturningToToday(false)
+    }, 360)
+  }
+
   const startNotesDrawerResize = (event) => {
     event.preventDefault()
     const startX = event.clientX
@@ -465,11 +479,11 @@ export default function Today() {
               >
                 →
               </button>
-              {!isToday(selectedDate) && (
+              {(!isToday(selectedDate) || returningToToday) && (
                 <button 
-                  className="btn btn-primary btn-sm" 
-                  style={{ marginLeft: 8, borderRadius: 'var(--radius-full)' }} 
-                  onClick={() => goTo(new Date())}
+                  className={`btn btn-primary btn-sm today-return-button ${returningToToday ? 'is-leaving' : ''}`}
+                  onClick={handleReturnToToday}
+                  aria-disabled={returningToToday}
                 >
                   ✦ 回到今日
                 </button>
@@ -490,7 +504,6 @@ export default function Today() {
 
           {/* Content */}
           <div className={`today-content ${transitioningDate ? 'is-date-transitioning' : ''} ${dateLeaving ? `is-date-leaving date-leaving-${dateLeavingDir}` : ''}`}>
-            <div key={`date-flow-${dateStr}`} className={`today-date-flow date-flow-${dateTransitionDir}`} />
             {loading && showSkeleton ? (
               <div className="today-skeleton">
                 {[1, 2].map(i => (

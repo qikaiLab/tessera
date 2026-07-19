@@ -86,7 +86,7 @@ body.is-resizing .notes-resize-handle::after {
   font-weight: 700;
   line-height: 1;
   border-radius: var(--radius-md);
-  box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.08);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .notes-new-btn:hover {

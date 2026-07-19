@@ -14,6 +14,7 @@ import Notes from './pages/Notes'
 import Settings from './pages/Settings'
 import { INTERFACE_STYLE_IDS } from './theme/appearanceRegistry'
 import { APPEARANCE_MESSAGE_KEYS, appearanceText } from './theme/appearanceMessages'
+import { getZoomDeltaFromKeyboardEvent, getZoomDeltaFromWheelEvent } from './theme/interfacePreferences'
 import { editMenuItems, focusEditableTarget, getEditableSelectionState, showContextMenu } from './utils/contextMenu'
 import './styles/App.css'
 import './theme/appearanceSurfaces.css'
@@ -24,7 +25,7 @@ const APP_SIDEBAR_MAX = 280
 const APP_SIDEBAR_DEFAULT = 200
 
 function AppContent() {
-  const { isInitialized } = useApp()
+  const { isInitialized, adjustInterfaceZoom } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [tmpFiles, setTmpFiles] = useState([])
@@ -70,7 +71,11 @@ function AppContent() {
   // Global F1 and Ctrl+/ keydown listeners
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
-      if (e.key === 'F1') {
+      const zoomDelta = getZoomDeltaFromKeyboardEvent(e)
+      if (zoomDelta) {
+        e.preventDefault()
+        adjustInterfaceZoom(zoomDelta)
+      } else if (e.key === 'F1') {
         e.preventDefault()
         setShowOnboarding(true)
       } else if ((e.ctrlKey || e.metaKey) && e.key === '/') {
@@ -80,7 +85,19 @@ function AppContent() {
     }
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [])
+  }, [adjustInterfaceZoom])
+
+  useEffect(() => {
+    const handleGlobalWheel = (event) => {
+      const zoomDelta = getZoomDeltaFromWheelEvent(event)
+      if (!zoomDelta) return
+      event.preventDefault()
+      adjustInterfaceZoom(zoomDelta)
+    }
+
+    window.addEventListener('wheel', handleGlobalWheel, { passive: false, capture: true })
+    return () => window.removeEventListener('wheel', handleGlobalWheel, { capture: true })
+  }, [adjustInterfaceZoom])
 
   useEffect(() => {
     const handleGlobalTextContextMenu = (event) => {

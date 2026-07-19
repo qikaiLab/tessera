@@ -59,4 +59,11 @@ describe('appearance theme CSS contract', () => {
     expect(css).not.toContain('rgb(17, 17, 18)')
     expect(css).not.toContain('rgb(245, 245, 247)')
   })
+
+  it('keeps generated textures and user typography behind theme-level tokens', () => {
+    expect(css).toContain("url('../assets/themes/linen-paper-texture.png')")
+    expect(css).toContain("url('../assets/themes/jade-stone-texture.png')")
+    expect(css).toContain("[data-interface-font='theme']")
+    expect(css).toContain("[data-interface-weight='heavy']")
+  })
 })

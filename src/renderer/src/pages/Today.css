@@ -23,6 +23,18 @@
   position: relative;
 }
 
+.today-return-button {
+  margin-left: var(--spacing-2);
+  border-radius: var(--radius-full);
+  transform-origin: left center;
+  will-change: opacity, transform;
+}
+
+.today-return-button.is-leaving {
+  pointer-events: none;
+  animation: returnToTodayOut 260ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
 .today-date-group {
   position: relative;
 }
@@ -118,7 +130,7 @@
 }
 
 .today-notes-toggle:hover {
-  box-shadow: -8px 0 18px rgba(124, 92, 255, 0.08);
+  box-shadow: -8px 0 18px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .today-notes-toggle-mark {
@@ -186,35 +198,6 @@
 .today-content.is-date-leaving.date-leaving-prev .today-add-section,
 .today-content.is-date-leaving.date-leaving-prev .today-empty-day {
   animation-name: dateContentLeavePrev;
-}
-
-.today-date-flow {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  height: 1px;
-  max-width: 860px;
-  margin: calc(var(--spacing-6) * -1) auto var(--spacing-5);
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(124, 106, 255, 0.15),
-    rgba(124, 106, 255, 0.75),
-    rgba(124, 106, 255, 0.15),
-    transparent
-  );
-  opacity: 0;
-  transform-origin: center;
-  animation: dateFlowJump 520ms ease-out both;
-}
-
-.today-date-flow.date-flow-next {
-  animation-name: dateFlowNext;
-}
-
-.today-date-flow.date-flow-prev {
-  animation-name: dateFlowPrev;
 }
 
 .sections-grid {
@@ -533,45 +516,14 @@
   }
 }
 
-@keyframes dateFlowNext {
-  0% {
-    opacity: 0;
-    transform: translateX(-28%) scaleX(0.18);
-  }
-  35% {
+@keyframes returnToTodayOut {
+  from {
     opacity: 1;
+    transform: translateX(0) scale(1);
   }
-  100% {
+  to {
     opacity: 0;
-    transform: translateX(28%) scaleX(1);
-  }
-}
-
-@keyframes dateFlowPrev {
-  0% {
-    opacity: 0;
-    transform: translateX(28%) scaleX(0.18);
-  }
-  35% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(-28%) scaleX(1);
-  }
-}
-
-@keyframes dateFlowJump {
-  0% {
-    opacity: 0;
-    transform: scaleX(0.08);
-  }
-  35% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: scaleX(1);
+    transform: translateX(-8px) scale(0.96);
   }
 }
 

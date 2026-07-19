@@ -8,7 +8,13 @@
   text-rendering: optimizeLegibility;
 }
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'])
+  .tiptap-fullscreen-header
+  :is(.tiptap-char-count, .tiptap-font-controls, .tiptap-width-toggle) {
+  opacity: 0.78;
+}
+
+:root[data-interface-weight] :is(
   .ProseMirror,
   .notes-list-snippet,
   .notes-drawer-card-text,
@@ -18,12 +24,32 @@
 }
 
 :root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+  .notes-page,
+  .notes-editor-panel
+) {
+  background-color: var(--bg-app);
+  background-image: var(--surface-material-subtle-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
+}
+
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) .notes-list-panel {
+  background-color: var(--bg-sidebar);
+  background-image: var(--surface-material-subtle-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
+}
+
+:root[data-interface-weight] :is(
   .page-title,
   .settings-card-title,
   .notes-title,
+  .notes-title-input,
   .today-date-main,
   .modal-title,
-  .empty-state-title
+  .empty-state-title,
+  .shortcuts-header-title h2,
+  .onboarding-title
 ) {
   font-weight: var(--font-weight-title);
 }
@@ -34,6 +60,7 @@
   .settings-row,
   .backup-item,
   .settings-typesetting-grid,
+  .interface-preference-panel,
   .timeline-card,
   .cal-day.week-day,
   .notes-list-item.active,
@@ -48,6 +75,8 @@
 ) {
   background-color: var(--bg-surface);
   background-image: var(--surface-material-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
   box-shadow: var(--material-surface-shadow), var(--material-inset-shadow);
 }
 
@@ -66,6 +95,8 @@
 ) {
   background-color: var(--bg-surface-2);
   background-image: var(--surface-material-subtle-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
   box-shadow: var(--material-inset-shadow);
 }
 
@@ -77,6 +108,8 @@
 ) {
   background-color: var(--bg-input);
   background-image: var(--input-material-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
 }
 
 :root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
@@ -89,11 +122,20 @@
 ) {
   background-color: var(--bg-surface-2);
   background-image: var(--surface-material-subtle-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
 }
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+:root[data-interface-weight] :is(
   .section-card-title,
+  .brand-name,
+  .nav-label,
+  .notes-list-title,
+  .notes-count,
+  .timeline-card-title,
+  .analytics-card-title,
   .settings-field-label,
+  .interface-preference-title,
   .editor-label,
   .tl-snippet-label,
   .cal-weekday,

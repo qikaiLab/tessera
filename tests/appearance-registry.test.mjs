@@ -4,6 +4,7 @@ import {
   INTERFACE_STYLE_REGISTRY,
   SELECTABLE_INTERFACE_STYLES,
   THEME_ACCENT_IDS,
+  THEME_ACCENT_OPTIONS,
   applyAppearanceToRoot,
   normalizeInterfaceStyleId,
   normalizeThemeAccentId,
@@ -12,6 +13,20 @@ import {
 } from '../src/renderer/src/theme/appearanceRegistry.js'
 
 describe('appearance registry', () => {
+  it('offers eight centralized accents for the default style', () => {
+    expect(THEME_ACCENT_OPTIONS).toHaveLength(8)
+    expect(THEME_ACCENT_OPTIONS.map(option => option.id)).toEqual([
+      THEME_ACCENT_IDS.VIOLET,
+      THEME_ACCENT_IDS.OCEAN,
+      THEME_ACCENT_IDS.FOREST,
+      THEME_ACCENT_IDS.EMBER,
+      THEME_ACCENT_IDS.CYAN,
+      THEME_ACCENT_IDS.YELLOW,
+      THEME_ACCENT_IDS.PINK,
+      THEME_ACCENT_IDS.GRAPHITE
+    ])
+  })
+
   it('exposes only completed styles while retaining the frosted-glass extension point', () => {
     expect(SELECTABLE_INTERFACE_STYLES.map(style => style.id)).toEqual([
       INTERFACE_STYLE_IDS.DEFAULT,

@@ -59,15 +59,43 @@
 
 .app-main::before,
 .sidebar::before,
-.titlebar::before {
+.titlebar::before,
+.app-main::after,
+.sidebar::after,
+.titlebar::after {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: var(--theme-backdrop-image), var(--theme-texture-image);
-  background-size: cover, var(--theme-texture-size);
-  background-position: center, center;
-  opacity: var(--theme-texture-opacity);
   pointer-events: none;
+}
+
+.app-main::before,
+.sidebar::before,
+.titlebar::before {
+  background-image: var(--theme-backdrop-image);
+  background-size: cover;
+  background-position: center;
+}
+
+.app-main::after,
+.sidebar::after,
+.titlebar::after {
+  background-image: var(--theme-texture-image);
+  background-size: var(--theme-texture-size);
+  background-position: center;
+  mix-blend-mode: var(--theme-texture-blend-mode);
+}
+
+.app-main::after {
+  opacity: var(--theme-texture-opacity);
+}
+
+.sidebar::after {
+  opacity: var(--theme-sidebar-texture-opacity);
+}
+
+.titlebar::after {
+  opacity: var(--theme-titlebar-texture-opacity);
 }
 
 .app-main > * {

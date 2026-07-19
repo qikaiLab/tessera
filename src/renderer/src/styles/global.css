@@ -4,22 +4,37 @@
 
 /* ─── CSS Variables ──────────────────────────────────────────────────────── */
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-system-stack: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
+  --font-modern-sans-stack: 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans CJK SC', sans-serif;
+  --font-serif-stack: 'Songti SC', 'STSong', 'Source Han Serif SC', 'Noto Serif CJK SC', 'SimSun', serif;
+  --font-kai-stack: 'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', serif;
+  --font-style-stack: var(--font-system-stack);
+  --font-sans: var(--font-style-stack);
   --font-editor: var(--font-sans);
   --theme-texture-image: none;
   --theme-texture-size: 520px 520px;
   --theme-texture-opacity: 0;
+  --theme-sidebar-texture-opacity: var(--theme-texture-opacity);
+  --theme-titlebar-texture-opacity: var(--theme-texture-opacity);
+  --theme-texture-blend-mode: normal;
   --theme-backdrop-image: none;
   --accent-contrast: #fff;
-  --font-weight-body: 400;
-  --font-weight-reading: 400;
-  --font-weight-control: 500;
-  --font-weight-title: 600;
+  --font-weight-offset: 0;
+  --font-weight-body-style: 400;
+  --font-weight-reading-style: 400;
+  --font-weight-control-style: 500;
+  --font-weight-title-style: 600;
+  --font-weight-body: calc(var(--font-weight-body-style) + var(--font-weight-offset));
+  --font-weight-reading: calc(var(--font-weight-reading-style) + var(--font-weight-offset));
+  --font-weight-control: calc(var(--font-weight-control-style) + var(--font-weight-offset));
+  --font-weight-title: calc(var(--font-weight-title-style) + var(--font-weight-offset));
 
   /* Material surfaces remain semantic so fixed styles can add texture centrally. */
   --surface-material-image: none;
   --surface-material-subtle-image: none;
   --input-material-image: none;
+  --surface-material-size: auto;
+  --surface-material-position: center;
   --material-surface-shadow: 0 0 transparent;
   --material-inset-shadow: 0 0 transparent;
 
@@ -222,11 +237,76 @@
   --border-focus: rgba(168, 94, 47, 0.4);
 }
 
+[data-interface-style='default'][data-theme='dark'][data-theme-accent='cyan'] {
+  --accent: #2bb7b3;
+  --accent-hover: #48c9c4;
+  --accent-light: rgba(43, 183, 179, 0.14);
+  --accent-light-hover: rgba(43, 183, 179, 0.23);
+  --border-focus: rgba(43, 183, 179, 0.52);
+}
+
+[data-interface-style='default'][data-theme='light'][data-theme-accent='cyan'] {
+  --accent: #0b8588;
+  --accent-hover: #11979a;
+  --accent-light: rgba(11, 133, 136, 0.11);
+  --accent-light-hover: rgba(11, 133, 136, 0.18);
+  --border-focus: rgba(11, 133, 136, 0.43);
+}
+
+[data-interface-style='default'][data-theme='dark'][data-theme-accent='yellow'] {
+  --accent: #d9b24c;
+  --accent-contrast: #17130a;
+  --accent-hover: #e5c466;
+  --accent-light: rgba(217, 178, 76, 0.14);
+  --accent-light-hover: rgba(217, 178, 76, 0.23);
+  --border-focus: rgba(217, 178, 76, 0.52);
+}
+
+[data-interface-style='default'][data-theme='light'][data-theme-accent='yellow'] {
+  --accent: #9a7216;
+  --accent-hover: #aa8120;
+  --accent-light: rgba(154, 114, 22, 0.11);
+  --accent-light-hover: rgba(154, 114, 22, 0.18);
+  --border-focus: rgba(154, 114, 22, 0.43);
+}
+
+[data-interface-style='default'][data-theme='dark'][data-theme-accent='pink'] {
+  --accent: #e184a8;
+  --accent-hover: #ec9abc;
+  --accent-light: rgba(225, 132, 168, 0.14);
+  --accent-light-hover: rgba(225, 132, 168, 0.23);
+  --border-focus: rgba(225, 132, 168, 0.52);
+}
+
+[data-interface-style='default'][data-theme='light'][data-theme-accent='pink'] {
+  --accent: #b34f7b;
+  --accent-hover: #c05f8a;
+  --accent-light: rgba(179, 79, 123, 0.1);
+  --accent-light-hover: rgba(179, 79, 123, 0.17);
+  --border-focus: rgba(179, 79, 123, 0.42);
+}
+
+[data-interface-style='default'][data-theme='dark'][data-theme-accent='graphite'] {
+  --accent: #a8adb5;
+  --accent-contrast: #151719;
+  --accent-hover: #bcc1c8;
+  --accent-light: rgba(168, 173, 181, 0.14);
+  --accent-light-hover: rgba(168, 173, 181, 0.23);
+  --border-focus: rgba(168, 173, 181, 0.5);
+}
+
+[data-interface-style='default'][data-theme='light'][data-theme-accent='graphite'] {
+  --accent: #4e5661;
+  --accent-hover: #5f6874;
+  --accent-light: rgba(78, 86, 97, 0.1);
+  --accent-light-hover: rgba(78, 86, 97, 0.17);
+  --border-focus: rgba(78, 86, 97, 0.4);
+}
+
 /* ─── Fixed interface styles ───────────────────────────────────────────── */
 [data-interface-style='linen-study'] {
   color-scheme: light;
-  --font-sans: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'SimSun', serif;
-  --font-editor: var(--font-sans);
+  --font-style-stack: var(--font-serif-stack);
   --bg-app: #f4efe6;
   --bg-sidebar: #eee6d9;
   --bg-surface: #fbf8f1;
@@ -263,24 +343,31 @@
   --shadow-xl: 0 18px 48px rgba(86, 63, 38, 0.18);
   --scrollbar-thumb: rgba(96, 70, 43, 0.18);
   --scrollbar-thumb-hover: rgba(96, 70, 43, 0.3);
-  --theme-texture-image: url('../assets/themes/linen-texture.png');
-  --theme-texture-size: 420px 420px;
-  --theme-texture-opacity: 0.17;
+  --theme-texture-image: url('../assets/themes/linen-paper-texture.png');
+  --theme-texture-size: 560px 560px;
+  --theme-texture-opacity: 0.34;
+  --theme-sidebar-texture-opacity: 0.42;
+  --theme-titlebar-texture-opacity: 0.26;
+  --theme-texture-blend-mode: multiply;
   --theme-backdrop-image:
     radial-gradient(circle at 16% 10%, rgba(255, 255, 255, 0.42), transparent 36%);
   --surface-material-image:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.48), transparent 46%),
-    radial-gradient(circle at 86% 108%, rgba(112, 80, 48, 0.045), transparent 42%);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(251, 248, 241, 0.76) 48%, rgba(244, 236, 223, 0.72)),
+    url('../assets/themes/linen-paper-texture.png');
   --surface-material-subtle-image:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.32), transparent 52%),
-    radial-gradient(circle at 10% -12%, rgba(112, 80, 48, 0.035), transparent 38%);
-  --input-material-image: linear-gradient(180deg, rgba(118, 82, 53, 0.025), transparent 48%);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(244, 236, 223, 0.84)),
+    url('../assets/themes/linen-paper-texture.png');
+  --input-material-image:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.86), rgba(248, 242, 232, 0.9)),
+    url('../assets/themes/linen-paper-texture.png');
+  --surface-material-size: auto, 420px 420px;
+  --surface-material-position: center, center;
   --material-surface-shadow: 0 7px 20px rgba(86, 63, 38, 0.1);
   --material-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.72), inset 0 0 0 1px rgba(118, 82, 53, 0.025);
-  --font-weight-body: 500;
-  --font-weight-reading: 500;
-  --font-weight-control: 600;
-  --font-weight-title: 700;
+  --font-weight-body-style: 500;
+  --font-weight-reading-style: 500;
+  --font-weight-control-style: 600;
+  --font-weight-title-style: 700;
   --tag-resident-text: #6d4b30;
   --tag-resident-bg: rgba(118, 82, 53, 0.13);
   --tag-resident-border: rgba(118, 82, 53, 0.24);
@@ -288,15 +375,14 @@
   --tag-activated-bg: rgba(98, 113, 62, 0.13);
   --tag-activated-border: rgba(98, 113, 62, 0.24);
   --editor-fullscreen-background:
-    radial-gradient(circle at center, rgba(255, 253, 248, 0.94) 0%, rgba(244, 239, 230, 0.96) 100%),
-    url('../assets/themes/linen-texture.png') center / 420px 420px repeat;
+    radial-gradient(circle at center, rgba(255, 253, 248, 0.86) 0%, rgba(244, 239, 230, 0.9) 100%),
+    url('../assets/themes/linen-paper-texture.png') center / 560px 560px repeat;
   --selection-bg: rgba(118, 82, 53, 0.22);
 }
 
 [data-interface-style='jade-archive'] {
   color-scheme: dark;
-  --font-sans: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'SimSun', serif;
-  --font-editor: var(--font-sans);
+  --font-style-stack: var(--font-serif-stack);
   --bg-app: #0b0f0d;
   --bg-sidebar: #0e1511;
   --bg-surface: #111815;
@@ -333,24 +419,31 @@
   --shadow-xl: 0 20px 52px rgba(0, 0, 0, 0.52);
   --scrollbar-thumb: rgba(207, 190, 147, 0.16);
   --scrollbar-thumb-hover: rgba(207, 190, 147, 0.28);
-  --theme-texture-image: url('../assets/themes/jade-texture.png');
-  --theme-texture-size: 520px 520px;
-  --theme-texture-opacity: 0.12;
+  --theme-texture-image: url('../assets/themes/jade-stone-texture.png');
+  --theme-texture-size: 620px 620px;
+  --theme-texture-opacity: 0.38;
+  --theme-sidebar-texture-opacity: 0.46;
+  --theme-titlebar-texture-opacity: 0.28;
+  --theme-texture-blend-mode: soft-light;
   --theme-backdrop-image:
     radial-gradient(circle at 72% 8%, rgba(200, 166, 106, 0.2), transparent 30%);
   --surface-material-image:
-    radial-gradient(circle at 12% -10%, rgba(200, 166, 106, 0.075), transparent 36%),
-    linear-gradient(135deg, rgba(91, 161, 128, 0.055), transparent 48%);
+    linear-gradient(135deg, rgba(26, 34, 29, 0.68), rgba(12, 19, 16, 0.8)),
+    url('../assets/themes/jade-stone-texture.png');
   --surface-material-subtle-image:
-    linear-gradient(145deg, rgba(91, 161, 128, 0.05), transparent 52%),
-    radial-gradient(circle at 86% 0%, rgba(200, 166, 106, 0.055), transparent 32%);
-  --input-material-image: linear-gradient(180deg, rgba(200, 166, 106, 0.035), transparent 48%);
+    linear-gradient(145deg, rgba(24, 34, 28, 0.76), rgba(12, 19, 16, 0.86)),
+    url('../assets/themes/jade-stone-texture.png');
+  --input-material-image:
+    linear-gradient(180deg, rgba(14, 21, 18, 0.83), rgba(9, 14, 12, 0.9)),
+    url('../assets/themes/jade-stone-texture.png');
+  --surface-material-size: auto, 480px 480px;
+  --surface-material-position: center, center;
   --material-surface-shadow: 0 9px 24px rgba(0, 0, 0, 0.25);
   --material-inset-shadow: inset 0 1px rgba(220, 203, 160, 0.065), inset 0 0 0 1px rgba(91, 161, 128, 0.035);
-  --font-weight-body: 500;
-  --font-weight-reading: 500;
-  --font-weight-control: 600;
-  --font-weight-title: 700;
+  --font-weight-body-style: 500;
+  --font-weight-reading-style: 500;
+  --font-weight-control-style: 600;
+  --font-weight-title-style: 700;
   --tag-resident-text: #d0b37b;
   --tag-resident-bg: rgba(200, 166, 106, 0.13);
   --tag-resident-border: rgba(200, 166, 106, 0.25);
@@ -358,9 +451,42 @@
   --tag-activated-bg: rgba(91, 161, 128, 0.14);
   --tag-activated-border: rgba(91, 161, 128, 0.25);
   --editor-fullscreen-background:
-    radial-gradient(circle at center, rgba(17, 24, 21, 0.95) 0%, rgba(11, 15, 13, 0.97) 100%),
-    url('../assets/themes/jade-texture.png') center / 520px 520px repeat;
+    radial-gradient(circle at center, rgba(17, 24, 21, 0.86) 0%, rgba(11, 15, 13, 0.91) 100%),
+    url('../assets/themes/jade-stone-texture.png') center / 620px 620px repeat;
   --selection-bg: rgba(200, 166, 106, 0.22);
+}
+
+/* User typography preferences stay independent from interface style palettes. */
+[data-interface-font='theme'] {
+  --font-sans: var(--font-style-stack);
+}
+
+[data-interface-font='system'] {
+  --font-sans: var(--font-system-stack);
+}
+
+[data-interface-font='sans'] {
+  --font-sans: var(--font-modern-sans-stack);
+}
+
+[data-interface-font='serif'] {
+  --font-sans: var(--font-serif-stack);
+}
+
+[data-interface-font='kai'] {
+  --font-sans: var(--font-kai-stack);
+}
+
+[data-interface-weight='light'] {
+  --font-weight-offset: -100;
+}
+
+[data-interface-weight='standard'] {
+  --font-weight-offset: 0;
+}
+
+[data-interface-weight='heavy'] {
+  --font-weight-offset: 100;
 }
 
 /* ─── Global Reset ───────────────────────────────────────────────────────── */
@@ -394,11 +520,11 @@ body {
 }
 
 ::selection {
-  background: var(--selection-bg, rgba(124, 106, 255, 0.35));
+  background: var(--selection-bg, color-mix(in srgb, var(--accent) 35%, transparent));
   color: inherit;
 }
 [data-theme='light'] ::selection {
-  background: var(--selection-bg, rgba(99, 85, 232, 0.25));
+  background: var(--selection-bg, color-mix(in srgb, var(--accent) 25%, transparent));
 }
 
 /* ─── Scrollbars ─────────────────────────────────────────────────────────── */
@@ -587,6 +713,8 @@ body {
 .card {
   background-color: var(--bg-surface);
   background-image: var(--surface-material-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-5);
@@ -806,6 +934,8 @@ body {
 .section-card {
   background-color: var(--bg-surface);
   background-image: var(--surface-material-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -927,7 +1057,7 @@ body {
 
 /* ─── Highlight ─────────────────────────────────────────────────────────── */
 mark {
-  background: rgba(124, 106, 255, 0.25);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
   color: var(--accent);
   border-radius: 2px;
   padding: 0 2px;

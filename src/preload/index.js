@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, clipboard } = require('electron')
+const { contextBridge, ipcRenderer, clipboard, webFrame } = require('electron')
 
 const api = {
   // Window
@@ -18,6 +18,11 @@ const api = {
     setDataDir: (dir) => ipcRenderer.invoke('config:setDataDir', dir),
     get: () => ipcRenderer.invoke('config:get'),
     set: (key, value) => ipcRenderer.invoke('config:set', key, value)
+  },
+  // Whole-renderer zoom. Values are normalized before reaching this bridge.
+  zoom: {
+    setFactor: (factor) => webFrame.setZoomFactor(factor),
+    getFactor: () => webFrame.getZoomFactor()
   },
   // File System
   fs: {

@@ -39,6 +39,8 @@ const categories = [
       { keys: ['Shift', 'Enter'], macKeys: ['Shift', 'Enter'], desc: '列表项内换行或代码块换行' },
       { keys: ['F1'], macKeys: ['F1'], desc: '全局打开“使用说明”指南' },
       { keys: ['Ctrl', '/'], macKeys: ['⌘', '/'], desc: '全局打开/关闭本快捷键面板' },
+      { keys: ['Ctrl', '+ / −'], macKeys: ['⌘', '+ / −'], desc: '放大或缩小整体界面' },
+      { keys: ['Ctrl', '鼠标滚轮'], macKeys: ['⌘', '鼠标滚轮'], desc: '连续调整整体界面缩放' },
       { keys: ['Escape'], macKeys: ['Esc'], desc: '退出全屏写作模式 / 关闭日期跳转' },
     ]
   }
