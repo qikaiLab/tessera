@@ -1,0 +1,105 @@
+/*
+ * Central material layer for fixed interface styles.
+ * Business components expose stable classes; all style-specific color, texture,
+ * weight, and depth decisions stay in the theme tokens declared in global.css.
+ */
+
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) body {
+  text-rendering: optimizeLegibility;
+}
+
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+  .ProseMirror,
+  .notes-list-snippet,
+  .notes-drawer-card-text,
+  .tl-snippet-text
+) {
+  font-weight: var(--font-weight-reading);
+}
+
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+  .page-title,
+  .settings-card-title,
+  .notes-title,
+  .today-date-main,
+  .modal-title,
+  .empty-state-title
+) {
+  font-weight: var(--font-weight-title);
+}
+
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+  .appearance-style-option,
+  .settings-section-item,
+  .settings-row,
+  .backup-item,
+  .settings-typesetting-grid,
+  .timeline-card,
+  .cal-day.week-day,
+  .notes-list-item.active,
+  .notes-date-link-panel,
+  .notes-editor-loading-card,
+  .notes-drawer-tabs,
+  .notes-drawer-card.active,
+  .analytics-card,
+  .modal,
+  .dropdown-menu,
+  .slash-menu
+) {
+  background-color: var(--bg-surface);
+  background-image: var(--surface-material-image);
+  box-shadow: var(--material-surface-shadow), var(--material-inset-shadow);
+}
+
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+  .appearance-accent-panel,
+  .add-section-form,
+  .backup-list-title,
+  .stat-item,
+  .timeline-manage-bar,
+  .countdown-row,
+  .card-editor,
+  .segmented-control,
+  .notes-date-link-type,
+  .notes-editor-actions .card-font-controls,
+  .notes-drawer-search .search-input
+) {
+  background-color: var(--bg-surface-2);
+  background-image: var(--surface-material-subtle-image);
+  box-shadow: var(--material-inset-shadow);
+}
+
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+  .input,
+  .notes-title-input,
+  .notes-drawer-title-input,
+  .analytics-card-title:focus
+) {
+  background-color: var(--bg-input);
+  background-image: var(--input-material-image);
+}
+
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+  .appearance-style-option:hover,
+  .settings-row:hover,
+  .backup-item:hover,
+  .timeline-card:hover,
+  .notes-list-item:hover,
+  .notes-drawer-card:hover
+) {
+  background-color: var(--bg-surface-2);
+  background-image: var(--surface-material-subtle-image);
+}
+
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+  .section-card-title,
+  .settings-field-label,
+  .editor-label,
+  .tl-snippet-label,
+  .cal-weekday,
+  .cal-weekday-label,
+  .badge,
+  .section-type-badge
+) {
+  font-weight: var(--font-weight-control);
+}

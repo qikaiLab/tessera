@@ -16,6 +16,7 @@ import { INTERFACE_STYLE_IDS } from './theme/appearanceRegistry'
 import { APPEARANCE_MESSAGE_KEYS, appearanceText } from './theme/appearanceMessages'
 import { editMenuItems, focusEditableTarget, getEditableSelectionState, showContextMenu } from './utils/contextMenu'
 import './styles/App.css'
+import './theme/appearanceSurfaces.css'
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const APP_SIDEBAR_MIN = 160

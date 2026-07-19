@@ -490,14 +490,8 @@
   -webkit-app-region: no-drag;
 }
 
-[data-theme='dark'] .tiptap-fullscreen {
-  background: radial-gradient(circle at center, rgb(28, 28, 31) 0%, rgb(17, 17, 18) 100%);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-[data-theme='light'] .tiptap-fullscreen {
-  background: radial-gradient(circle at center, rgb(255, 255, 255) 0%, rgb(245, 245, 247) 100%);
+.tiptap-fullscreen {
+  background: var(--editor-fullscreen-background);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }

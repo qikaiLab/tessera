@@ -63,8 +63,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: var(--theme-texture-image);
-  background-size: var(--theme-texture-size);
+  background-image: var(--theme-backdrop-image), var(--theme-texture-image);
+  background-size: cover, var(--theme-texture-size);
+  background-position: center, center;
   opacity: var(--theme-texture-opacity);
   pointer-events: none;
 }

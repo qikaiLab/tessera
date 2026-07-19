@@ -1,0 +1,62 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+const cssPath = path.resolve('src/renderer/src/styles/global.css')
+const css = fs.readFileSync(cssPath, 'utf8')
+
+function getRule(selector) {
+  const start = css.indexOf(`${selector} {`)
+  expect(start).toBeGreaterThanOrEqual(0)
+  const end = css.indexOf('\n}', start)
+  expect(end).toBeGreaterThan(start)
+  return css.slice(start, end)
+}
+
+function getHexVariable(rule, name) {
+  return rule.match(new RegExp(`${name}:\\s*(#[0-9a-f]{6})`, 'i'))?.[1]
+}
+
+function expectNeutralHex(value) {
+  expect(value).toMatch(/^#[0-9a-f]{6}$/i)
+  const channels = value.slice(1).match(/.{2}/g).map(channel => Number.parseInt(channel, 16))
+  expect(new Set(channels).size).toBe(1)
+}
+
+describe('appearance theme CSS contract', () => {
+  it('keeps every default background surface neutral in dark and light modes', () => {
+    for (const selector of ["[data-theme='dark']", "[data-theme='light']"]) {
+      const rule = getRule(selector)
+      for (const variable of [
+        '--bg-app',
+        '--bg-sidebar',
+        '--bg-surface',
+        '--bg-surface-2',
+        '--bg-surface-3',
+        '--bg-hover',
+        '--bg-active',
+        '--bg-input'
+      ]) {
+        expectNeutralHex(getHexVariable(rule, variable))
+      }
+    }
+  })
+
+  it('defines semantic resident and activated tag roles for every fixed style', () => {
+    for (const selector of ["[data-interface-style='linen-study']", "[data-interface-style='jade-archive']"]) {
+      const rule = getRule(selector)
+      expect(rule).toContain('--tag-resident-text:')
+      expect(rule).toContain('--tag-resident-bg:')
+      expect(rule).toContain('--tag-activated-text:')
+      expect(rule).toContain('--tag-activated-bg:')
+    }
+  })
+
+  it('keeps material and fullscreen styling behind theme-level tokens', () => {
+    expect(css).toContain('--surface-material-image:')
+    expect(css).toContain('--surface-material-subtle-image:')
+    expect(css).toContain('--editor-fullscreen-background:')
+    expect(css).not.toContain('rgb(17, 17, 18)')
+    expect(css).not.toContain('rgb(245, 245, 247)')
+  })
+})
