@@ -14,9 +14,20 @@ describe('today page transition contract', () => {
     expect(css).toContain('@keyframes recordCardNext')
   })
 
-  it('animates the return-to-today button before unmounting it', () => {
+  it('keeps the date and return-button geometry stable', () => {
+    expect(css).toContain('.today-date-group')
+    expect(css).toMatch(/\.today-date-group\s*\{[^}]*width:\s*188px/s)
+    expect(css).toMatch(/\.today-return-slot\s*\{[^}]*width:\s*108px/s)
+    expect(component).toContain('<div className="today-return-slot">')
+  })
+
+  it('animates both return-to-today button directions before unmounting it', () => {
+    expect(css).toContain('.today-return-button.is-entering')
     expect(css).toContain('.today-return-button.is-leaving')
+    expect(css).toContain('@keyframes returnToTodayIn')
     expect(css).toContain('@keyframes returnToTodayOut')
-    expect(component).toContain('returningToToday')
+    expect(component).toContain("transitionReturnTodayButton('entering', 'visible')")
+    expect(component).toContain("transitionReturnTodayButton('leaving', 'hidden')")
+    expect(component).toContain("returnTodayPhase !== 'hidden'")
   })
 })

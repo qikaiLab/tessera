@@ -60,6 +60,22 @@ describe('appearance theme CSS contract', () => {
     expect(css).not.toContain('rgb(245, 245, 247)')
   })
 
+  it('uses dedicated cover-sized fullscreen writing assets for fixed styles', () => {
+    const linenAsset = path.resolve('src/renderer/src/assets/themes/linen-fullscreen-background.png')
+    const jadeAsset = path.resolve('src/renderer/src/assets/themes/jade-fullscreen-background.png')
+    expect(fs.existsSync(linenAsset)).toBe(true)
+    expect(fs.existsSync(jadeAsset)).toBe(true)
+    expect(css).toContain("url('../assets/themes/linen-fullscreen-background.png') center / cover no-repeat")
+    expect(css).toContain("url('../assets/themes/jade-fullscreen-background.png') center / cover no-repeat")
+  })
+
+  it('keeps the Jade Archive base surfaces above near-black values', () => {
+    const jadeRule = getRule("[data-interface-style='jade-archive']")
+    expect(getHexVariable(jadeRule, '--bg-app')).toBe('#141c17')
+    expect(getHexVariable(jadeRule, '--bg-surface')).toBe('#1c2821')
+    expect(jadeRule).not.toContain('#0b0f0d')
+  })
+
   it('keeps generated textures and user typography behind theme-level tokens', () => {
     expect(css).toContain("url('../assets/themes/linen-paper-texture.png')")
     expect(css).toContain("url('../assets/themes/jade-stone-texture.png')")

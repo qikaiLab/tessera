@@ -159,14 +159,14 @@
 }
 
 .appearance-accent-options {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  width: min(100%, 520px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--spacing-2);
-  flex-wrap: wrap;
 }
 
 .appearance-accent-option {
+  width: 100%;
   min-height: 34px;
   padding: 0 var(--spacing-3);
   display: inline-flex;
@@ -177,6 +177,7 @@
   background: var(--bg-surface);
   color: var(--text-secondary);
   font-size: var(--text-xs);
+  white-space: nowrap;
   cursor: pointer;
   transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -332,7 +333,7 @@
   }
 
   .appearance-accent-options {
-    justify-content: flex-start;
+    width: 100%;
   }
 
   .interface-preference-row {

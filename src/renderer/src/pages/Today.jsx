@@ -60,7 +60,9 @@ export default function Today() {
   const [dateLeavingDir, setDateLeavingDir] = useState('jump')
   const [showSkeleton, setShowSkeleton] = useState(false)
   const [dateTransitionDir, setDateTransitionDir] = useState('jump')
-  const [returningToToday, setReturningToToday] = useState(false)
+  const [returnTodayPhase, setReturnTodayPhase] = useState(() => (
+    isToday(selectedDate) ? 'hidden' : 'visible'
+  ))
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [jumpInput, setJumpInput] = useState('')
   const [fullScreenSectionId, setFullScreenSectionId] = useState(null)
@@ -79,6 +81,7 @@ export default function Today() {
   const loadSeqRef = useRef(0)
   const dateSwitchTimerRef = useRef(null)
   const returnTodayTimerRef = useRef(null)
+  const returnTodayPhaseRef = useRef(returnTodayPhase)
   const suppressNextLoadTransitionRef = useRef(false)
   // Fix #11: Track escape-handler setTimeout for cleanup
   const escapeTimeoutRef = useRef(null)
@@ -89,6 +92,20 @@ export default function Today() {
   // Keep a ref to dateStr so flush can use latest value
   const dateStrRef = useRef(dateStr)
   dateStrRef.current = dateStr
+  returnTodayPhaseRef.current = returnTodayPhase
+
+  const transitionReturnTodayButton = useCallback((phase, settledPhase) => {
+    if (returnTodayTimerRef.current) clearTimeout(returnTodayTimerRef.current)
+    returnTodayPhaseRef.current = phase
+    setReturnTodayPhase(phase)
+    if (!settledPhase) return
+
+    returnTodayTimerRef.current = setTimeout(() => {
+      returnTodayTimerRef.current = null
+      returnTodayPhaseRef.current = settledPhase
+      setReturnTodayPhase(settledPhase)
+    }, 260)
+  }, [])
 
   const findRecentNumberValue = useCallback(async (targetDateStr, sectionId) => {
     const candidates = datesWithDataRef.current
@@ -342,6 +359,13 @@ export default function Today() {
     const currentTime = selectedDate.getTime()
     const nextTime = date.getTime()
     if (nextTime === currentTime) return
+    const targetIsToday = isToday(date)
+    const returnPhase = returnTodayPhaseRef.current
+    if (targetIsToday && returnPhase !== 'hidden' && returnPhase !== 'leaving') {
+      transitionReturnTodayButton('leaving', 'hidden')
+    } else if (!targetIsToday && (returnPhase === 'hidden' || returnPhase === 'leaving')) {
+      transitionReturnTodayButton('entering', 'visible')
+    }
     const nextDir = nextTime > currentTime ? 'next' : 'prev'
     setDateLeavingDir(nextDir)
     setDateLeaving(true)
@@ -394,14 +418,8 @@ export default function Today() {
   }
 
   const handleReturnToToday = () => {
-    if (returningToToday) return
-    setReturningToToday(true)
+    if (returnTodayPhaseRef.current === 'leaving') return
     goTo(new Date())
-    if (returnTodayTimerRef.current) clearTimeout(returnTodayTimerRef.current)
-    returnTodayTimerRef.current = setTimeout(() => {
-      returnTodayTimerRef.current = null
-      setReturningToToday(false)
-    }, 360)
   }
 
   const startNotesDrawerResize = (event) => {
@@ -479,15 +497,17 @@ export default function Today() {
               >
                 →
               </button>
-              {(!isToday(selectedDate) || returningToToday) && (
-                <button 
-                  className={`btn btn-primary btn-sm today-return-button ${returningToToday ? 'is-leaving' : ''}`}
-                  onClick={handleReturnToToday}
-                  aria-disabled={returningToToday}
-                >
-                  ✦ 回到今日
-                </button>
-              )}
+              <div className="today-return-slot">
+                {returnTodayPhase !== 'hidden' && (
+                  <button
+                    className={`btn btn-primary btn-sm today-return-button is-${returnTodayPhase}`}
+                    onClick={handleReturnToToday}
+                    aria-disabled={returnTodayPhase === 'leaving'}
+                  >
+                    ✦ 回到今日
+                  </button>
+                )}
+              </div>
             </div>
             <div className="today-header-right">
               <button

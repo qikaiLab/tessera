@@ -375,23 +375,23 @@
   --tag-activated-bg: rgba(98, 113, 62, 0.13);
   --tag-activated-border: rgba(98, 113, 62, 0.24);
   --editor-fullscreen-background:
-    radial-gradient(circle at center, rgba(255, 253, 248, 0.86) 0%, rgba(244, 239, 230, 0.9) 100%),
-    url('../assets/themes/linen-paper-texture.png') center / 560px 560px repeat;
+    linear-gradient(rgba(255, 253, 248, 0.12), rgba(244, 239, 230, 0.2)),
+    url('../assets/themes/linen-fullscreen-background.png') center / cover no-repeat;
   --selection-bg: rgba(118, 82, 53, 0.22);
 }
 
 [data-interface-style='jade-archive'] {
   color-scheme: dark;
   --font-style-stack: var(--font-serif-stack);
-  --bg-app: #0b0f0d;
-  --bg-sidebar: #0e1511;
-  --bg-surface: #111815;
-  --bg-surface-2: #151f1a;
-  --bg-surface-3: #1a2821;
-  --bg-hover: #1a2a22;
-  --bg-active: #21372c;
-  --bg-input: #0e1512;
-  --bg-glass: rgba(16, 23, 20, 0.91);
+  --bg-app: #141c17;
+  --bg-sidebar: #17211b;
+  --bg-surface: #1c2821;
+  --bg-surface-2: #223128;
+  --bg-surface-3: #293d32;
+  --bg-hover: #2b4035;
+  --bg-active: #345040;
+  --bg-input: #19251e;
+  --bg-glass: rgba(23, 33, 27, 0.92);
   --border: rgba(196, 178, 132, 0.14);
   --border-hover: rgba(196, 178, 132, 0.25);
   --border-focus: rgba(200, 166, 106, 0.55);
@@ -413,10 +413,10 @@
   --error-light: rgba(212, 106, 106, 0.12);
   --info: #6f9fc9;
   --info-light: rgba(111, 159, 201, 0.12);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.32);
-  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.38);
-  --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.44);
-  --shadow-xl: 0 20px 52px rgba(0, 0, 0, 0.52);
+  --shadow-sm: 0 2px 8px rgba(3, 8, 5, 0.28);
+  --shadow-md: 0 6px 18px rgba(3, 8, 5, 0.34);
+  --shadow-lg: 0 12px 30px rgba(3, 8, 5, 0.4);
+  --shadow-xl: 0 20px 52px rgba(3, 8, 5, 0.46);
   --scrollbar-thumb: rgba(207, 190, 147, 0.16);
   --scrollbar-thumb-hover: rgba(207, 190, 147, 0.28);
   --theme-texture-image: url('../assets/themes/jade-stone-texture.png');
@@ -428,17 +428,17 @@
   --theme-backdrop-image:
     radial-gradient(circle at 72% 8%, rgba(200, 166, 106, 0.2), transparent 30%);
   --surface-material-image:
-    linear-gradient(135deg, rgba(26, 34, 29, 0.68), rgba(12, 19, 16, 0.8)),
+    linear-gradient(135deg, rgba(34, 47, 39, 0.72), rgba(18, 29, 24, 0.82)),
     url('../assets/themes/jade-stone-texture.png');
   --surface-material-subtle-image:
-    linear-gradient(145deg, rgba(24, 34, 28, 0.76), rgba(12, 19, 16, 0.86)),
+    linear-gradient(145deg, rgba(31, 44, 36, 0.78), rgba(17, 27, 22, 0.88)),
     url('../assets/themes/jade-stone-texture.png');
   --input-material-image:
-    linear-gradient(180deg, rgba(14, 21, 18, 0.83), rgba(9, 14, 12, 0.9)),
+    linear-gradient(180deg, rgba(21, 32, 26, 0.86), rgba(15, 24, 20, 0.92)),
     url('../assets/themes/jade-stone-texture.png');
   --surface-material-size: auto, 480px 480px;
   --surface-material-position: center, center;
-  --material-surface-shadow: 0 9px 24px rgba(0, 0, 0, 0.25);
+  --material-surface-shadow: 0 9px 24px rgba(3, 8, 5, 0.22);
   --material-inset-shadow: inset 0 1px rgba(220, 203, 160, 0.065), inset 0 0 0 1px rgba(91, 161, 128, 0.035);
   --font-weight-body-style: 500;
   --font-weight-reading-style: 500;
@@ -451,8 +451,8 @@
   --tag-activated-bg: rgba(91, 161, 128, 0.14);
   --tag-activated-border: rgba(91, 161, 128, 0.25);
   --editor-fullscreen-background:
-    radial-gradient(circle at center, rgba(17, 24, 21, 0.86) 0%, rgba(11, 15, 13, 0.91) 100%),
-    url('../assets/themes/jade-stone-texture.png') center / 620px 620px repeat;
+    radial-gradient(circle at center, rgba(23, 34, 29, 0.1) 0%, rgba(10, 16, 13, 0.24) 100%),
+    url('../assets/themes/jade-fullscreen-background.png') center / cover no-repeat;
   --selection-bg: rgba(200, 166, 106, 0.22);
 }
 

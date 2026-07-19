@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -61,8 +61,32 @@ export default function Settings() {
   const [newSectionColor, setNewSectionColor] = useState('#7c6aff')
   const [newSectionNumberDefaultMode, setNewSectionNumberDefaultMode] = useState(NUMBER_DEFAULT_MODE_MANUAL)
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false, sec: null, hasData: false, checking: false })
+  const [interfaceZoomDraft, setInterfaceZoomDraft] = useState(interfaceZoom)
+  const interfaceZoomPointerActiveRef = useRef(false)
 
   useEffect(() => { loadBackups() }, [])
+  useEffect(() => {
+    if (!interfaceZoomPointerActiveRef.current) setInterfaceZoomDraft(interfaceZoom)
+  }, [interfaceZoom])
+
+  const handleInterfaceZoomChange = (event) => {
+    const nextZoom = Number(event.currentTarget.value)
+    setInterfaceZoomDraft(nextZoom)
+    if (!interfaceZoomPointerActiveRef.current) updateInterfaceZoom(nextZoom)
+  }
+
+  const commitInterfaceZoomDrag = (value) => {
+    if (!interfaceZoomPointerActiveRef.current) return
+    interfaceZoomPointerActiveRef.current = false
+    const nextZoom = Number(value)
+    setInterfaceZoomDraft(nextZoom)
+    updateInterfaceZoom(nextZoom)
+  }
+
+  const cancelInterfaceZoomDrag = () => {
+    interfaceZoomPointerActiveRef.current = false
+    setInterfaceZoomDraft(interfaceZoom)
+  }
 
   const loadBackups = async () => {
     const list = await window.api.backup.list()
@@ -365,9 +389,14 @@ export default function Settings() {
                   min={INTERFACE_ZOOM.MIN}
                   max={INTERFACE_ZOOM.MAX}
                   step={INTERFACE_ZOOM.STEP}
-                  value={interfaceZoom}
-                  onChange={event => updateInterfaceZoom(event.target.value)}
+                  value={interfaceZoomDraft}
+                  onPointerDown={() => { interfaceZoomPointerActiveRef.current = true }}
+                  onChange={handleInterfaceZoomChange}
+                  onPointerUp={event => commitInterfaceZoomDrag(event.currentTarget.value)}
+                  onPointerCancel={cancelInterfaceZoomDrag}
+                  onBlur={event => commitInterfaceZoomDrag(event.currentTarget.value)}
                   aria-label={appearanceText(APPEARANCE_MESSAGE_KEYS.zoomTitle)}
+                  aria-valuetext={`${interfaceZoomDraft}%`}
                 />
                 <button
                   type="button"
@@ -378,7 +407,7 @@ export default function Settings() {
                 >
                   +
                 </button>
-                <output className="interface-zoom-value" aria-live="polite">{interfaceZoom}%</output>
+                <output className="interface-zoom-value" aria-live="polite">{interfaceZoomDraft}%</output>
               </div>
             </div>
 
