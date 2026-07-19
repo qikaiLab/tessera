@@ -695,13 +695,15 @@ function CardEditor({ card, sections, onUpdate }) {
 
 const TooltipStyle = {
   contentStyle: {
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
+    background: 'var(--chart-tooltip-background)',
+    border: '1px solid var(--chart-tooltip-border)',
     borderRadius: 'var(--radius-md)',
+    boxShadow: 'var(--chart-tooltip-shadow)',
     fontSize: '12px',
-    color: 'var(--text-primary)'
+    color: 'var(--chart-tooltip-text)'
   },
-  labelStyle: { color: 'var(--text-secondary)' },
+  itemStyle: { color: 'var(--chart-tooltip-text)' },
+  labelStyle: { color: 'var(--chart-tooltip-label)' },
   labelFormatter: formatTooltipDate
 }
 
@@ -805,14 +807,14 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
 
   if (card.type === 'pie') {
     return (
-      <ResponsiveContainer width="100%" height={220}>
-        <PieChart>
+      <ResponsiveContainer className="analytics-pie-chart" width="100%" height={240}>
+        <PieChart margin={{ top: 24, right: 36, bottom: 24, left: 36 }}>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={60}
-            outerRadius={90}
+            innerRadius={52}
+            outerRadius={78}
             paddingAngle={3}
             dataKey="value"
             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}

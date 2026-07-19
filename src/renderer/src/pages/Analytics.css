@@ -63,6 +63,27 @@
   justify-content: center;
 }
 
+.analytics-pie-chart,
+.analytics-pie-chart .recharts-wrapper,
+.analytics-pie-chart .recharts-surface {
+  overflow: visible;
+}
+
+.analytics-chart-area .recharts-default-tooltip {
+  background: var(--chart-tooltip-background) !important;
+  border-color: var(--chart-tooltip-border) !important;
+  color: var(--chart-tooltip-text) !important;
+  box-shadow: var(--chart-tooltip-shadow);
+}
+
+.analytics-chart-area .recharts-tooltip-label {
+  color: var(--chart-tooltip-label) !important;
+}
+
+.analytics-chart-area .recharts-tooltip-item {
+  color: var(--chart-tooltip-text) !important;
+}
+
 .chart-empty {
   text-align: center;
   color: var(--text-muted);

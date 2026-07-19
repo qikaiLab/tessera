@@ -266,12 +266,15 @@
   align-items: center;
   gap: 2px;
   padding: 5px 8px;
-  background: rgba(28, 28, 31, 0.72);
-  border: 1px solid var(--border-hover);
+  background-color: var(--floating-toolbar-background);
+  background-image: var(--floating-toolbar-background-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
+  border: 1px solid var(--floating-toolbar-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--floating-toolbar-shadow), var(--floating-toolbar-inset-shadow);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
   
   /* Transition states */
   opacity: 0;
@@ -288,10 +291,6 @@
   pointer-events: auto;
 }
 
-[data-theme='light'] .bubble-toolbar {
-  background: rgba(255, 255, 255, 0.72);
-}
-
 .bubble-btn {
   display: flex;
   align-items: center;
@@ -302,7 +301,7 @@
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  color: var(--floating-toolbar-text);
   font-family: var(--font-sans);
   font-size: 13px;
   cursor: pointer;
@@ -310,18 +309,18 @@
   white-space: nowrap;
 }
 .bubble-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--floating-toolbar-hover-background);
+  color: var(--floating-toolbar-hover-text);
 }
 .bubble-btn.is-active {
-  background: var(--accent-light);
-  color: var(--accent);
+  background: var(--floating-toolbar-active-background);
+  color: var(--floating-toolbar-active-text);
 }
 
 .bubble-sep {
   width: 1px;
   height: 16px;
-  background: var(--border);
+  background: var(--floating-toolbar-separator);
   margin: 0 3px;
   flex-shrink: 0;
 }

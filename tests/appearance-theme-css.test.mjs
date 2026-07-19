@@ -82,4 +82,18 @@ describe('appearance theme CSS contract', () => {
     expect(css).toContain("[data-interface-font='theme']")
     expect(css).toContain("[data-interface-weight='heavy']")
   })
+
+  it('defines semantic editor, floating toolbar, and chart tooltip surfaces', () => {
+    for (const token of [
+      '--editor-title-background:',
+      '--floating-toolbar-background:',
+      '--floating-toolbar-hover-background:',
+      '--floating-toolbar-active-background:',
+      '--chart-tooltip-background:',
+      '--chart-tooltip-text:',
+      '--chart-tooltip-border:'
+    ]) {
+      expect(css).toContain(token)
+    }
+  })
 })

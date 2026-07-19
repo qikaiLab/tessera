@@ -410,8 +410,10 @@ body.is-resizing .notes-resize-handle::after {
   min-width: 0;
   border: none;
   outline: none;
-  background: transparent;
+  background-color: var(--editor-title-background);
+  background-image: var(--editor-title-background-image);
   color: var(--text-primary);
+  caret-color: var(--accent);
   font-family: var(--font-sans);
   font-size: var(--text-2xl);
   font-weight: 700;
@@ -419,7 +421,7 @@ body.is-resizing .notes-resize-handle::after {
 }
 
 .notes-title-input::placeholder {
-  color: var(--text-muted);
+  color: var(--editor-title-placeholder);
 }
 
 .notes-editor-actions {

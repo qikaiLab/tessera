@@ -102,7 +102,6 @@
 
 :root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
   .input,
-  .notes-title-input,
   .notes-drawer-title-input,
   .analytics-card-title:focus
 ) {
