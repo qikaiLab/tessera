@@ -1,9 +1,14 @@
 import { useEffect } from 'react'
+import { normalizeContextMenuItems } from './contextMenuModel'
 
 export const separator = { type: 'separator' }
 
 const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable="true"], .ProseMirror'
 const TEXT_MENU_SELECTOR = 'input, textarea, [contenteditable="true"], .selectable'
+const menuSubscribers = new Set()
+const commandSubscribers = new Set()
+let nativeCommandBridgeReady = false
+let requestSequence = 0
 
 export function editMenuItems({
   canUndo = true,
@@ -14,26 +19,225 @@ export function editMenuItems({
   canSelectAll = true
 } = {}) {
   return [
-    { label: '撤销', role: 'undo', enabled: canUndo },
-    { label: '重做', role: 'redo', enabled: canRedo },
+    { label: '撤销', role: 'undo', enabled: canUndo, shortcut: 'Ctrl+Z' },
+    { label: '重做', role: 'redo', enabled: canRedo, shortcut: 'Ctrl+Y' },
     separator,
-    { label: '剪切', role: 'cut', enabled: canCut },
-    { label: '复制', role: 'copy', enabled: canCopy },
-    { label: '粘贴', role: 'paste', enabled: canPaste },
+    { label: '剪切', role: 'cut', enabled: canCut, shortcut: 'Ctrl+X' },
+    { label: '复制文本', role: 'copy', enabled: canCopy, shortcut: 'Ctrl+C' },
+    { label: '粘贴', role: 'paste', enabled: canPaste, shortcut: 'Ctrl+V' },
     separator,
-    { label: '全选', role: 'selectAll', enabled: canSelectAll }
+    { label: '全选', role: 'selectAll', enabled: canSelectAll, shortcut: 'Ctrl+A' }
   ]
+}
+
+function ensureNativeCommandBridge() {
+  if (nativeCommandBridgeReady || !window.api?.contextMenu?.onCommand) return
+  nativeCommandBridgeReady = true
+  window.api.contextMenu.onCommand(({ id, context }) => {
+    dispatchContextMenuCommand(id, context)
+  })
+}
+
+export function subscribeContextMenu(listener) {
+  ensureNativeCommandBridge()
+  menuSubscribers.add(listener)
+  return () => menuSubscribers.delete(listener)
+}
+
+export function dispatchContextMenuCommand(id, context = {}) {
+  commandSubscribers.forEach(subscription => {
+    if (subscription.scope === context?.scope) subscription.handler(id, context)
+  })
+}
+
+function captureEditableSelection(target) {
+  if (!target) return null
+  const tagName = target.tagName?.toLowerCase()
+
+  if (tagName === 'input' || tagName === 'textarea') {
+    let start = null
+    let end = null
+    let direction = 'none'
+    try {
+      start = target.selectionStart
+      end = target.selectionEnd
+      direction = target.selectionDirection || 'none'
+    } catch {
+      // Some input types do not expose text selection.
+    }
+    return { kind: 'input', target, start, end, direction }
+  }
+
+  if (target.isContentEditable || target.closest?.('.ProseMirror')) {
+    const selection = window.getSelection?.()
+    let range = null
+    if (selection?.rangeCount) {
+      const candidate = selection.getRangeAt(0)
+      if (target.contains(candidate.commonAncestorContainer)) range = candidate.cloneRange()
+    }
+    return { kind: 'contenteditable', target, range }
+  }
+
+  return null
+}
+
+function restoreEditableSelection(snapshot) {
+  if (!snapshot?.target?.isConnected) return false
+  focusEditableTarget(snapshot.target)
+
+  if (snapshot.kind === 'input') {
+    if (!Number.isFinite(snapshot.start) || !Number.isFinite(snapshot.end)) return true
+    try {
+      snapshot.target.setSelectionRange(snapshot.start, snapshot.end, snapshot.direction)
+    } catch {
+      // Non-text inputs can be focused but do not accept a selection range.
+    }
+    return true
+  }
+
+  if (snapshot.kind === 'contenteditable' && snapshot.range) {
+    try {
+      const selection = window.getSelection?.()
+      selection?.removeAllRanges()
+      selection?.addRange(snapshot.range)
+    } catch {
+      return false
+    }
+  }
+  return true
+}
+
+function readClipboardText() {
+  try {
+    return String(window.api?.clipboard?.readText?.() || '')
+  } catch {
+    return ''
+  }
+}
+
+export function hasClipboardText() {
+  return readClipboardText().length > 0
+}
+
+async function writeClipboardText(text) {
+  if (window.api?.clipboard?.writeText) {
+    return window.api.clipboard.writeText(text)
+  }
+  return navigator.clipboard?.writeText?.(text)
+}
+
+function dispatchInput(target, inputType, data = null) {
+  const eventInit = { bubbles: true, inputType, data }
+  try {
+    target.dispatchEvent(new InputEvent('input', eventInit))
+  } catch {
+    target.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+}
+
+function replaceInputSelection(snapshot, replacement, inputType) {
+  const target = snapshot.target
+  const value = String(target.value ?? '')
+  const start = Number.isFinite(snapshot.start) ? snapshot.start : value.length
+  const end = Number.isFinite(snapshot.end) ? snapshot.end : start
+  target.setRangeText(replacement, start, end, 'end')
+  snapshot.start = start + replacement.length
+  snapshot.end = snapshot.start
+  dispatchInput(target, inputType, replacement || null)
+}
+
+async function executeTextRole(role, snapshot) {
+  if (!snapshot || !restoreEditableSelection(snapshot)) return
+  const target = snapshot.target
+
+  if (role === 'undo' || role === 'redo') {
+    document.execCommand(role)
+    return
+  }
+
+  if (role === 'selectAll') {
+    if (snapshot.kind === 'input') {
+      target.select?.()
+      return
+    }
+    const range = document.createRange()
+    range.selectNodeContents(target)
+    const selection = window.getSelection?.()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+    return
+  }
+
+  if (role === 'paste') {
+    const text = readClipboardText()
+    if (!text) return
+    if (snapshot.kind === 'input') {
+      replaceInputSelection(snapshot, text, 'insertFromPaste')
+    } else {
+      document.execCommand('insertText', false, text)
+    }
+    return
+  }
+
+  if (role !== 'copy' && role !== 'cut') return
+
+  let selectedText = ''
+  if (snapshot.kind === 'input') {
+    const value = String(target.value ?? '')
+    selectedText = value.slice(snapshot.start ?? 0, snapshot.end ?? 0)
+  } else if (snapshot.range) {
+    selectedText = snapshot.range.toString()
+  }
+  if (!selectedText) return
+
+  await writeClipboardText(selectedText)
+  if (role === 'cut') {
+    if (snapshot.kind === 'input') {
+      replaceInputSelection(snapshot, '', 'deleteByCut')
+    } else {
+      document.execCommand('delete')
+    }
+  }
+}
+
+export async function activateContextMenuItem(request, item) {
+  if (!request || !item || item.type === 'separator' || item.enabled === false) return
+
+  if (item.role) {
+    await executeTextRole(item.role, request.editableSelection)
+    return
+  }
+  if (item.id) dispatchContextMenuCommand(item.id, request.context)
 }
 
 export function showContextMenu(event, items, context = {}) {
   event?.preventDefault?.()
   event?.stopPropagation?.()
 
-  return window.api?.contextMenu?.show?.({
-    items,
+  const normalizedItems = normalizeContextMenuItems(items)
+  if (!normalizedItems.length) return false
+
+  const request = {
+    requestId: ++requestSequence,
+    items: normalizedItems,
     context,
-    x: event?.clientX,
-    y: event?.clientY
+    x: Number.isFinite(event?.clientX) ? event.clientX : 0,
+    y: Number.isFinite(event?.clientY) ? event.clientY : 0,
+    editableSelection: captureEditableSelection(event?.target?.closest?.(TEXT_MENU_SELECTOR))
+  }
+
+  if (menuSubscribers.size > 0) {
+    menuSubscribers.forEach(listener => listener(request))
+    return true
+  }
+
+  // Emergency fallback for early startup or a renderer failure: retain the
+  // native Electron menu path, but the mounted app always uses the custom host.
+  return window.api?.contextMenu?.show?.({
+    items: normalizedItems,
+    context,
+    x: request.x,
+    y: request.y
   })
 }
 
@@ -53,6 +257,15 @@ function selectionIntersects(target, selection) {
   return false
 }
 
+function commandEnabled(command, canEdit) {
+  if (!canEdit) return false
+  try {
+    return document.queryCommandEnabled(command)
+  } catch {
+    return canEdit
+  }
+}
+
 function getInputSelectionState(target) {
   const value = String(target.value ?? '')
   let hasSelection = false
@@ -69,9 +282,11 @@ function getInputSelectionState(target) {
     target,
     canEdit,
     hasSelection,
+    canUndo: commandEnabled('undo', canEdit),
+    canRedo: commandEnabled('redo', canEdit),
     canCut: canEdit && hasSelection,
     canCopy: hasSelection,
-    canPaste: canEdit,
+    canPaste: canEdit && hasClipboardText(),
     canSelectAll: value.length > 0
   }
 }
@@ -96,9 +311,11 @@ export function getEditableSelectionState(target) {
     target: menuTarget,
     canEdit,
     hasSelection,
+    canUndo: commandEnabled('undo', canEdit),
+    canRedo: commandEnabled('redo', canEdit),
     canCut: canEdit && hasSelection,
     canCopy: hasSelection,
-    canPaste: canEdit,
+    canPaste: canEdit && hasClipboardText(),
     canSelectAll: isContentEditable && hasText,
     isProseMirror
   }
@@ -115,11 +332,9 @@ export function focusEditableTarget(target) {
 
 export function useContextMenuCommand(scope, handler) {
   useEffect(() => {
-    if (!window.api?.contextMenu?.onCommand) return undefined
-
-    return window.api.contextMenu.onCommand(({ id, context }) => {
-      if (context?.scope !== scope) return
-      handler(id, context)
-    })
+    ensureNativeCommandBridge()
+    const subscription = { scope, handler }
+    commandSubscribers.add(subscription)
+    return () => commandSubscribers.delete(subscription)
   }, [scope, handler])
 }

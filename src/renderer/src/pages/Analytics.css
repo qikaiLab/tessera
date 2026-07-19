@@ -14,10 +14,19 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
   gap: var(--spacing-5);
+  align-items: stretch;
+}
+
+.analytics-grid > div {
+  min-width: 0;
+  height: 100%;
 }
 
 .analytics-card {
   padding: var(--spacing-4);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   transition: all var(--transition-base);
   animation: fadeIn var(--transition-base) both;
 }
@@ -30,6 +39,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 32px;
+  flex: 0 0 32px;
   margin-bottom: var(--spacing-3);
   gap: var(--spacing-2);
 }
@@ -57,7 +68,10 @@
 }
 
 .analytics-chart-area {
+  height: 220px;
   min-height: 220px;
+  flex: 0 0 220px;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;

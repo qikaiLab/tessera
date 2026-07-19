@@ -59,6 +59,25 @@
   --chart-tooltip-border: var(--border-hover);
   --chart-tooltip-shadow: var(--shadow-md);
 
+  /* Application-drawn context menus share one semantic surface across pages. */
+  --context-menu-background: var(--bg-glass);
+  --context-menu-background-image: none;
+  --context-menu-background-size: auto;
+  --context-menu-border: var(--border-hover);
+  --context-menu-text: var(--text-primary);
+  --context-menu-shortcut-text: var(--text-tertiary);
+  --context-menu-hover-background: var(--bg-hover);
+  --context-menu-hover-text: var(--text-primary);
+  --context-menu-disabled-text: var(--text-muted);
+  --context-menu-disabled-opacity: 0.62;
+  --context-menu-separator: var(--border);
+  --context-menu-danger-text: var(--error);
+  --context-menu-danger-background: var(--error-light);
+  --context-menu-danger-hover-text: var(--error);
+  --context-menu-shadow: var(--shadow-lg);
+  --context-menu-inset-shadow: 0 0 transparent;
+  --context-menu-radius: var(--radius-md);
+
   /* Semantic tag tokens. Components consume roles, never interface-style colors. */
   --tag-resident-text: var(--accent);
   --tag-resident-bg: var(--accent-light);
@@ -410,6 +429,17 @@
   --chart-tooltip-background: rgba(251, 248, 241, 0.98);
   --chart-tooltip-border: rgba(118, 82, 53, 0.24);
   --chart-tooltip-shadow: 0 8px 22px rgba(86, 63, 38, 0.16);
+  --context-menu-background: rgba(251, 248, 241, 0.98);
+  --context-menu-background-image: var(--surface-material-subtle-image);
+  --context-menu-background-size: var(--surface-material-size);
+  --context-menu-border: rgba(118, 82, 53, 0.26);
+  --context-menu-shortcut-text: #81725f;
+  --context-menu-hover-background: rgba(118, 82, 53, 0.11);
+  --context-menu-disabled-text: #9a8a74;
+  --context-menu-separator: rgba(118, 82, 53, 0.18);
+  --context-menu-danger-background: rgba(185, 77, 59, 0.1);
+  --context-menu-shadow: 0 11px 30px rgba(86, 63, 38, 0.2);
+  --context-menu-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.82);
 }
 
 [data-interface-style='jade-archive'] {
@@ -497,6 +527,18 @@
   --chart-tooltip-background: rgba(28, 40, 33, 0.98);
   --chart-tooltip-border: rgba(200, 166, 106, 0.26);
   --chart-tooltip-shadow: 0 10px 26px rgba(3, 8, 5, 0.38);
+  --context-menu-background: rgba(26, 38, 31, 0.98);
+  --context-menu-background-image: var(--surface-material-subtle-image);
+  --context-menu-background-size: var(--surface-material-size);
+  --context-menu-border: rgba(200, 166, 106, 0.27);
+  --context-menu-shortcut-text: #969487;
+  --context-menu-hover-background: rgba(200, 166, 106, 0.11);
+  --context-menu-hover-text: #f4ecdd;
+  --context-menu-disabled-text: #747d75;
+  --context-menu-separator: rgba(200, 166, 106, 0.18);
+  --context-menu-danger-background: rgba(212, 106, 106, 0.13);
+  --context-menu-shadow: 0 14px 34px rgba(3, 8, 5, 0.46);
+  --context-menu-inset-shadow: inset 0 1px rgba(220, 203, 160, 0.08);
 }
 
 /* User typography preferences stay independent from interface style palettes. */

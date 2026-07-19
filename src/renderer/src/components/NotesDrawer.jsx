@@ -524,7 +524,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
       { id: 'new', label: '新建' },
       { id: 'duplicate', label: '新建副本' },
       separator,
-      { id: 'delete', label: '删除' }
+      { id: 'delete', label: '删除', tone: 'danger' }
     ], {
       scope: 'notes-drawer-list',
       noteId: note.id

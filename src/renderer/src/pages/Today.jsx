@@ -314,7 +314,7 @@ export default function Today() {
     if (isEditableMenuTarget(event.target)) return
 
     showContextMenu(event, [
-      { id: 'clear', label: '清空' },
+      { id: 'clear', label: '清空', tone: 'danger' },
       separator,
       { id: 'edit-settings', label: '在设置中编辑' }
     ], {
@@ -786,8 +786,8 @@ function NumberInput({ sectionId, value, unit, onChange, onUseRecentValue, showT
     const textMenuItems = isInputMenu
       ? [
           ...editMenuItems({
-            canUndo: selectionState.canEdit,
-            canRedo: selectionState.canEdit,
+            canUndo: selectionState.canUndo,
+            canRedo: selectionState.canRedo,
             canCut: selectionState.canCut,
             canCopy: selectionState.canCopy,
             canPaste: selectionState.canPaste && canPasteNumber,

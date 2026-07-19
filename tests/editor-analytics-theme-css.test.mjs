@@ -29,9 +29,16 @@ describe('editor and analytics theme CSS contract', () => {
 
   it('gives pie labels safe drawing margins and shares readable tooltip tokens', () => {
     expect(analyticsComponent).toContain('className="analytics-pie-chart"')
-    expect(analyticsComponent).toContain('margin={{ top: 24, right: 36, bottom: 24, left: 36 }}')
+    expect(analyticsComponent).toContain('margin={{ top: 20, right: 36, bottom: 20, left: 36 }}')
     expect(analyticsComponent).toContain("itemStyle: { color: 'var(--chart-tooltip-text)' }")
     expect(analyticsCss).toContain('.analytics-chart-area .recharts-default-tooltip')
     expect(analyticsCss).toContain('color: var(--chart-tooltip-text) !important')
+  })
+
+  it('keeps every chart inside the same fixed card content geometry', () => {
+    expect(analyticsCss).toContain('flex: 0 0 32px')
+    expect(analyticsCss).toContain('height: 220px')
+    expect(analyticsCss).toContain('flex: 0 0 220px')
+    expect(analyticsComponent).not.toContain('height={240}')
   })
 })

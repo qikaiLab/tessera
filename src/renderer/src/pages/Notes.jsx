@@ -416,6 +416,25 @@ export default function Notes() {
     await persistNoteNow(nextNote, nextNotes)
   }, [currentNote, flushPending, notes, persistNoteNow])
 
+  const toggleArchivedById = useCallback(async (noteId) => {
+    const target = notes.find(note => note.id === noteId)
+    if (!target) return
+
+    await flushPending()
+    const nextNote = {
+      ...target,
+      archived: !target.archived,
+      pinned: target.archived ? target.pinned : false,
+      updatedAt: new Date().toISOString()
+    }
+    const nextNotes = notes.map(note =>
+      note.id === noteId ? { ...note, ...nextNote } : note
+    ).sort(compareNotes)
+    setNotes(nextNotes)
+    if (currentNote?.id === noteId) setCurrentNote(nextNote)
+    await persistNoteNow(nextNote, nextNotes)
+  }, [currentNote, flushPending, notes, persistNoteNow])
+
   const deleteNoteById = useCallback(async (noteId) => {
     const target = notes.find(note => note.id === noteId)
     if (!target) return
@@ -458,6 +477,14 @@ export default function Notes() {
     showToast('便签已删除', 'success', 1200)
   }, [confirm, currentNote, flushPending, notes, showArchived, showToast, writeIndex])
 
+  const openDateLinkPanelById = useCallback(async (noteId) => {
+    const note = notes.find(item => item.id === noteId)
+    if (!note) return
+    await selectNote(note)
+    setDateLinkDraft(dateLinkToDraft(note.dateLink))
+    setDateLinkPanelOpen(true)
+  }, [notes, selectNote])
+
   useContextMenuCommand('notes-list', useCallback((id, context) => {
     const note = context?.noteId ? notes.find(item => item.id === context.noteId) : null
     if (id === 'new') {
@@ -473,18 +500,28 @@ export default function Notes() {
       togglePinnedById(note.id)
       return
     }
+    if (id === 'toggle-archive') {
+      toggleArchivedById(note.id)
+      return
+    }
+    if (id === 'edit-date-link') {
+      openDateLinkPanelById(note.id)
+      return
+    }
     if (id === 'delete') {
       deleteNoteById(note.id)
     }
-  }, [createNote, deleteNoteById, duplicateNoteById, notes, togglePinnedById]))
+  }, [createNote, deleteNoteById, duplicateNoteById, notes, openDateLinkPanelById, toggleArchivedById, togglePinnedById]))
 
   const handleNoteListContextMenu = useCallback((event, note) => {
     showContextMenu(event, [
       { id: 'new', label: '新建' },
       { id: 'duplicate', label: '新建副本' },
       { id: 'toggle-pin', label: note.pinned ? '取消置顶' : '置顶' },
+      { id: 'toggle-archive', label: note.archived ? '移出归档' : '归档' },
+      { id: 'edit-date-link', label: '关联日期…' },
       separator,
-      { id: 'delete', label: '删除' }
+      { id: 'delete', label: '删除', tone: 'danger' }
     ], {
       scope: 'notes-list',
       noteId: note.id

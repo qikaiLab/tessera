@@ -495,9 +495,9 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, palette, isE
 
     showContextMenu(event, [
       { id: 'edit', label: isEditing ? '收起编辑' : '编辑' },
-      { id: 'duplicate', label: '复制' },
+      { id: 'duplicate', label: '复制图表' },
       separator,
-      { id: 'delete', label: '删除' }
+      { id: 'delete', label: '删除', tone: 'danger' }
     ], {
       scope: 'analytics-card',
       cardId: card.id
@@ -807,14 +807,14 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
 
   if (card.type === 'pie') {
     return (
-      <ResponsiveContainer className="analytics-pie-chart" width="100%" height={240}>
-        <PieChart margin={{ top: 24, right: 36, bottom: 24, left: 36 }}>
+      <ResponsiveContainer className="analytics-pie-chart" width="100%" height={220}>
+        <PieChart margin={{ top: 20, right: 36, bottom: 20, left: 36 }}>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={52}
-            outerRadius={78}
+            innerRadius={48}
+            outerRadius={72}
             paddingAngle={3}
             dataKey="value"
             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}

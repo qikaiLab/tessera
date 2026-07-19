@@ -11,7 +11,7 @@ import { Extension } from '@tiptap/core'
 import { BubbleToolbar } from './BubbleToolbar'
 import { SlashExtension } from './slashExtension'
 import { useApp } from '../../context/AppContext'
-import { separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { hasClipboardText, separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
 import { isFullscreenEditorShortcut } from '../../utils/editorShortcuts'
 import './TiptapEditor.css'
 
@@ -423,8 +423,8 @@ const TiptapEditor = forwardRef(function TiptapEditor(
       { id: 'redo', label: '重做', enabled: canRunEditorCommand(editor, 'redo') },
       separator,
       { id: 'cut', label: '剪切', enabled: hasSelection },
-      { id: 'copy', label: '复制', enabled: hasSelection },
-      { id: 'paste', label: '粘贴' },
+      { id: 'copy', label: '复制文本', enabled: hasSelection },
+      { id: 'paste', label: '粘贴', enabled: hasClipboardText() },
       separator,
       { id: 'select-all', label: '全选', enabled: countChars(editor) > 0 }
     ], {

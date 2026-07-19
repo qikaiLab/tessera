@@ -6,6 +6,7 @@ import Toast from './components/Toast'
 import Onboarding from './components/Onboarding'
 import ShortcutsModal from './components/ShortcutsModal'
 import CrashRecovery from './components/CrashRecovery'
+import ContextMenu from './components/ContextMenu'
 import Today from './pages/Today'
 import Timeline from './pages/Timeline'
 import Calendar from './pages/Calendar'
@@ -108,8 +109,8 @@ function AppContent() {
 
       focusEditableTarget(selectionState.target)
       showContextMenu(event, editMenuItems({
-        canUndo: selectionState.canEdit,
-        canRedo: selectionState.canEdit,
+        canUndo: selectionState.canUndo,
+        canRedo: selectionState.canRedo,
         canCut: selectionState.canCut,
         canCopy: selectionState.canCopy,
         canPaste: selectionState.canPaste,
@@ -160,6 +161,7 @@ function AppContent() {
         </main>
       </div>
       <Toast />
+      <ContextMenu />
       {showOnboarding && (
         <Onboarding
           onDone={handleOnboardingDone}
