@@ -18,6 +18,7 @@ import {
 import defaultStylePreview from '../assets/themes/default-preview.png'
 import linenStylePreview from '../assets/themes/linen-preview.png'
 import jadeStylePreview from '../assets/themes/jade-preview.png'
+import { defaultFrostedBackground } from '../theme/frostedGlassBackground'
 import './Settings.css'
 import JSZip from 'jszip'
 
@@ -28,7 +29,8 @@ const NUMBER_DEFAULT_MODE_CARRY = 'carry'
 const STYLE_PREVIEW_BY_ID = Object.freeze({
   [INTERFACE_STYLE_IDS.DEFAULT]: defaultStylePreview,
   [INTERFACE_STYLE_IDS.LINEN_STUDY]: linenStylePreview,
-  [INTERFACE_STYLE_IDS.JADE_ARCHIVE]: jadeStylePreview
+  [INTERFACE_STYLE_IDS.JADE_ARCHIVE]: jadeStylePreview,
+  [INTERFACE_STYLE_IDS.FROSTED_GLASS]: defaultFrostedBackground
 })
 
 const getNumberDefaultMode = (section) => {
@@ -46,6 +48,7 @@ export default function Settings() {
     editorLetterSpacing, updateEditorLetterSpacing,
     interfaceStyle, updateInterfaceStyle,
     themeAccent, updateThemeAccent,
+    frostedBackgroundUrl, importFrostedBackground, clearFrostedBackground,
     interfaceZoom, updateInterfaceZoom,
     interfaceFont, updateInterfaceFont,
     interfaceWeight, updateInterfaceWeight,
@@ -62,6 +65,7 @@ export default function Settings() {
   const [newSectionNumberDefaultMode, setNewSectionNumberDefaultMode] = useState(NUMBER_DEFAULT_MODE_MANUAL)
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false, sec: null, hasData: false, checking: false })
   const [interfaceZoomDraft, setInterfaceZoomDraft] = useState(interfaceZoom)
+  const [frostedBackgroundBusy, setFrostedBackgroundBusy] = useState(false)
   const interfaceZoomPointerActiveRef = useRef(false)
 
   useEffect(() => { loadBackups() }, [])
@@ -292,6 +296,28 @@ export default function Settings() {
     showToast('刷新完成', 'success')
   }
 
+  const handleFrostedBackgroundImport = async () => {
+    setFrostedBackgroundBusy(true)
+    try {
+      const result = await importFrostedBackground()
+      if (result.ok && !result.canceled) showToast('雾化玻璃背景已更新', 'success')
+      else if (!result.ok) showToast(result.error || '背景图片导入失败', 'error')
+    } finally {
+      setFrostedBackgroundBusy(false)
+    }
+  }
+
+  const handleFrostedBackgroundClear = async () => {
+    setFrostedBackgroundBusy(true)
+    try {
+      const result = await clearFrostedBackground()
+      if (result.ok) showToast('已恢复系统默认背景', 'success')
+      else showToast(result.error || '恢复默认背景失败', 'error')
+    } finally {
+      setFrostedBackgroundBusy(false)
+    }
+  }
+
   return (
     <div className="settings-page">
       <div className="page-header">
@@ -358,6 +384,54 @@ export default function Settings() {
                     </button>
                   )
                 })}
+              </div>
+            </div>
+          ) : null}
+
+          {interfaceStyle === INTERFACE_STYLE_IDS.FROSTED_GLASS ? (
+            <div className="appearance-background-panel">
+              <div className="appearance-background-preview">
+                <img
+                  src={frostedBackgroundUrl || defaultFrostedBackground}
+                  alt=""
+                  draggable="false"
+                />
+                <span className="appearance-background-glass-sample" aria-hidden="true">
+                  MotoTrace
+                </span>
+              </div>
+              <div className="appearance-background-content">
+                <div className="appearance-background-copy">
+                  <span className="appearance-accent-title">
+                    {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundTitle)}
+                  </span>
+                  <span className="appearance-accent-description">
+                    {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundDescription)}
+                  </span>
+                  <span className="appearance-background-status">
+                    {appearanceText(frostedBackgroundUrl
+                      ? APPEARANCE_MESSAGE_KEYS.frostedBackgroundCustom
+                      : APPEARANCE_MESSAGE_KEYS.frostedBackgroundDefault)}
+                  </span>
+                </div>
+                <div className="appearance-background-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={frostedBackgroundBusy}
+                    onClick={handleFrostedBackgroundImport}
+                  >
+                    {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundImport)}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={frostedBackgroundBusy || !frostedBackgroundUrl}
+                    onClick={handleFrostedBackgroundClear}
+                  >
+                    {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundRestore)}
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}

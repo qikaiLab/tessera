@@ -18,6 +18,9 @@
   --theme-titlebar-texture-opacity: var(--theme-texture-opacity);
   --theme-texture-blend-mode: normal;
   --theme-backdrop-image: none;
+  --frosted-background-image: url('../assets/themes/frosted-glass-background.png');
+  --frosted-accent-h: 212;
+  --frosted-accent-s: 64%;
   --accent-contrast: #fff;
   --font-weight-offset: 0;
   --font-weight-body-style: 400;
@@ -541,6 +544,181 @@
   --context-menu-inset-shadow: inset 0 1px rgba(220, 203, 160, 0.08);
 }
 
+[data-interface-style='frosted-glass'] {
+  --font-style-stack: var(--font-modern-sans-stack);
+  --theme-texture-image: none;
+  --theme-texture-opacity: 0;
+  --theme-sidebar-texture-opacity: 0;
+  --theme-titlebar-texture-opacity: 0;
+  --theme-backdrop-image: none;
+  --surface-material-size: auto;
+  --surface-material-position: center;
+  --font-weight-body-style: 400;
+  --font-weight-reading-style: 400;
+  --font-weight-control-style: 500;
+  --font-weight-title-style: 650;
+}
+
+[data-interface-style='frosted-glass'][data-theme='dark'] {
+  color-scheme: dark;
+  --bg-app: rgba(5, 14, 27, 0.22);
+  --bg-sidebar: rgba(7, 18, 34, 0.44);
+  --bg-surface: rgba(14, 28, 49, 0.57);
+  --bg-surface-2: rgba(20, 38, 64, 0.62);
+  --bg-surface-3: rgba(31, 53, 84, 0.68);
+  --bg-hover: rgba(124, 166, 218, 0.16);
+  --bg-active: rgba(138, 181, 232, 0.23);
+  --bg-input: rgba(7, 19, 36, 0.57);
+  --bg-glass: rgba(12, 26, 47, 0.75);
+  --border: rgba(224, 239, 255, 0.16);
+  --border-hover: rgba(229, 243, 255, 0.29);
+  --border-focus: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 72% / 0.72);
+  --text-primary: #f5f8fc;
+  --text-secondary: #c5d1df;
+  --text-tertiary: #93a6bb;
+  --text-muted: #70849a;
+  --text-inverse: #09131f;
+  --accent: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 72%);
+  --accent-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 80%);
+  --accent-contrast: #08111d;
+  --accent-light: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 66% / 0.17);
+  --accent-light-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 70% / 0.25);
+  --success: #7bdbad;
+  --success-light: rgba(73, 190, 135, 0.16);
+  --warning: #f0c56a;
+  --warning-light: rgba(221, 165, 54, 0.16);
+  --error: #ff9898;
+  --error-light: rgba(230, 89, 89, 0.17);
+  --info: #86bbf3;
+  --info-light: rgba(84, 153, 224, 0.17);
+  --shadow-sm: 0 2px 8px rgba(1, 7, 17, 0.18);
+  --shadow-md: 0 8px 24px rgba(1, 7, 17, 0.25);
+  --shadow-lg: 0 16px 42px rgba(1, 7, 17, 0.33);
+  --shadow-xl: 0 24px 64px rgba(1, 7, 17, 0.42);
+  --scrollbar-thumb: rgba(228, 241, 255, 0.22);
+  --scrollbar-thumb-hover: rgba(228, 241, 255, 0.36);
+  --surface-material-image:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.018) 48%, rgba(5, 15, 30, 0.12));
+  --surface-material-subtle-image:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(8, 19, 37, 0.1));
+  --input-material-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(4, 13, 27, 0.13));
+  --material-surface-shadow: 0 12px 34px rgba(1, 7, 17, 0.2);
+  --material-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+  --tag-resident-text: var(--accent);
+  --tag-resident-bg: var(--accent-light);
+  --tag-resident-border: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 70% / 0.28);
+  --tag-activated-text: #86ddb4;
+  --tag-activated-bg: rgba(73, 190, 135, 0.16);
+  --tag-activated-border: rgba(123, 219, 173, 0.28);
+  --editor-fullscreen-background:
+    linear-gradient(rgba(4, 13, 27, 0.66), rgba(4, 13, 27, 0.76)),
+    var(--frosted-background-image) center / cover no-repeat;
+  --selection-bg: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 70% / 0.3);
+  --floating-toolbar-background: rgba(10, 24, 44, 0.84);
+  --floating-toolbar-background-image: var(--surface-material-subtle-image);
+  --floating-toolbar-border: rgba(230, 242, 255, 0.25);
+  --floating-toolbar-hover-background: var(--bg-hover);
+  --floating-toolbar-active-background: var(--accent-light-hover);
+  --floating-toolbar-separator: rgba(230, 242, 255, 0.18);
+  --floating-toolbar-shadow: var(--shadow-lg);
+  --floating-toolbar-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.16);
+  --chart-tooltip-background: rgba(10, 24, 44, 0.91);
+  --chart-tooltip-border: rgba(230, 242, 255, 0.24);
+  --chart-tooltip-shadow: var(--shadow-lg);
+  --context-menu-background: rgba(9, 22, 41, 0.91);
+  --context-menu-background-image: var(--surface-material-subtle-image);
+  --context-menu-background-size: auto;
+  --context-menu-border: rgba(230, 242, 255, 0.24);
+  --context-menu-shortcut-text: var(--text-tertiary);
+  --context-menu-hover-background: var(--bg-hover);
+  --context-menu-disabled-text: var(--text-muted);
+  --context-menu-separator: var(--border);
+  --context-menu-danger-background: var(--error-light);
+  --context-menu-shadow: var(--shadow-xl);
+  --context-menu-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.16);
+}
+
+[data-interface-style='frosted-glass'][data-theme='light'] {
+  color-scheme: light;
+  --bg-app: rgba(238, 245, 252, 0.24);
+  --bg-sidebar: rgba(242, 247, 252, 0.56);
+  --bg-surface: rgba(250, 252, 255, 0.68);
+  --bg-surface-2: rgba(241, 247, 252, 0.72);
+  --bg-surface-3: rgba(227, 237, 247, 0.77);
+  --bg-hover: rgba(255, 255, 255, 0.54);
+  --bg-active: rgba(222, 235, 247, 0.82);
+  --bg-input: rgba(253, 254, 255, 0.69);
+  --bg-glass: rgba(247, 251, 255, 0.82);
+  --border: rgba(35, 62, 89, 0.16);
+  --border-hover: rgba(35, 62, 89, 0.28);
+  --border-focus: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 38% / 0.66);
+  --text-primary: #172333;
+  --text-secondary: #40546a;
+  --text-tertiary: #65798e;
+  --text-muted: #7e91a4;
+  --text-inverse: #f7fbff;
+  --accent: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 36%);
+  --accent-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 30%);
+  --accent-contrast: #ffffff;
+  --accent-light: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 42% / 0.14);
+  --accent-light-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 40% / 0.21);
+  --success: #287a55;
+  --success-light: rgba(40, 122, 85, 0.12);
+  --warning: #966517;
+  --warning-light: rgba(150, 101, 23, 0.12);
+  --error: #b74646;
+  --error-light: rgba(183, 70, 70, 0.12);
+  --info: #356caa;
+  --info-light: rgba(53, 108, 170, 0.12);
+  --shadow-sm: 0 2px 8px rgba(23, 47, 72, 0.1);
+  --shadow-md: 0 8px 24px rgba(23, 47, 72, 0.14);
+  --shadow-lg: 0 16px 42px rgba(23, 47, 72, 0.18);
+  --shadow-xl: 0 24px 64px rgba(23, 47, 72, 0.24);
+  --scrollbar-thumb: rgba(42, 68, 93, 0.2);
+  --scrollbar-thumb-hover: rgba(42, 68, 93, 0.34);
+  --surface-material-image:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.22) 48%, rgba(216, 229, 241, 0.2));
+  --surface-material-subtle-image:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.54), rgba(224, 235, 246, 0.2));
+  --input-material-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(231, 240, 248, 0.2));
+  --material-surface-shadow: 0 12px 34px rgba(23, 47, 72, 0.13);
+  --material-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.86), inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  --tag-resident-text: var(--accent);
+  --tag-resident-bg: var(--accent-light);
+  --tag-resident-border: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 38% / 0.24);
+  --tag-activated-text: #287a55;
+  --tag-activated-bg: rgba(40, 122, 85, 0.12);
+  --tag-activated-border: rgba(40, 122, 85, 0.22);
+  --editor-fullscreen-background:
+    linear-gradient(rgba(247, 251, 255, 0.72), rgba(239, 247, 253, 0.8)),
+    var(--frosted-background-image) center / cover no-repeat;
+  --selection-bg: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 40% / 0.22);
+  --floating-toolbar-background: rgba(247, 251, 255, 0.9);
+  --floating-toolbar-background-image: var(--surface-material-subtle-image);
+  --floating-toolbar-border: rgba(35, 62, 89, 0.22);
+  --floating-toolbar-hover-background: var(--bg-hover);
+  --floating-toolbar-active-background: var(--accent-light-hover);
+  --floating-toolbar-separator: rgba(35, 62, 89, 0.16);
+  --floating-toolbar-shadow: var(--shadow-lg);
+  --floating-toolbar-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.84);
+  --chart-tooltip-background: rgba(247, 251, 255, 0.94);
+  --chart-tooltip-border: rgba(35, 62, 89, 0.22);
+  --chart-tooltip-shadow: var(--shadow-lg);
+  --context-menu-background: rgba(247, 251, 255, 0.94);
+  --context-menu-background-image: var(--surface-material-subtle-image);
+  --context-menu-background-size: auto;
+  --context-menu-border: rgba(35, 62, 89, 0.22);
+  --context-menu-shortcut-text: var(--text-tertiary);
+  --context-menu-hover-background: var(--bg-hover);
+  --context-menu-disabled-text: var(--text-muted);
+  --context-menu-separator: var(--border);
+  --context-menu-danger-background: var(--error-light);
+  --context-menu-shadow: var(--shadow-xl);
+  --context-menu-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.82);
+}
+
 /* User typography preferences stay independent from interface style palettes. */
 [data-interface-font='theme'] {
   --font-sans: var(--font-style-stack);
@@ -734,7 +912,7 @@ body {
 
 .btn-primary {
   background: var(--accent);
-  color: white;
+  color: var(--accent-contrast, white);
 }
 .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 .btn-primary:active { transform: translateY(0); }

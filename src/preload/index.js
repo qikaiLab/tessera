@@ -43,6 +43,11 @@ const api = {
     openFile: (opts) => ipcRenderer.invoke('dialog:openFile', opts),
     confirm: (opts) => ipcRenderer.invoke('dialog:confirm', opts)
   },
+  appearanceBackground: {
+    get: () => ipcRenderer.invoke('appearanceBackground:get'),
+    import: () => ipcRenderer.invoke('appearanceBackground:import'),
+    clear: () => ipcRenderer.invoke('appearanceBackground:clear')
+  },
   // Backup
   backup: {
     create: () => ipcRenderer.invoke('backup:create'),

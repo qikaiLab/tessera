@@ -19,4 +19,13 @@ describe('settings appearance interaction contract', () => {
     expect(css).toMatch(/\.appearance-accent-options\s*\{[^}]*display:\s*grid/s)
     expect(css).toMatch(/\.appearance-accent-options\s*\{[^}]*grid-template-columns:\s*repeat\(4,/s)
   })
+
+  it('shows managed background controls only for Frosted Glass', () => {
+    expect(component).toContain('interfaceStyle === INTERFACE_STYLE_IDS.FROSTED_GLASS')
+    expect(component).toContain('importFrostedBackground')
+    expect(component).toContain('clearFrostedBackground')
+    expect(component).toContain('frostedBackgroundUrl || defaultFrostedBackground')
+    expect(css).toContain('.appearance-background-panel')
+    expect(css).toContain('backdrop-filter: blur(14px) saturate(125%)')
+  })
 })

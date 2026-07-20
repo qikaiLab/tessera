@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const cssPath = path.resolve('src/renderer/src/styles/global.css')
 const css = fs.readFileSync(cssPath, 'utf8')
+const appCss = fs.readFileSync(path.resolve('src/renderer/src/styles/App.css'), 'utf8')
 
 function getRule(selector) {
   const start = css.indexOf(`${selector} {`)
@@ -43,7 +44,12 @@ describe('appearance theme CSS contract', () => {
   })
 
   it('defines semantic resident and activated tag roles for every fixed style', () => {
-    for (const selector of ["[data-interface-style='linen-study']", "[data-interface-style='jade-archive']"]) {
+    for (const selector of [
+      "[data-interface-style='linen-study']",
+      "[data-interface-style='jade-archive']",
+      "[data-interface-style='frosted-glass'][data-theme='dark']",
+      "[data-interface-style='frosted-glass'][data-theme='light']"
+    ]) {
       const rule = getRule(selector)
       expect(rule).toContain('--tag-resident-text:')
       expect(rule).toContain('--tag-resident-bg:')
@@ -67,6 +73,23 @@ describe('appearance theme CSS contract', () => {
     expect(fs.existsSync(jadeAsset)).toBe(true)
     expect(css).toContain("url('../assets/themes/linen-fullscreen-background.png') center / cover no-repeat")
     expect(css).toContain("url('../assets/themes/jade-fullscreen-background.png') center / cover no-repeat")
+  })
+
+  it('defines a generated default background and adaptive light and dark glass recipes', () => {
+    const frostedAsset = path.resolve('src/renderer/src/assets/themes/frosted-glass-background.png')
+    expect(fs.existsSync(frostedAsset)).toBe(true)
+    expect(css).toContain("url('../assets/themes/frosted-glass-background.png')")
+    expect(css).toContain("[data-interface-style='frosted-glass'][data-theme='dark']")
+    expect(css).toContain("[data-interface-style='frosted-glass'][data-theme='light']")
+    expect(css).toContain('--frosted-accent-h:')
+    expect(css).toContain('var(--frosted-background-image) center / cover no-repeat')
+  })
+
+  it('keeps fullscreen positioning independent from the frosted shell blur layer', () => {
+    expect(appCss).toContain("[data-interface-style='frosted-glass'] .app-main::before")
+    expect(appCss).not.toMatch(
+      /\[data-interface-style='frosted-glass'\][^{]*\.app-main[^:][^{]*\{[^}]*backdrop-filter:/s
+    )
   })
 
   it('keeps the Jade Archive base surfaces above near-black values', () => {

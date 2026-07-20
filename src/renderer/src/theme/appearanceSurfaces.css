@@ -4,11 +4,11 @@
  * weight, and depth decisions stay in the theme tokens declared in global.css.
  */
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) body {
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass']) body {
   text-rendering: optimizeLegibility;
 }
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'])
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass'])
   .tiptap-fullscreen-header
   :is(.tiptap-char-count, .tiptap-font-controls, .tiptap-width-toggle) {
   opacity: 0.78;
@@ -23,7 +23,7 @@
   font-weight: var(--font-weight-reading);
 }
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass']) :is(
   .notes-page,
   .notes-editor-panel
 ) {
@@ -33,7 +33,7 @@
   background-position: var(--surface-material-position);
 }
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) .notes-list-panel {
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass']) .notes-list-panel {
   background-color: var(--bg-sidebar);
   background-image: var(--surface-material-subtle-image);
   background-size: var(--surface-material-size);
@@ -54,7 +54,7 @@
   font-weight: var(--font-weight-title);
 }
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass']) :is(
   .appearance-style-option,
   .settings-section-item,
   .settings-row,
@@ -80,7 +80,7 @@
   box-shadow: var(--material-surface-shadow), var(--material-inset-shadow);
 }
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass']) :is(
   .appearance-accent-panel,
   .add-section-form,
   .backup-list-title,
@@ -100,7 +100,7 @@
   box-shadow: var(--material-inset-shadow);
 }
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass']) :is(
   .input,
   .analytics-card-title:focus
 ) {
@@ -110,7 +110,7 @@
   background-position: var(--surface-material-position);
 }
 
-:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive']) :is(
+:root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass']) :is(
   .appearance-style-option:hover,
   .settings-row:hover,
   .backup-item:hover,
@@ -142,4 +142,40 @@
   .section-type-badge
 ) {
   font-weight: var(--font-weight-control);
+}
+
+:root[data-interface-style='frosted-glass'] :is(
+  .card,
+  .section-card,
+  .appearance-style-option,
+  .appearance-background-panel,
+  .settings-section-item,
+  .settings-row,
+  .backup-item,
+  .settings-typesetting-grid,
+  .interface-preference-panel,
+  .timeline-card,
+  .cal-day.week-day,
+  .notes-list-item.active,
+  .notes-date-link-panel,
+  .notes-editor-loading-card,
+  .notes-drawer-tabs,
+  .notes-drawer-card.active,
+  .analytics-card,
+  .modal,
+  .dropdown-menu,
+  .slash-menu,
+  .context-menu
+) {
+  backdrop-filter: blur(22px) saturate(138%);
+  -webkit-backdrop-filter: blur(22px) saturate(138%);
+}
+
+:root[data-interface-style='frosted-glass'] :is(
+  .input,
+  .notes-drawer-search .search-input,
+  .floating-toolbar
+) {
+  backdrop-filter: blur(14px) saturate(128%);
+  -webkit-backdrop-filter: blur(14px) saturate(128%);
 }

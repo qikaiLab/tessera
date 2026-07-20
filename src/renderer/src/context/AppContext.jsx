@@ -3,10 +3,12 @@ import {
   INTERFACE_STYLE_IDS,
   THEME_ACCENT_IDS,
   applyAppearanceToRoot,
+  isThemeToggleAvailable,
   normalizeInterfaceStyleId,
   normalizeTheme,
   normalizeThemeAccentId
 } from '../theme/appearanceRegistry'
+import { applyFrostedGlassBackground } from '../theme/frostedGlassBackground'
 import {
   INTERFACE_FONT_IDS,
   INTERFACE_WEIGHT_IDS,
@@ -46,6 +48,7 @@ export function AppProvider({ children }) {
   const [theme, setTheme] = useState('dark')
   const [interfaceStyle, setInterfaceStyle] = useState(INTERFACE_STYLE_IDS.DEFAULT)
   const [themeAccent, setThemeAccent] = useState(THEME_ACCENT_IDS.VIOLET)
+  const [frostedBackgroundUrl, setFrostedBackgroundUrl] = useState(null)
   const [interfaceZoom, setInterfaceZoom] = useState(INTERFACE_ZOOM.DEFAULT)
   const [interfaceFont, setInterfaceFont] = useState(INTERFACE_FONT_IDS.THEME)
   const [interfaceWeight, setInterfaceWeight] = useState(INTERFACE_WEIGHT_IDS.STANDARD)
@@ -261,7 +264,7 @@ export function AppProvider({ children }) {
 
 
   const toggleTheme = useCallback(() => {
-    if (interfaceStyle !== INTERFACE_STYLE_IDS.DEFAULT) return
+    if (!isThemeToggleAvailable(interfaceStyle)) return
     const next = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
     applyAppearanceToRoot(document.documentElement, { interfaceStyle, theme: next, themeAccent })
@@ -274,6 +277,24 @@ export function AppProvider({ children }) {
     applyAppearanceToRoot(document.documentElement, { interfaceStyle: next, theme, themeAccent })
     window.api.config.set('interfaceStyle', next)
   }, [theme, themeAccent])
+
+  const importFrostedBackground = useCallback(async () => {
+    const result = await window.api.appearanceBackground.import()
+    if (result.ok && !result.canceled && result.background?.dataUrl) {
+      setFrostedBackgroundUrl(result.background.dataUrl)
+      await applyFrostedGlassBackground(document.documentElement, result.background.dataUrl)
+    }
+    return result
+  }, [])
+
+  const clearFrostedBackground = useCallback(async () => {
+    const result = await window.api.appearanceBackground.clear()
+    if (result.ok) {
+      setFrostedBackgroundUrl(null)
+      await applyFrostedGlassBackground(document.documentElement)
+    }
+    return result
+  }, [])
 
   const updateThemeAccent = useCallback((value) => {
     const next = normalizeThemeAccentId(value)
@@ -415,6 +436,12 @@ export function AppProvider({ children }) {
           interfaceFont: savedInterfaceFont,
           interfaceWeight: savedInterfaceWeight
         })
+        const backgroundResult = await window.api.appearanceBackground.get()
+        const savedFrostedBackground = backgroundResult.ok
+          ? backgroundResult.background?.dataUrl ?? null
+          : null
+        setFrostedBackgroundUrl(savedFrostedBackground)
+        await applyFrostedGlassBackground(document.documentElement, savedFrostedBackground)
         window.api.zoom.setFactor(savedInterfaceZoom / 100)
 
         setFullscreenWidthMode(cfg.fullscreenWidthMode || 'standard')
@@ -483,6 +510,7 @@ export function AppProvider({ children }) {
       theme, toggleTheme,
       interfaceStyle, updateInterfaceStyle,
       themeAccent, updateThemeAccent,
+      frostedBackgroundUrl, importFrostedBackground, clearFrostedBackground,
       interfaceZoom, updateInterfaceZoom, adjustInterfaceZoom,
       interfaceFont, updateInterfaceFont,
       interfaceWeight, updateInterfaceWeight,

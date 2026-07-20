@@ -44,7 +44,7 @@ export const INTERFACE_STYLE_REGISTRY = Object.freeze([
     id: INTERFACE_STYLE_IDS.FROSTED_GLASS,
     labelKey: APPEARANCE_MESSAGE_KEYS.frostedGlassStyleLabel,
     descriptionKey: APPEARANCE_MESSAGE_KEYS.frostedGlassStyleDescription,
-    available: false,
+    available: true,
     fixedTheme: null,
     capabilities: Object.freeze(['background-image'])
   })
@@ -88,6 +88,10 @@ export function getInterfaceStyle(styleId) {
 export function resolveEffectiveTheme(styleId, defaultTheme) {
   const style = getInterfaceStyle(normalizeInterfaceStyleId(styleId))
   return style.fixedTheme ?? normalizeTheme(defaultTheme)
+}
+
+export function isThemeToggleAvailable(styleId) {
+  return getInterfaceStyle(normalizeInterfaceStyleId(styleId)).fixedTheme === null
 }
 
 export function resolveAppearanceConfig(config = {}) {

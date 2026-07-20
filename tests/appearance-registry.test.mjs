@@ -6,6 +6,7 @@ import {
   THEME_ACCENT_IDS,
   THEME_ACCENT_OPTIONS,
   applyAppearanceToRoot,
+  isThemeToggleAvailable,
   normalizeInterfaceStyleId,
   normalizeThemeAccentId,
   resolveAppearanceConfig,
@@ -27,22 +28,23 @@ describe('appearance registry', () => {
     ])
   })
 
-  it('exposes only completed styles while retaining the frosted-glass extension point', () => {
+  it('exposes all completed styles including Frosted Glass', () => {
     expect(SELECTABLE_INTERFACE_STYLES.map(style => style.id)).toEqual([
       INTERFACE_STYLE_IDS.DEFAULT,
       INTERFACE_STYLE_IDS.LINEN_STUDY,
-      INTERFACE_STYLE_IDS.JADE_ARCHIVE
+      INTERFACE_STYLE_IDS.JADE_ARCHIVE,
+      INTERFACE_STYLE_IDS.FROSTED_GLASS
     ])
 
     expect(INTERFACE_STYLE_REGISTRY.find(style => style.id === INTERFACE_STYLE_IDS.FROSTED_GLASS)).toMatchObject({
-      available: false,
+      available: true,
       capabilities: ['background-image']
     })
   })
 
-  it('falls back safely for unknown or unavailable persisted values', () => {
+  it('falls back safely for unknown persisted values', () => {
     expect(normalizeInterfaceStyleId('blue-mist')).toBe(INTERFACE_STYLE_IDS.DEFAULT)
-    expect(normalizeInterfaceStyleId(INTERFACE_STYLE_IDS.FROSTED_GLASS)).toBe(INTERFACE_STYLE_IDS.DEFAULT)
+    expect(normalizeInterfaceStyleId(INTERFACE_STYLE_IDS.FROSTED_GLASS)).toBe(INTERFACE_STYLE_IDS.FROSTED_GLASS)
     expect(normalizeThemeAccentId('unknown')).toBe(THEME_ACCENT_IDS.VIOLET)
   })
 
@@ -50,6 +52,11 @@ describe('appearance registry', () => {
     expect(resolveEffectiveTheme(INTERFACE_STYLE_IDS.DEFAULT, 'light')).toBe('light')
     expect(resolveEffectiveTheme(INTERFACE_STYLE_IDS.LINEN_STUDY, 'dark')).toBe('light')
     expect(resolveEffectiveTheme(INTERFACE_STYLE_IDS.JADE_ARCHIVE, 'light')).toBe('dark')
+    expect(resolveEffectiveTheme(INTERFACE_STYLE_IDS.FROSTED_GLASS, 'light')).toBe('light')
+    expect(resolveEffectiveTheme(INTERFACE_STYLE_IDS.FROSTED_GLASS, 'dark')).toBe('dark')
+    expect(isThemeToggleAvailable(INTERFACE_STYLE_IDS.DEFAULT)).toBe(true)
+    expect(isThemeToggleAvailable(INTERFACE_STYLE_IDS.FROSTED_GLASS)).toBe(true)
+    expect(isThemeToggleAvailable(INTERFACE_STYLE_IDS.LINEN_STUDY)).toBe(false)
   })
 
   it('normalizes legacy config and applies decoupled data attributes', () => {

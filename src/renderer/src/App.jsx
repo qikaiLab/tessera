@@ -13,7 +13,7 @@ import Calendar from './pages/Calendar'
 import Analytics from './pages/Analytics'
 import Notes from './pages/Notes'
 import Settings from './pages/Settings'
-import { INTERFACE_STYLE_IDS } from './theme/appearanceRegistry'
+import { isThemeToggleAvailable } from './theme/appearanceRegistry'
 import { APPEARANCE_MESSAGE_KEYS, appearanceText } from './theme/appearanceMessages'
 import { getZoomDeltaFromKeyboardEvent, getZoomDeltaFromWheelEvent } from './theme/interfacePreferences'
 import { editMenuItems, focusEditableTarget, getEditableSelectionState, showContextMenu } from './utils/contextMenu'
@@ -181,7 +181,7 @@ function AppContent() {
 
 function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
   const { theme, toggleTheme, interfaceStyle } = useApp()
-  const isDefaultStyle = interfaceStyle === INTERFACE_STYLE_IDS.DEFAULT
+  const canToggleTheme = isThemeToggleAvailable(interfaceStyle)
 
   const navItems = [
     { to: '/today', icon: '◎', label: '记录', exact: false },
@@ -224,8 +224,8 @@ function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
         <button
           className="theme-toggle btn btn-ghost btn-icon"
           onClick={toggleTheme}
-          disabled={!isDefaultStyle}
-          title={isDefaultStyle
+          disabled={!canToggleTheme}
+          title={canToggleTheme
             ? appearanceText(theme === 'dark'
               ? APPEARANCE_MESSAGE_KEYS.switchToLight
               : APPEARANCE_MESSAGE_KEYS.switchToDark)

@@ -8,6 +8,11 @@ import {
   isAllowedExternalUrl,
   isAppNavigationUrl as isAllowedAppNavigation
 } from './security.js'
+import {
+  importBackgroundImage,
+  readManagedBackground,
+  removeManagedBackgrounds
+} from './appearanceBackground.js'
 
 // Platform path helpers
 const isDev = !app.isPackaged
@@ -472,6 +477,42 @@ ipcMain.handle('dialog:confirm', async (_, { message, buttons = ['确定', '取�
     noLink: true
   })
   return response === 0
+})
+
+// Keep imported appearance assets in app-owned storage so moving the source
+// file cannot break a persisted background.
+ipcMain.handle('appearanceBackground:get', async () => {
+  try {
+    const background = await readManagedBackground(app.getPath('userData'))
+    return { ok: true, background }
+  } catch (error) {
+    return { ok: false, error: error.message }
+  }
+})
+
+ipcMain.handle('appearanceBackground:import', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '选择雾化玻璃背景图',
+    properties: ['openFile'],
+    filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
+  })
+  if (result.canceled || !result.filePaths[0]) return { ok: true, canceled: true }
+
+  try {
+    const background = await importBackgroundImage(result.filePaths[0], app.getPath('userData'))
+    return { ok: true, canceled: false, background }
+  } catch (error) {
+    return { ok: false, error: error.message }
+  }
+})
+
+ipcMain.handle('appearanceBackground:clear', async () => {
+  try {
+    await removeManagedBackgrounds(app.getPath('userData'))
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: error.message }
+  }
 })
 
 // Backup
