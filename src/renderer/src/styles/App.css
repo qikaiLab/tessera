@@ -42,38 +42,54 @@
   flex-direction: column;
   height: 100vh;
   background: var(--bg-app);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
 }
 
-[data-interface-style='frosted-glass'][data-theme='dark'] .app-shell {
-  background-color: #081321;
-  background-image:
-    linear-gradient(rgba(3, 11, 23, 0.18), rgba(3, 11, 23, 0.3)),
-    var(--frosted-background-image);
-  background-size: cover;
-  background-position: center;
+[data-interface-style='frosted-glass'] .app-shell {
+  background: var(--frosted-background-fallback);
 }
 
-[data-interface-style='frosted-glass'][data-theme='light'] .app-shell {
-  background-color: #dbe8f4;
-  background-image:
-    linear-gradient(rgba(235, 244, 252, 0.1), rgba(225, 237, 247, 0.24)),
-    var(--frosted-background-image);
+[data-interface-style='frosted-glass'] .app-shell::before,
+[data-interface-style='frosted-glass'] .app-shell::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-interface-style='frosted-glass'] .app-shell::before {
+  inset: calc(0px - var(--frosted-background-bleed));
+  background-image: var(--frosted-background-image);
   background-size: cover;
   background-position: center;
+  filter: blur(var(--frosted-background-blur));
+  transition: filter var(--transition-base), inset var(--transition-base);
+}
+
+[data-interface-style='frosted-glass'] .app-shell::after {
+  inset: 0;
+  background: var(--frosted-shell-overlay);
+}
+
+[data-interface-style='frosted-glass'] .app-shell > :is(.titlebar, .app-body) {
+  position: relative;
+  z-index: 1;
 }
 
 [data-interface-style='frosted-glass'] :is(.titlebar, .sidebar) {
-  backdrop-filter: blur(18px) saturate(132%);
-  -webkit-backdrop-filter: blur(18px) saturate(132%);
+  backdrop-filter: blur(18px) saturate(108%);
+  -webkit-backdrop-filter: blur(18px) saturate(108%);
 }
 
 [data-interface-style='frosted-glass'] .app-main::before {
-  backdrop-filter: blur(18px) saturate(132%);
-  -webkit-backdrop-filter: blur(18px) saturate(132%);
+  backdrop-filter: blur(18px) saturate(108%);
+  -webkit-backdrop-filter: blur(18px) saturate(108%);
 }
 
 [data-interface-style='frosted-glass'] .sidebar {
-  box-shadow: inset -1px 0 rgba(255, 255, 255, 0.06), 8px 0 32px rgba(2, 9, 18, 0.08);
+  box-shadow: inset -1px 0 rgba(255, 255, 255, 0.06), 8px 0 32px rgba(0, 0, 0, 0.08);
 }
 
 [data-interface-style='frosted-glass'] .titlebar {
@@ -175,6 +191,29 @@ body.editor-fullscreen-active .titlebar-controls {
   gap: 2px;
   opacity: 0.72;
   transition: opacity var(--transition-fast);
+}
+
+/* Keep native window controls above the editor overlay without restoring the
+ * titlebar surface that would visually split the fullscreen background. */
+body.editor-fullscreen-active .titlebar {
+  z-index: 1300 !important;
+  overflow: visible;
+  background: transparent;
+  border-bottom-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  pointer-events: none;
+}
+
+body.editor-fullscreen-active .titlebar::before,
+body.editor-fullscreen-active .titlebar::after {
+  opacity: 0;
+}
+
+body.editor-fullscreen-active .titlebar-controls,
+body.editor-fullscreen-active .titlebar-btn {
+  pointer-events: auto;
 }
 
 body.editor-fullscreen-active .titlebar-controls:hover,
@@ -365,6 +404,6 @@ body.is-resizing {
 
 [data-interface-style='frosted-glass'] .notes-list-panel {
   background: color-mix(in srgb, var(--bg-sidebar) 88%, transparent);
-  backdrop-filter: blur(24px) saturate(135%);
-  -webkit-backdrop-filter: blur(24px) saturate(135%);
+  backdrop-filter: blur(24px) saturate(108%);
+  -webkit-backdrop-filter: blur(24px) saturate(108%);
 }

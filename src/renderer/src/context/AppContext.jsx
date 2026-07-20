@@ -10,6 +10,11 @@ import {
 } from '../theme/appearanceRegistry'
 import { applyFrostedGlassBackground } from '../theme/frostedGlassBackground'
 import {
+  FROSTED_BACKGROUND_BLUR,
+  applyFrostedBackgroundBlur,
+  normalizeFrostedBackgroundBlur
+} from '../theme/frostedGlassPreferences'
+import {
   INTERFACE_FONT_IDS,
   INTERFACE_WEIGHT_IDS,
   INTERFACE_ZOOM,
@@ -49,6 +54,7 @@ export function AppProvider({ children }) {
   const [interfaceStyle, setInterfaceStyle] = useState(INTERFACE_STYLE_IDS.DEFAULT)
   const [themeAccent, setThemeAccent] = useState(THEME_ACCENT_IDS.VIOLET)
   const [frostedBackgroundUrl, setFrostedBackgroundUrl] = useState(null)
+  const [frostedBackgroundBlur, setFrostedBackgroundBlur] = useState(FROSTED_BACKGROUND_BLUR.DEFAULT)
   const [interfaceZoom, setInterfaceZoom] = useState(INTERFACE_ZOOM.DEFAULT)
   const [interfaceFont, setInterfaceFont] = useState(INTERFACE_FONT_IDS.THEME)
   const [interfaceWeight, setInterfaceWeight] = useState(INTERFACE_WEIGHT_IDS.STANDARD)
@@ -296,6 +302,12 @@ export function AppProvider({ children }) {
     return result
   }, [])
 
+  const updateFrostedBackgroundBlur = useCallback((value) => {
+    const next = applyFrostedBackgroundBlur(document.documentElement, value)
+    setFrostedBackgroundBlur(next)
+    window.api.config.set('frostedBackgroundBlur', next)
+  }, [])
+
   const updateThemeAccent = useCallback((value) => {
     const next = normalizeThemeAccentId(value)
     setThemeAccent(next)
@@ -420,6 +432,7 @@ export function AppProvider({ children }) {
         const savedInterfaceZoom = normalizeInterfaceZoom(cfg.interfaceZoom)
         const savedInterfaceFont = normalizeInterfaceFontId(cfg.interfaceFont)
         const savedInterfaceWeight = normalizeInterfaceWeightId(cfg.interfaceWeight)
+        const savedFrostedBackgroundBlur = normalizeFrostedBackgroundBlur(cfg.frostedBackgroundBlur)
         setTheme(savedTheme)
         setInterfaceStyle(savedInterfaceStyle)
         setThemeAccent(savedThemeAccent)
@@ -427,6 +440,7 @@ export function AppProvider({ children }) {
         setInterfaceZoom(savedInterfaceZoom)
         setInterfaceFont(savedInterfaceFont)
         setInterfaceWeight(savedInterfaceWeight)
+        setFrostedBackgroundBlur(savedFrostedBackgroundBlur)
         applyAppearanceToRoot(document.documentElement, {
           interfaceStyle: savedInterfaceStyle,
           theme: savedTheme,
@@ -436,6 +450,7 @@ export function AppProvider({ children }) {
           interfaceFont: savedInterfaceFont,
           interfaceWeight: savedInterfaceWeight
         })
+        applyFrostedBackgroundBlur(document.documentElement, savedFrostedBackgroundBlur)
         const backgroundResult = await window.api.appearanceBackground.get()
         const savedFrostedBackground = backgroundResult.ok
           ? backgroundResult.background?.dataUrl ?? null
@@ -511,6 +526,7 @@ export function AppProvider({ children }) {
       interfaceStyle, updateInterfaceStyle,
       themeAccent, updateThemeAccent,
       frostedBackgroundUrl, importFrostedBackground, clearFrostedBackground,
+      frostedBackgroundBlur, updateFrostedBackgroundBlur,
       interfaceZoom, updateInterfaceZoom, adjustInterfaceZoom,
       interfaceFont, updateInterfaceFont,
       interfaceWeight, updateInterfaceWeight,

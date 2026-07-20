@@ -5,6 +5,10 @@ import { describe, expect, it } from 'vitest'
 const cssPath = path.resolve('src/renderer/src/styles/global.css')
 const css = fs.readFileSync(cssPath, 'utf8')
 const appCss = fs.readFileSync(path.resolve('src/renderer/src/styles/App.css'), 'utf8')
+const editorCss = fs.readFileSync(
+  path.resolve('src/renderer/src/components/TiptapEditor/TiptapEditor.css'),
+  'utf8'
+)
 
 function getRule(selector) {
   const start = css.indexOf(`${selector} {`)
@@ -82,13 +86,60 @@ describe('appearance theme CSS contract', () => {
     expect(css).toContain("[data-interface-style='frosted-glass'][data-theme='dark']")
     expect(css).toContain("[data-interface-style='frosted-glass'][data-theme='light']")
     expect(css).toContain('--frosted-accent-h:')
-    expect(css).toContain('var(--frosted-background-image) center / cover no-repeat')
+    expect(css).toContain('--frosted-background-blur:')
+    expect(appCss).toContain('background-image: var(--frosted-background-image)')
+    expect(appCss).toContain('filter: blur(var(--frosted-background-blur))')
+  })
+
+  it('keeps frosted glass surfaces neutral while accents remain background-adaptive', () => {
+    for (const selector of [
+      "[data-interface-style='frosted-glass'][data-theme='dark']",
+      "[data-interface-style='frosted-glass'][data-theme='light']"
+    ]) {
+      const rule = getRule(selector)
+      for (const variable of [
+        '--bg-app',
+        '--bg-sidebar',
+        '--bg-surface',
+        '--bg-surface-2',
+        '--bg-surface-3',
+        '--bg-hover',
+        '--bg-active',
+        '--bg-input',
+        '--bg-glass'
+      ]) {
+        const match = rule.match(new RegExp(`${variable}:\\s*rgba\\((\\d+),\\s*(\\d+),\\s*(\\d+),`))
+        expect(match, `${selector} ${variable}`).toBeTruthy()
+        expect(new Set(match.slice(1, 4)).size, `${selector} ${variable}`).toBe(1)
+      }
+      expect(rule).toContain('hsl(var(--frosted-accent-h)')
+    }
   })
 
   it('keeps fullscreen positioning independent from the frosted shell blur layer', () => {
     expect(appCss).toContain("[data-interface-style='frosted-glass'] .app-main::before")
     expect(appCss).not.toMatch(
       /\[data-interface-style='frosted-glass'\][^{]*\.app-main[^:][^{]*\{[^}]*backdrop-filter:/s
+    )
+  })
+
+  it('renders a continuous frosted fullscreen background behind transparent editor regions', () => {
+    expect(editorCss).toContain("[data-interface-style='frosted-glass'] .tiptap-fullscreen::before")
+    expect(editorCss).toContain('background: var(--frosted-fullscreen-overlay)')
+    expect(editorCss).toMatch(
+      /\[data-interface-style='frosted-glass'\] \.tiptap-fullscreen \.tiptap-editor-wrapper\s*\{[^}]*background:\s*transparent;/s
+    )
+    expect(editorCss).toMatch(
+      /\[data-interface-style='frosted-glass'\] \.tiptap-fullscreen-header\s*\{[^}]*background:\s*transparent;/s
+    )
+    expect(appCss).toMatch(
+      /body\.editor-fullscreen-active \.titlebar\s*\{[^}]*z-index:\s*1300 !important;/s
+    )
+    expect(appCss).toMatch(
+      /body\.editor-fullscreen-active \.titlebar\s*\{[^}]*backdrop-filter:\s*none;/s
+    )
+    expect(appCss).toMatch(
+      /body\.editor-fullscreen-active \.titlebar::before,[^}]*opacity:\s*0;/s
     )
   })
 

@@ -546,6 +546,12 @@
 
 [data-interface-style='frosted-glass'] {
   --font-style-stack: var(--font-modern-sans-stack);
+  --frosted-background-blur: 8px;
+  --frosted-background-bleed: 12px;
+  --frosted-preview-blur: 4px;
+  --frosted-background-fallback: #202124;
+  --frosted-shell-overlay: transparent;
+  --frosted-fullscreen-overlay: transparent;
   --theme-texture-image: none;
   --theme-texture-opacity: 0;
   --theme-sidebar-texture-opacity: 0;
@@ -561,26 +567,31 @@
 
 [data-interface-style='frosted-glass'][data-theme='dark'] {
   color-scheme: dark;
-  --bg-app: rgba(5, 14, 27, 0.22);
-  --bg-sidebar: rgba(7, 18, 34, 0.44);
-  --bg-surface: rgba(14, 28, 49, 0.57);
-  --bg-surface-2: rgba(20, 38, 64, 0.62);
-  --bg-surface-3: rgba(31, 53, 84, 0.68);
-  --bg-hover: rgba(124, 166, 218, 0.16);
-  --bg-active: rgba(138, 181, 232, 0.23);
-  --bg-input: rgba(7, 19, 36, 0.57);
-  --bg-glass: rgba(12, 26, 47, 0.75);
-  --border: rgba(224, 239, 255, 0.16);
-  --border-hover: rgba(229, 243, 255, 0.29);
+  --frosted-background-fallback: #181818;
+  --frosted-shell-overlay: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.3));
+  --frosted-fullscreen-overlay:
+    radial-gradient(ellipse at 50% 44%, rgba(8, 8, 10, 0.28), rgba(8, 8, 10, 0.42) 72%),
+    linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.22));
+  --bg-app: rgba(0, 0, 0, 0.16);
+  --bg-sidebar: rgba(15, 15, 15, 0.42);
+  --bg-surface: rgba(25, 25, 25, 0.56);
+  --bg-surface-2: rgba(35, 35, 35, 0.62);
+  --bg-surface-3: rgba(48, 48, 48, 0.68);
+  --bg-hover: rgba(255, 255, 255, 0.11);
+  --bg-active: rgba(255, 255, 255, 0.17);
+  --bg-input: rgba(18, 18, 18, 0.58);
+  --bg-glass: rgba(22, 22, 22, 0.74);
+  --border: rgba(255, 255, 255, 0.15);
+  --border-hover: rgba(255, 255, 255, 0.28);
   --border-focus: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 72% / 0.72);
-  --text-primary: #f5f8fc;
-  --text-secondary: #c5d1df;
-  --text-tertiary: #93a6bb;
-  --text-muted: #70849a;
-  --text-inverse: #09131f;
+  --text-primary: #f6f6f6;
+  --text-secondary: #d1d1d1;
+  --text-tertiary: #a3a3a3;
+  --text-muted: #808080;
+  --text-inverse: #111111;
   --accent: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 72%);
   --accent-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 80%);
-  --accent-contrast: #08111d;
+  --accent-contrast: #111111;
   --accent-light: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 66% / 0.17);
   --accent-light-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 70% / 0.25);
   --success: #7bdbad;
@@ -589,21 +600,21 @@
   --warning-light: rgba(221, 165, 54, 0.16);
   --error: #ff9898;
   --error-light: rgba(230, 89, 89, 0.17);
-  --info: #86bbf3;
-  --info-light: rgba(84, 153, 224, 0.17);
-  --shadow-sm: 0 2px 8px rgba(1, 7, 17, 0.18);
-  --shadow-md: 0 8px 24px rgba(1, 7, 17, 0.25);
-  --shadow-lg: 0 16px 42px rgba(1, 7, 17, 0.33);
-  --shadow-xl: 0 24px 64px rgba(1, 7, 17, 0.42);
-  --scrollbar-thumb: rgba(228, 241, 255, 0.22);
-  --scrollbar-thumb-hover: rgba(228, 241, 255, 0.36);
+  --info: #9fc3e8;
+  --info-light: rgba(126, 168, 211, 0.17);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 16px 42px rgba(0, 0, 0, 0.36);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.46);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.34);
   --surface-material-image:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.018) 48%, rgba(5, 15, 30, 0.12));
+    linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.018) 48%, rgba(0, 0, 0, 0.12));
   --surface-material-subtle-image:
-    linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(8, 19, 37, 0.1));
+    linear-gradient(150deg, rgba(255, 255, 255, 0.055), rgba(0, 0, 0, 0.1));
   --input-material-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(4, 13, 27, 0.13));
-  --material-surface-shadow: 0 12px 34px rgba(1, 7, 17, 0.2);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(0, 0, 0, 0.14));
+  --material-surface-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
   --material-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.025);
   --tag-resident-text: var(--accent);
   --tag-resident-bg: var(--accent-light);
@@ -611,25 +622,23 @@
   --tag-activated-text: #86ddb4;
   --tag-activated-bg: rgba(73, 190, 135, 0.16);
   --tag-activated-border: rgba(123, 219, 173, 0.28);
-  --editor-fullscreen-background:
-    linear-gradient(rgba(4, 13, 27, 0.66), rgba(4, 13, 27, 0.76)),
-    var(--frosted-background-image) center / cover no-repeat;
+  --editor-fullscreen-background: var(--frosted-background-fallback);
   --selection-bg: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 70% / 0.3);
-  --floating-toolbar-background: rgba(10, 24, 44, 0.84);
+  --floating-toolbar-background: rgba(25, 25, 25, 0.84);
   --floating-toolbar-background-image: var(--surface-material-subtle-image);
-  --floating-toolbar-border: rgba(230, 242, 255, 0.25);
+  --floating-toolbar-border: rgba(255, 255, 255, 0.24);
   --floating-toolbar-hover-background: var(--bg-hover);
   --floating-toolbar-active-background: var(--accent-light-hover);
-  --floating-toolbar-separator: rgba(230, 242, 255, 0.18);
+  --floating-toolbar-separator: rgba(255, 255, 255, 0.17);
   --floating-toolbar-shadow: var(--shadow-lg);
   --floating-toolbar-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.16);
-  --chart-tooltip-background: rgba(10, 24, 44, 0.91);
-  --chart-tooltip-border: rgba(230, 242, 255, 0.24);
+  --chart-tooltip-background: rgba(25, 25, 25, 0.91);
+  --chart-tooltip-border: rgba(255, 255, 255, 0.23);
   --chart-tooltip-shadow: var(--shadow-lg);
-  --context-menu-background: rgba(9, 22, 41, 0.91);
+  --context-menu-background: rgba(23, 23, 23, 0.92);
   --context-menu-background-image: var(--surface-material-subtle-image);
   --context-menu-background-size: auto;
-  --context-menu-border: rgba(230, 242, 255, 0.24);
+  --context-menu-border: rgba(255, 255, 255, 0.23);
   --context-menu-shortcut-text: var(--text-tertiary);
   --context-menu-hover-background: var(--bg-hover);
   --context-menu-disabled-text: var(--text-muted);
@@ -641,23 +650,28 @@
 
 [data-interface-style='frosted-glass'][data-theme='light'] {
   color-scheme: light;
-  --bg-app: rgba(238, 245, 252, 0.24);
-  --bg-sidebar: rgba(242, 247, 252, 0.56);
-  --bg-surface: rgba(250, 252, 255, 0.68);
-  --bg-surface-2: rgba(241, 247, 252, 0.72);
-  --bg-surface-3: rgba(227, 237, 247, 0.77);
-  --bg-hover: rgba(255, 255, 255, 0.54);
-  --bg-active: rgba(222, 235, 247, 0.82);
-  --bg-input: rgba(253, 254, 255, 0.69);
-  --bg-glass: rgba(247, 251, 255, 0.82);
-  --border: rgba(35, 62, 89, 0.16);
-  --border-hover: rgba(35, 62, 89, 0.28);
+  --frosted-background-fallback: #d0d0d0;
+  --frosted-shell-overlay: linear-gradient(rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.07));
+  --frosted-fullscreen-overlay:
+    radial-gradient(ellipse at 50% 44%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07) 72%),
+    linear-gradient(rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.05));
+  --bg-app: rgba(255, 255, 255, 0.045);
+  --bg-sidebar: rgba(255, 255, 255, 0.18);
+  --bg-surface: rgba(255, 255, 255, 0.26);
+  --bg-surface-2: rgba(255, 255, 255, 0.32);
+  --bg-surface-3: rgba(255, 255, 255, 0.4);
+  --bg-hover: rgba(255, 255, 255, 0.22);
+  --bg-active: rgba(255, 255, 255, 0.34);
+  --bg-input: rgba(255, 255, 255, 0.32);
+  --bg-glass: rgba(255, 255, 255, 0.36);
+  --border: rgba(24, 24, 24, 0.18);
+  --border-hover: rgba(24, 24, 24, 0.31);
   --border-focus: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 38% / 0.66);
-  --text-primary: #172333;
-  --text-secondary: #40546a;
-  --text-tertiary: #65798e;
-  --text-muted: #7e91a4;
-  --text-inverse: #f7fbff;
+  --text-primary: #161616;
+  --text-secondary: #3a3a3a;
+  --text-tertiary: #606060;
+  --text-muted: #7c7c7c;
+  --text-inverse: #f8f8f8;
   --accent: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 36%);
   --accent-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 30%);
   --accent-contrast: #ffffff;
@@ -669,47 +683,45 @@
   --warning-light: rgba(150, 101, 23, 0.12);
   --error: #b74646;
   --error-light: rgba(183, 70, 70, 0.12);
-  --info: #356caa;
-  --info-light: rgba(53, 108, 170, 0.12);
-  --shadow-sm: 0 2px 8px rgba(23, 47, 72, 0.1);
-  --shadow-md: 0 8px 24px rgba(23, 47, 72, 0.14);
-  --shadow-lg: 0 16px 42px rgba(23, 47, 72, 0.18);
-  --shadow-xl: 0 24px 64px rgba(23, 47, 72, 0.24);
-  --scrollbar-thumb: rgba(42, 68, 93, 0.2);
-  --scrollbar-thumb-hover: rgba(42, 68, 93, 0.34);
+  --info: #3d648a;
+  --info-light: rgba(61, 100, 138, 0.12);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.09);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.13);
+  --shadow-lg: 0 16px 42px rgba(0, 0, 0, 0.17);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.23);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
   --surface-material-image:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.22) 48%, rgba(216, 229, 241, 0.2));
+    linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06) 48%, rgba(0, 0, 0, 0.035));
   --surface-material-subtle-image:
-    linear-gradient(150deg, rgba(255, 255, 255, 0.54), rgba(224, 235, 246, 0.2));
+    linear-gradient(150deg, rgba(255, 255, 255, 0.18), rgba(0, 0, 0, 0.025));
   --input-material-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(231, 240, 248, 0.2));
-  --material-surface-shadow: 0 12px 34px rgba(23, 47, 72, 0.13);
-  --material-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.86), inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.025));
+  --material-surface-shadow: 0 12px 34px rgba(0, 0, 0, 0.12);
+  --material-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.52), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   --tag-resident-text: var(--accent);
   --tag-resident-bg: var(--accent-light);
   --tag-resident-border: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 38% / 0.24);
   --tag-activated-text: #287a55;
   --tag-activated-bg: rgba(40, 122, 85, 0.12);
   --tag-activated-border: rgba(40, 122, 85, 0.22);
-  --editor-fullscreen-background:
-    linear-gradient(rgba(247, 251, 255, 0.72), rgba(239, 247, 253, 0.8)),
-    var(--frosted-background-image) center / cover no-repeat;
+  --editor-fullscreen-background: var(--frosted-background-fallback);
   --selection-bg: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 40% / 0.22);
-  --floating-toolbar-background: rgba(247, 251, 255, 0.9);
+  --floating-toolbar-background: rgba(255, 255, 255, 0.78);
   --floating-toolbar-background-image: var(--surface-material-subtle-image);
-  --floating-toolbar-border: rgba(35, 62, 89, 0.22);
+  --floating-toolbar-border: rgba(24, 24, 24, 0.22);
   --floating-toolbar-hover-background: var(--bg-hover);
   --floating-toolbar-active-background: var(--accent-light-hover);
-  --floating-toolbar-separator: rgba(35, 62, 89, 0.16);
+  --floating-toolbar-separator: rgba(24, 24, 24, 0.16);
   --floating-toolbar-shadow: var(--shadow-lg);
   --floating-toolbar-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.84);
-  --chart-tooltip-background: rgba(247, 251, 255, 0.94);
-  --chart-tooltip-border: rgba(35, 62, 89, 0.22);
+  --chart-tooltip-background: rgba(255, 255, 255, 0.86);
+  --chart-tooltip-border: rgba(24, 24, 24, 0.21);
   --chart-tooltip-shadow: var(--shadow-lg);
-  --context-menu-background: rgba(247, 251, 255, 0.94);
+  --context-menu-background: rgba(255, 255, 255, 0.88);
   --context-menu-background-image: var(--surface-material-subtle-image);
   --context-menu-background-size: auto;
-  --context-menu-border: rgba(35, 62, 89, 0.22);
+  --context-menu-border: rgba(24, 24, 24, 0.21);
   --context-menu-shortcut-text: var(--text-tertiary);
   --context-menu-hover-background: var(--bg-hover);
   --context-menu-disabled-text: var(--text-muted);

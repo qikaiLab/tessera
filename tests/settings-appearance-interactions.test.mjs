@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const component = fs.readFileSync(path.resolve('src/renderer/src/pages/Settings.jsx'), 'utf8')
 const css = fs.readFileSync(path.resolve('src/renderer/src/pages/Settings.css'), 'utf8')
+const appContext = fs.readFileSync(path.resolve('src/renderer/src/context/AppContext.jsx'), 'utf8')
 
 describe('settings appearance interaction contract', () => {
   it('defers pointer-driven interface zoom until the drag finishes', () => {
@@ -25,7 +26,13 @@ describe('settings appearance interaction contract', () => {
     expect(component).toContain('importFrostedBackground')
     expect(component).toContain('clearFrostedBackground')
     expect(component).toContain('frostedBackgroundUrl || defaultFrostedBackground')
+    expect(component).toContain('frostedBackgroundBlur')
+    expect(component).toContain('updateFrostedBackgroundBlur')
+    expect(component).toContain('min={FROSTED_BACKGROUND_BLUR.MIN}')
     expect(css).toContain('.appearance-background-panel')
-    expect(css).toContain('backdrop-filter: blur(14px) saturate(125%)')
+    expect(css).toContain('filter: blur(var(--frosted-preview-blur))')
+    expect(css).toContain('.appearance-background-blur-control')
+    expect(appContext).toContain("window.api.config.set('frostedBackgroundBlur', next)")
+    expect(appContext).toContain('normalizeFrostedBackgroundBlur(cfg.frostedBackgroundBlur)')
   })
 })

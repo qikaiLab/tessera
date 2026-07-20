@@ -167,8 +167,8 @@
   .slash-menu,
   .context-menu
 ) {
-  backdrop-filter: blur(22px) saturate(138%);
-  -webkit-backdrop-filter: blur(22px) saturate(138%);
+  backdrop-filter: blur(22px) saturate(108%);
+  -webkit-backdrop-filter: blur(22px) saturate(108%);
 }
 
 :root[data-interface-style='frosted-glass'] :is(
@@ -176,6 +176,6 @@
   .notes-drawer-search .search-input,
   .floating-toolbar
 ) {
-  backdrop-filter: blur(14px) saturate(128%);
-  -webkit-backdrop-filter: blur(14px) saturate(128%);
+  backdrop-filter: blur(14px) saturate(105%);
+  -webkit-backdrop-filter: blur(14px) saturate(105%);
 }

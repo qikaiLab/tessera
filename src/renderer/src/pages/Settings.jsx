@@ -19,6 +19,7 @@ import defaultStylePreview from '../assets/themes/default-preview.png'
 import linenStylePreview from '../assets/themes/linen-preview.png'
 import jadeStylePreview from '../assets/themes/jade-preview.png'
 import { defaultFrostedBackground } from '../theme/frostedGlassBackground'
+import { FROSTED_BACKGROUND_BLUR } from '../theme/frostedGlassPreferences'
 import './Settings.css'
 import JSZip from 'jszip'
 
@@ -49,6 +50,7 @@ export default function Settings() {
     interfaceStyle, updateInterfaceStyle,
     themeAccent, updateThemeAccent,
     frostedBackgroundUrl, importFrostedBackground, clearFrostedBackground,
+    frostedBackgroundBlur, updateFrostedBackgroundBlur,
     interfaceZoom, updateInterfaceZoom,
     interfaceFont, updateInterfaceFont,
     interfaceWeight, updateInterfaceWeight,
@@ -431,6 +433,32 @@ export default function Settings() {
                   >
                     {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundRestore)}
                   </button>
+                </div>
+                <div className="appearance-background-blur-control">
+                  <div className="appearance-background-blur-copy">
+                    <span className="appearance-accent-title">
+                      {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBlurTitle)}
+                    </span>
+                    <span className="appearance-accent-description">
+                      {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBlurDescription)}
+                    </span>
+                  </div>
+                  <div className="appearance-background-blur-slider-row">
+                    <input
+                      className="appearance-background-blur-slider"
+                      type="range"
+                      min={FROSTED_BACKGROUND_BLUR.MIN}
+                      max={FROSTED_BACKGROUND_BLUR.MAX}
+                      step={FROSTED_BACKGROUND_BLUR.STEP}
+                      value={frostedBackgroundBlur}
+                      onChange={event => updateFrostedBackgroundBlur(event.currentTarget.value)}
+                      aria-label={appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBlurTitle)}
+                      aria-valuetext={frostedBackgroundBlur === 0 ? '不虚化' : `${frostedBackgroundBlur} 像素`}
+                    />
+                    <output className="appearance-background-blur-value" aria-live="polite">
+                      {frostedBackgroundBlur === 0 ? '无' : `${frostedBackgroundBlur}px`}
+                    </output>
+                  </div>
                 </div>
               </div>
             </div>
