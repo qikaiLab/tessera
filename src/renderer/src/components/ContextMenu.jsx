@@ -11,7 +11,7 @@ import './ContextMenu.css'
 
 const VIEWPORT_INSET = 8
 const TITLEBAR_SAFE_INSET = 44
-const ESTIMATED_WIDTH = 224
+const ESTIMATED_WIDTH = 148
 const ESTIMATED_ITEM_HEIGHT = 34
 
 function estimatePosition(request) {

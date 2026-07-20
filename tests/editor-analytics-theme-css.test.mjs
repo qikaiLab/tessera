@@ -3,6 +3,10 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const notesCss = fs.readFileSync(path.resolve('src/renderer/src/pages/Notes.css'), 'utf8')
+const notesDrawerCss = fs.readFileSync(
+  path.resolve('src/renderer/src/components/NotesDrawer.css'),
+  'utf8'
+)
 const surfacesCss = fs.readFileSync(path.resolve('src/renderer/src/theme/appearanceSurfaces.css'), 'utf8')
 const editorCss = fs.readFileSync(
   path.resolve('src/renderer/src/components/TiptapEditor/TiptapEditor.css'),
@@ -17,6 +21,21 @@ describe('editor and analytics theme CSS contract', () => {
     expect(notesCss).toContain('background-image: var(--editor-title-background-image)')
     expect(notesCss).toContain('caret-color: var(--accent)')
     expect(surfacesCss).not.toMatch(/\.input,\s*\.notes-title-input,/)
+  })
+
+  it('keeps the note drawer title on the same semantic transparent surface', () => {
+    expect(notesDrawerCss).toContain('background-color: var(--editor-title-background)')
+    expect(notesDrawerCss).toContain('background-image: var(--editor-title-background-image)')
+    expect(notesDrawerCss).toContain('caret-color: var(--accent)')
+    expect(notesDrawerCss).toContain('color: var(--editor-title-placeholder)')
+    expect(surfacesCss).not.toMatch(/\.input,\s*\.notes-drawer-title-input,/)
+  })
+
+  it('keeps fullscreen controls clear of window chrome at narrow widths', () => {
+    expect(editorCss).toContain('padding: 16px 132px 8px 24px')
+    expect(editorCss).toContain('@media (max-width: 1024px)')
+    expect(editorCss).toContain('padding: 48px 20px 8px')
+    expect(editorCss).toContain('padding-inline: 14px')
   })
 
   it('styles every bubble toolbar state through semantic theme tokens', () => {

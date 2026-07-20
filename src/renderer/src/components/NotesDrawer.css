@@ -177,11 +177,17 @@ body.is-resizing .notes-drawer-resize::after {
   flex: 1;
   border: none;
   outline: none;
-  background: transparent;
+  background-color: var(--editor-title-background);
+  background-image: var(--editor-title-background-image);
   color: var(--text-primary);
+  caret-color: var(--accent);
   font-family: var(--font-sans);
   font-size: var(--text-md);
   font-weight: 700;
+}
+
+.notes-drawer-title-input::placeholder {
+  color: var(--editor-title-placeholder);
 }
 
 .notes-drawer-edit-subbar {

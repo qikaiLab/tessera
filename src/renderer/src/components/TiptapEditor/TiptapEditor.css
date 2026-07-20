@@ -547,7 +547,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 132px 8px 0;
+  gap: var(--spacing-3);
+  padding: 16px 132px 8px 24px;
   /* max-width is set dynamically via style prop */
   width: 100%;
   margin: 0 auto;
@@ -636,9 +637,23 @@
   color: #000;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1024px) {
   .tiptap-fullscreen-header {
-    padding: 54px 0 8px;
+    padding: 48px 20px 8px;
+  }
+
+  .tiptap-fullscreen-header-actions {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 520px) {
+  .tiptap-fullscreen-header {
+    padding-inline: 14px;
+  }
+
+  .tiptap-fullscreen-header-actions {
+    gap: 6px;
   }
 }
 

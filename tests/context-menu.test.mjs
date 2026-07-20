@@ -101,4 +101,12 @@ describe('application context menu integration contract', () => {
     expect(globalCss).toContain("[data-interface-style='jade-archive']")
     expect(globalCss).toContain('--context-menu-background-image: var(--surface-material-subtle-image)')
   })
+
+  it('uses compact intrinsic sizing without shrinking menu item hit targets', () => {
+    expect(contextMenuComponent).toContain('const ESTIMATED_WIDTH = 148')
+    expect(contextMenuCss).toContain('width: max-content')
+    expect(contextMenuCss).toContain('min-width: 136px')
+    expect(contextMenuCss).toContain('max-width: min(260px, calc(100vw - 16px))')
+    expect(contextMenuCss).toContain('min-height: 32px')
+  })
 })
