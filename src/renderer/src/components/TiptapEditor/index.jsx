@@ -464,7 +464,6 @@ const TiptapEditor = forwardRef(function TiptapEditor(
               className="btn btn-ghost btn-xs tiptap-width-toggle"
               onClick={() => updateFullscreenWidthMode(fullscreenWidthMode === 'standard' ? 'wide' : 'standard')}
               title={fullscreenWidthMode === 'standard' ? '切换为宽幅宽度' : '切换为标准行宽'}
-              style={{ marginRight: '8px' }}
             >
               {fullscreenWidthMode === 'standard' ? '↔ 宽屏' : '→← 标准'}
             </button>
@@ -485,21 +484,19 @@ const TiptapEditor = forwardRef(function TiptapEditor(
                 A+
               </button>
             </span>
+            {onToggleFullScreen && (
+              <button
+                className="fullscreen-exit-btn"
+                type="button"
+                onClick={handleToggleFullScreen}
+                title="退出全屏 (Esc)"
+                aria-label="退出全屏编辑"
+              >
+                ✕ 退出全屏
+              </button>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Exit Button at the very top right of the viewport */}
-      {isFullScreen && onToggleFullScreen && (
-        <button
-          className="fullscreen-exit-btn"
-          type="button"
-          onClick={handleToggleFullScreen}
-          title="退出全屏 (Esc)"
-          aria-label="退出全屏编辑"
-        >
-          ✕ 退出全屏
-        </button>
       )}
 
       {/* Editor Area */}

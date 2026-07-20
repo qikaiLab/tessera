@@ -548,12 +548,14 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-3);
-  padding: 16px 132px 8px 24px;
+  min-height: 42px;
+  padding: 6px 104px 8px 20px;
   /* max-width is set dynamically via style prop */
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
   flex-shrink: 0;
+  overflow: hidden;
   z-index: 10;
   animation: fullscreenContentIn 160ms ease-out both;
 }
@@ -587,15 +589,15 @@
 .tiptap-fullscreen-header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex: 0 0 auto;
+  gap: 12px;
+  white-space: nowrap;
 }
 
-/* Highly visible exit button positioned at top right - does NOT fade when typing */
+/* Exit stays in the header flow so editor controls can never overlap it. */
 .tiptap-fullscreen .fullscreen-exit-btn {
-  position: absolute;
-  top: 6px;
-  right: 112px;
-  z-index: 1100;
+  position: static;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -639,21 +641,26 @@
 
 @media (max-width: 1024px) {
   .tiptap-fullscreen-header {
-    padding: 48px 20px 8px;
+    gap: 8px;
+    padding: 6px 104px 8px 16px;
   }
 
   .tiptap-fullscreen-header-actions {
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .tiptap-fullscreen .fullscreen-exit-btn {
+    padding-inline: 10px;
   }
 }
 
 @media (max-width: 520px) {
   .tiptap-fullscreen-header {
-    padding-inline: 14px;
+    padding-left: 12px;
   }
 
   .tiptap-fullscreen-header-actions {
-    gap: 6px;
+    gap: 4px;
   }
 }
 

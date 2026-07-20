@@ -12,6 +12,10 @@ const editorCss = fs.readFileSync(
   path.resolve('src/renderer/src/components/TiptapEditor/TiptapEditor.css'),
   'utf8'
 )
+const editorComponent = fs.readFileSync(
+  path.resolve('src/renderer/src/components/TiptapEditor/index.jsx'),
+  'utf8'
+)
 const analyticsComponent = fs.readFileSync(path.resolve('src/renderer/src/pages/Analytics.jsx'), 'utf8')
 const analyticsCss = fs.readFileSync(path.resolve('src/renderer/src/pages/Analytics.css'), 'utf8')
 
@@ -31,11 +35,14 @@ describe('editor and analytics theme CSS contract', () => {
     expect(surfacesCss).not.toMatch(/\.input,\s*\.notes-drawer-title-input,/)
   })
 
-  it('keeps fullscreen controls clear of window chrome at narrow widths', () => {
-    expect(editorCss).toContain('padding: 16px 132px 8px 24px')
+  it('keeps every fullscreen editor control in one non-overlapping row', () => {
+    expect(editorComponent).toMatch(/tiptap-fullscreen-header-actions[\s\S]*fullscreen-exit-btn/)
+    expect(editorCss).toContain('padding: 6px 104px 8px 20px')
+    expect(editorCss).toContain('position: static')
+    expect(editorCss).toContain('white-space: nowrap')
     expect(editorCss).toContain('@media (max-width: 1024px)')
-    expect(editorCss).toContain('padding: 48px 20px 8px')
-    expect(editorCss).toContain('padding-inline: 14px')
+    expect(editorCss).toContain('padding: 6px 104px 8px 16px')
+    expect(editorCss).not.toContain('padding: 48px 20px 8px')
   })
 
   it('styles every bubble toolbar state through semantic theme tokens', () => {
