@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-0.2.6-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](package.json)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
 [![CI](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/ci.yml?branch=main&label=CI)](https://github.com/qikaiLab/tessera/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/qikaiLab/tessera?include_prereleases)](https://github.com/qikaiLab/tessera/releases)
@@ -64,7 +64,7 @@
 | 功能 | 说明 |
 |------|------|
 | **版块动态管理** | 拖拽排序，常驻/激发状态一键切换 |
-| **界面个性化** | 支持默认、亚麻书房、墨玉档案三套界面风格；可调整全局缩放、字体与字重，默认风格提供八种主题色 |
+| **界面个性化** | 支持默认、亚麻书房、墨玉档案、雾化玻璃四套界面风格；可调整全局缩放、字体与字重，默认风格提供八种主题色，雾化玻璃支持自定义背景和背景模糊度 |
 | **全局界面缩放** | 设置页可在 80%–150% 间调整，拖动滑块时松开后稳定应用；也可使用 `Ctrl/Cmd + 鼠标滚轮`、`Ctrl/Cmd + +`、`Ctrl/Cmd + -` 快速缩放 |
 | **删除安全预检** | 删除前异步扫描历史记录，有数据的版块无法误删，弹出 Modal 提示 |
 | **自定义存储路径** | 支持将数据目录迁移到任意位置（如外置硬盘、云同步盘） |
@@ -175,6 +175,7 @@ git push origin vX.Y.Z
 ```
 
 已推送的版本标签不得删除、移动或复用。若发布失败，应修复后增加补丁版本重新发布。
+每个 Release 同时提供 `latest.yml`、安装包增量元数据和 `SHA256SUMS.txt`，用于下载与完整性校验。
 
 ---
 
@@ -191,6 +192,19 @@ MotoTrace 将数据安全视为头等大事，采用三层防护：
 ---
 
 ## 📋 更新日志
+
+### v0.3.0 *(2026-07-25)*
+
+**新特性**
+- 新增全局界面风格系统，可在默认、亚麻书房、墨玉档案和雾化玻璃之间即时切换并跨重启保留。
+- 雾化玻璃支持导入 PNG、JPEG、WebP 自定义背景、调节背景模糊度，并从背景中提取克制的自适应强调色。
+- 新增 80%–150% 全局界面缩放、字体与字重选项；默认风格扩展为八种主题色。
+- 新增随界面风格变化的应用内右键菜单，统一支持文本编辑、便签和图表操作。
+
+**修复与优化**
+- 便签列表支持完整滚动，全屏编辑保留窗口控制，并新增 `Ctrl+Shift+Enter` / `Cmd+Shift+Enter` 切换快捷键。
+- 优化全屏标题与控制区、编辑器材质、图表标签和提示框，在窄窗口下保持单行、清晰且不重叠。
+- 修复主进程安全模块在生产构建中未正确打包的问题，并升级工程质量、安全审计和自动发布门禁。
 
 ### v0.2.6 *(2026-06-14)*
 

@@ -233,7 +233,7 @@ function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
         >
           {theme === 'dark' ? '○' : '●'}
         </button>
-        <span className="sidebar-version">v0.2.5</span>
+        <span className="sidebar-version">v{__APP_VERSION__}</span>
       </div>
       <div
         className="sidebar-resize-handle"

@@ -47,7 +47,10 @@ export default [
   {
     files: ['src/renderer/src/**/*.{js,jsx}'],
     languageOptions: {
-      globals: globals.browser
+      globals: {
+        ...globals.browser,
+        __APP_VERSION__: 'readonly'
+      }
     },
     plugins: {
       react,
