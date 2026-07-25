@@ -383,6 +383,8 @@ body.is-resizing .notes-resize-handle::after {
   overflow: hidden;
   background: var(--bg-app);
   animation: pageSoftIn var(--transition-base) both;
+  container-name: notes-editor;
+  container-type: inline-size;
 }
 
 .notes-fullscreen-active-parent {
@@ -398,7 +400,7 @@ body.is-resizing .notes-resize-handle::after {
 
 .notes-editor-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
   gap: var(--spacing-4);
   padding: var(--spacing-5) var(--spacing-6) var(--spacing-2);
@@ -418,6 +420,9 @@ body.is-resizing .notes-resize-handle::after {
   font-size: var(--text-2xl);
   font-weight: 700;
   letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notes-title-input::placeholder {
@@ -429,8 +434,10 @@ body.is-resizing .notes-resize-handle::after {
   align-items: center;
   gap: var(--spacing-2);
   min-width: 0;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  white-space: nowrap;
 }
 
 .notes-editor-actions .char-count-badge {
@@ -717,11 +724,6 @@ body.is-resizing .notes-resize-handle::after {
     grid-template-columns: 280px minmax(0, 1fr);
   }
 
-  .notes-editor-header {
-    grid-template-columns: 1fr;
-    align-items: start;
-  }
-
   .notes-editor-loading-header {
     grid-template-columns: 1fr;
   }
@@ -729,8 +731,61 @@ body.is-resizing .notes-resize-handle::after {
   .notes-actions-skeleton {
     justify-self: start;
   }
+}
+
+@container notes-editor (max-width: 720px) {
+  .notes-editor-header {
+    gap: var(--spacing-2);
+    padding-inline: var(--spacing-4);
+  }
 
   .notes-editor-actions {
+    gap: 4px;
+  }
+
+  .notes-editor-actions > .btn-sm {
+    padding-inline: var(--spacing-2);
+  }
+
+  .notes-editor-meta {
     flex-wrap: wrap;
+    row-gap: var(--spacing-2);
+  }
+}
+
+@container notes-editor (max-width: 560px) {
+  .notes-editor-header {
+    padding-inline: var(--spacing-3);
+  }
+
+  .notes-editor-actions {
+    gap: 3px;
+  }
+
+  .notes-editor-actions .save-status-badge {
+    min-width: 58px;
+    gap: 4px;
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+
+  .notes-editor-actions .card-font-controls {
+    gap: 2px;
+    padding: 2px 3px;
+  }
+
+  .notes-editor-actions .font-ctrl-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .notes-editor-actions .fullscreen-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .notes-editor-actions > .btn-sm {
+    min-height: 30px;
+    padding-inline: 6px;
   }
 }

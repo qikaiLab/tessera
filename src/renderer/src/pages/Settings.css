@@ -241,15 +241,16 @@
   place-items: center;
   border: 1px solid var(--border-hover);
   border-radius: var(--radius-md);
-  background: var(--bg-glass);
+  background-color: var(--bg-glass);
+  background-image: var(--surface-material-image);
   color: var(--text-primary);
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-shadow: 0 1px 2px color-mix(in srgb, var(--text-inverse) 24%, transparent);
-  box-shadow: var(--material-inset-shadow), var(--shadow-md);
-  backdrop-filter: blur(14px) saturate(125%);
-  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  box-shadow: var(--material-surface-shadow), var(--material-inset-shadow);
+  backdrop-filter: var(--glass-backdrop-elevated);
+  -webkit-backdrop-filter: var(--glass-backdrop-elevated);
 }
 
 .appearance-background-content,

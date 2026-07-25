@@ -35,6 +35,26 @@ describe('editor and analytics theme CSS contract', () => {
     expect(surfacesCss).not.toMatch(/\.input,\s*\.notes-drawer-title-input,/)
   })
 
+  it('keeps note actions aligned while truncating only the title at narrow widths', () => {
+    expect(notesCss).toContain('container-name: notes-editor')
+    expect(notesCss).toContain('container-type: inline-size')
+    expect(notesCss).toContain('@container notes-editor (max-width: 720px)')
+    expect(notesCss).toContain('grid-template-columns: minmax(0, 1fr) max-content')
+    expect(notesCss).toContain('text-overflow: ellipsis')
+    expect(notesCss).toContain('white-space: nowrap')
+    expect(notesCss).toContain('flex-wrap: nowrap')
+    expect(notesCss).not.toContain('grid-template-columns: minmax(0, 1fr);\n    align-items: start')
+    expect(notesCss).not.toContain('justify-content: flex-start')
+  })
+
+  it('separates the note list with a semantic material edge', () => {
+    expect(surfacesCss).toContain('background-color: var(--notes-list-background)')
+    expect(surfacesCss).toContain('background-image: var(--notes-list-material-image)')
+    expect(surfacesCss).toContain('border-inline-end: 1px solid var(--notes-list-divider)')
+    expect(surfacesCss).toContain('box-shadow: var(--notes-list-edge-shadow)')
+    expect(surfacesCss).toContain('backdrop-filter: var(--glass-backdrop-ambient)')
+  })
+
   it('keeps every fullscreen editor control in one non-overlapping row', () => {
     expect(editorComponent).toMatch(/tiptap-fullscreen-header-actions[\s\S]*fullscreen-exit-btn/)
     expect(editorCss).toContain('padding: 6px 104px 8px 20px')

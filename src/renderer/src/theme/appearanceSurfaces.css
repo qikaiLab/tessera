@@ -34,10 +34,17 @@
 }
 
 :root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass']) .notes-list-panel {
-  background-color: var(--bg-sidebar);
-  background-image: var(--surface-material-subtle-image);
+  background-color: var(--notes-list-background);
+  background-image: var(--notes-list-material-image);
   background-size: var(--surface-material-size);
   background-position: var(--surface-material-position);
+  border-inline-end: 1px solid var(--notes-list-divider);
+  box-shadow: var(--notes-list-edge-shadow);
+}
+
+:root[data-interface-style='frosted-glass'] .notes-list-panel {
+  backdrop-filter: var(--glass-backdrop-ambient);
+  -webkit-backdrop-filter: var(--glass-backdrop-ambient);
 }
 
 :root[data-interface-weight] :is(
@@ -167,8 +174,8 @@
   .slash-menu,
   .context-menu
 ) {
-  backdrop-filter: blur(22px) saturate(108%);
-  -webkit-backdrop-filter: blur(22px) saturate(108%);
+  backdrop-filter: var(--glass-backdrop-elevated);
+  -webkit-backdrop-filter: var(--glass-backdrop-elevated);
 }
 
 :root[data-interface-style='frosted-glass'] :is(
@@ -176,6 +183,6 @@
   .notes-drawer-search .search-input,
   .floating-toolbar
 ) {
-  backdrop-filter: blur(14px) saturate(105%);
-  -webkit-backdrop-filter: blur(14px) saturate(105%);
+  backdrop-filter: var(--glass-backdrop-recessed);
+  -webkit-backdrop-filter: var(--glass-backdrop-recessed);
 }

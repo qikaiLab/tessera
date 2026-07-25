@@ -5,6 +5,10 @@ import { describe, expect, it } from 'vitest'
 const cssPath = path.resolve('src/renderer/src/styles/global.css')
 const css = fs.readFileSync(cssPath, 'utf8')
 const appCss = fs.readFileSync(path.resolve('src/renderer/src/styles/App.css'), 'utf8')
+const surfacesCss = fs.readFileSync(
+  path.resolve('src/renderer/src/theme/appearanceSurfaces.css'),
+  'utf8'
+)
 const editorCss = fs.readFileSync(
   path.resolve('src/renderer/src/components/TiptapEditor/TiptapEditor.css'),
   'utf8'
@@ -39,7 +43,6 @@ describe('appearance theme CSS contract', () => {
         '--bg-surface-2',
         '--bg-surface-3',
         '--bg-hover',
-        '--bg-active',
         '--bg-input'
       ]) {
         expectNeutralHex(getHexVariable(rule, variable))
@@ -91,7 +94,7 @@ describe('appearance theme CSS contract', () => {
     expect(appCss).toContain('filter: blur(var(--frosted-background-blur))')
   })
 
-  it('keeps frosted glass surfaces neutral while accents remain background-adaptive', () => {
+  it('tints frosted glass surfaces from the adaptive background palette', () => {
     for (const selector of [
       "[data-interface-style='frosted-glass'][data-theme='dark']",
       "[data-interface-style='frosted-glass'][data-theme='light']"
@@ -104,16 +107,50 @@ describe('appearance theme CSS contract', () => {
         '--bg-surface-2',
         '--bg-surface-3',
         '--bg-hover',
-        '--bg-active',
         '--bg-input',
         '--bg-glass'
       ]) {
-        const match = rule.match(new RegExp(`${variable}:\\s*rgba\\((\\d+),\\s*(\\d+),\\s*(\\d+),`))
-        expect(match, `${selector} ${variable}`).toBeTruthy()
-        expect(new Set(match.slice(1, 4)).size, `${selector} ${variable}`).toBe(1)
+        expect(rule, `${selector} ${variable}`).toContain(
+          `${variable}: hsl(var(--frosted-accent-h) var(--frosted-accent-s)`
+        )
       }
       expect(rule).toContain('hsl(var(--frosted-accent-h)')
     }
+  })
+
+  it('uses three material blur tiers without retaining the unused active surface token', () => {
+    expect(css).not.toContain('--bg-active:')
+    for (const token of [
+      '--glass-backdrop-ambient:',
+      '--glass-backdrop-elevated:',
+      '--glass-backdrop-recessed:'
+    ]) {
+      expect(css).toContain(token)
+    }
+    expect(appCss).toContain('backdrop-filter: var(--glass-backdrop-ambient)')
+    expect(surfacesCss).toContain('backdrop-filter: var(--glass-backdrop-elevated)')
+  })
+
+  it('avoids black veil recipes in the dark frosted glass theme', () => {
+    const darkGlassRule = getRule("[data-interface-style='frosted-glass'][data-theme='dark']")
+    expect(darkGlassRule).not.toMatch(/rgba\(\s*0,\s*0,\s*0/)
+    expect(darkGlassRule).toContain('--frosted-shell-overlay:')
+    expect(darkGlassRule).toContain('--frosted-fullscreen-overlay:')
+  })
+
+  it('softens only the light frosted notes rail without changing the dark recipe', () => {
+    const darkGlassRule = getRule("[data-interface-style='frosted-glass'][data-theme='dark']")
+    const lightGlassRule = getRule("[data-interface-style='frosted-glass'][data-theme='light']")
+
+    expect(darkGlassRule).toContain(
+      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 34% / 0.18)'
+    )
+    expect(lightGlassRule).toContain(
+      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 94% / 0.1)'
+    )
+    expect(lightGlassRule).not.toContain(
+      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100%'
+    )
   })
 
   it('keeps fullscreen positioning independent from the frosted shell blur layer', () => {
