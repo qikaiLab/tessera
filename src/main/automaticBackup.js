@@ -204,6 +204,16 @@ export function createAutomaticBackupStore(dataDirectory, {
 
   return {
     write: (filePath, content) => queue(() => write(filePath, content)),
+    recoverTemporary: filePath => queue(async () => {
+      if (!filePath.endsWith('.tmp')) throw new Error('Recovery requires a temporary file')
+      const { full } = sourcePath(filePath)
+      const content = await io.readFile(full, 'utf8')
+      await write(filePath.slice(0, -4), content)
+      // Atomic replacement already consumed this same .tmp when content changed.
+      try { await io.unlink(full) } catch (error) {
+        if (error.code !== 'ENOENT') throw error
+      }
+    }),
     delete: filePath => queue(() => remove(filePath)),
     list: filePath => queue(async () => {
       await loadManifest()

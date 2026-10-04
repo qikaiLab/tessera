@@ -14,6 +14,21 @@ async function fixture(options = {}) {
 afterEach(async () => { await Promise.all(directories.splice(0).map(directory => fs.rm(directory, { recursive: true, force: true }))) })
 
 describe('automatic backups', () => {
+  it('recovers changed and identical temporary files without reporting a consumed temp as failure', async () => {
+    const { store, directory } = await fixture()
+    await store.write('notes/plans.json', note('original'))
+    const temporary = path.join(directory, 'notes/plans.json.tmp')
+    await fs.writeFile(temporary, note('recovered'))
+    await store.recoverTemporary('notes/plans.json.tmp')
+    expect(await fs.readFile(path.join(directory, 'notes/plans.json'), 'utf8')).toBe(note('recovered'))
+    expect(await store.list('notes/plans.json')).toHaveLength(2)
+    await expect(fs.stat(temporary)).rejects.toMatchObject({ code: 'ENOENT' })
+    await fs.writeFile(temporary, note('recovered'))
+    await store.recoverTemporary('notes/plans.json.tmp')
+    await expect(fs.stat(temporary)).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(store.recoverTemporary('notes/plans.json')).rejects.toThrow('temporary file')
+  })
+
   it('captures a legacy original before the first overwrite and survives restart', async () => {
     const { store, directory } = await fixture()
     await fs.mkdir(path.join(directory, 'notes'))

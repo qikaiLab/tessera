@@ -434,9 +434,7 @@ ipcMain.handle('fs:recoverTmp', async (_, tmpPath) => {
     if (!resolvedTmp.startsWith(normalizedDataDir + path.sep)) {
       throw new Error('Path traversal detected')
     }
-    const target = tmpPath.replace(/\.tmp$/, '')
-    await automaticBackup().write(path.relative(normalizedDataDir, target), await fsp.readFile(resolvedTmp, 'utf8'))
-    await fsp.unlink(resolvedTmp)
+    await automaticBackup().recoverTemporary(path.relative(normalizedDataDir, resolvedTmp))
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
