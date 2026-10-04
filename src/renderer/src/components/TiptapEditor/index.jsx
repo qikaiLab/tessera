@@ -13,6 +13,7 @@ import { SlashExtension } from './slashExtension'
 import { useApp } from '../../context/AppContext'
 import { hasClipboardText, separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
 import { isFullscreenEditorShortcut } from '../../utils/editorShortcuts'
+import { replaceEditorDocument } from '../../utils/editorDocumentState'
 import './TiptapEditor.css'
 
 // Custom save extension (Ctrl+S / Cmd+S)
@@ -302,7 +303,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     setContent: (content) => {
       if (editor) {
         isExternalUpdateRef.current = true
-        editor.commands.setContent(content || { type: 'doc', content: [{ type: 'paragraph' }] })
+        replaceEditorDocument(editor, content || { type: 'doc', content: [{ type: 'paragraph' }] })
         isExternalUpdateRef.current = false
       }
     },
@@ -322,7 +323,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     const nextStr    = JSON.stringify(nextContent)
     if (currentStr !== nextStr) {
       isExternalUpdateRef.current = true
-      editor.commands.setContent(nextContent)
+      replaceEditorDocument(editor, nextContent)
       isExternalUpdateRef.current = false
     }
   }, [value, editor])

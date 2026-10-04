@@ -26,7 +26,7 @@ for (const packagePath of braceExpansionPackagePaths) {
   const packageMetadata = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'))
   const braceExpansionEntry = join(packageRoot, 'dist', 'commonjs', 'index.js')
 
-  if (packageMetadata.version !== '5.0.8' || !existsSync(braceExpansionEntry)) {
+  if (packageMetadata.version !== '5.0.12' || !existsSync(braceExpansionEntry)) {
     throw new Error(`Unsupported brace-expansion installation at ${packagePath}`)
   }
 

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TiptapEditor from './TiptapEditor'
+import { createNoteOperationBarrier } from '../utils/noteOperations'
 import SaveStatusBadge from './SaveStatusBadge'
 import { useApp } from '../context/AppContext'
 import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
@@ -181,6 +182,8 @@ function getDrawerVisibleNotes(notes, { mode, dateStr, query, selectedId }) {
 export default function NotesDrawer({ dateStr, width, onResizeStart, closing = false, onAnimationEnd }) {
   const { showToast, confirm, registerPendingFlush, unregisterPendingFlush } = useApp()
   const [notes, setNotes] = useState([])
+  const noteOperationsRef = useRef(null)
+  if (!noteOperationsRef.current) noteOperationsRef.current = createNoteOperationBarrier()
   const [selectedId, setSelectedId] = useState(null)
   const [currentNote, setCurrentNote] = useState(null)
   const [query, setQuery] = useState('')
@@ -237,8 +240,9 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
     }
     const pending = pendingNoteRef.current
     if (!pending) return true
-    pendingNoteRef.current = null
-    return persistNoteNow(pending.note, pending.notes)
+    const saved = await persistNoteNow(pending.note, pending.notes)
+    if (saved && pendingNoteRef.current === pending) pendingNoteRef.current = null
+    return saved
   }, [persistNoteNow])
 
   const scheduleSave = useCallback((note, nextNotes) => {
@@ -248,8 +252,10 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
     saveTimerRef.current = setTimeout(async () => {
       const pending = pendingNoteRef.current
       saveTimerRef.current = null
-      pendingNoteRef.current = null
-      if (pending) await persistNoteNow(pending.note, pending.notes)
+      if (pending) {
+        const saved = await persistNoteNow(pending.note, pending.notes)
+        if (saved && pendingNoteRef.current === pending) pendingNoteRef.current = null
+      }
     }, 800)
   }, [persistNoteNow])
 
@@ -347,7 +353,8 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
   }, [viewOrder, sortedFilteredNotes])
 
   const selectNote = useCallback(async (note) => {
-    await flushPending()
+    await noteOperationsRef.current.wait()
+    if (!await flushPending()) return
     if (viewOrder.length === 0) {
       setViewOrder(getDrawerVisibleNotes(notes, { mode, dateStr: viewDateStr, query, selectedId: note.id }).map(item => item.id))
     }
@@ -359,7 +366,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
   }, [flushPending, mode, notes, query, viewDateStr, viewOrder.length])
 
   const closeEditor = useCallback(async () => {
-    await flushPending()
+    if (!await flushPending()) return
     setSelectedId(null)
     setCurrentNote(null)
     setSaveStatus(SAVE_IDLE)
@@ -374,7 +381,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
   }, [closeEditor, notes, query, viewDateStr])
 
   const updateCurrentNote = useCallback((patch) => {
-    if (!currentNote) return
+    if (!currentNote || noteOperationsRef.current.busy()) return
     const updatedAt = new Date().toISOString()
     const nextNote = {
       ...currentNote,
@@ -395,7 +402,8 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
   }, [updateCurrentNote])
 
   const createNote = useCallback(async () => {
-    await flushPending()
+    await noteOperationsRef.current.wait()
+    if (!await flushPending()) return
     const now = new Date().toISOString()
     const note = {
       id: generateId(),
@@ -419,10 +427,11 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
   }, [flushPending, mode, notes, persistNoteNow, query, viewDateStr])
 
   const duplicateNoteById = useCallback(async (noteId) => {
+    await noteOperationsRef.current.wait()
     const source = notes.find(note => note.id === noteId)
     if (!source) return
 
-    await flushPending()
+    if (!await flushPending()) return
     const now = new Date().toISOString()
     const duplicate = {
       ...source,
@@ -464,42 +473,39 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
     const title = target.title?.trim() || '无标题便签'
     const confirmed = await confirm({
       title: '删除便签',
-      message: `确定要删除便签「${title}」吗？\n该操作会永久删除便签文件，无法撤销。`,
+      message: `确定要删除便签「${title}」吗？\n便签将从列表中移除，可在设置的自动历史中恢复为副本。`,
       confirmText: '删除',
       cancelText: '取消',
       danger: true
     })
     if (!confirmed) return
 
-    await flushPending()
-    const nextNotes = notes.filter(note => note.id !== noteId).sort(compareNotes)
-    const indexResult = await writeIndex(nextNotes)
-    if (!indexResult.ok) {
-      showToast('便签索引更新失败', 'error')
-      return
-    }
+    return noteOperationsRef.current.run(async () => {
 
-    const deleteResult = await window.api.fs.deleteFile(notePath(noteId))
-    if (!deleteResult.ok) {
-      showToast('便签文件删除失败', 'error')
-      return
-    }
+      if (!await flushPending()) return
+      const nextNotes = notes.filter(note => note.id !== noteId).sort(compareNotes)
+      const deleteResult = await window.api.fs.deleteFile(notePath(noteId))
+      if (!deleteResult.ok) {
+        showToast('便签文件删除失败', 'error')
+        return
+      }
 
-    const nextSelectedId = selectedId === noteId ? null : selectedId
-    const nextCurrentNote = currentNote?.id === noteId ? null : currentNote
-    setNotes(nextNotes)
-    setSelectedId(nextSelectedId)
-    setCurrentNote(nextCurrentNote)
-    setSaveStatus(SAVE_IDLE)
-    setViewOrder(getDrawerVisibleNotes(nextNotes, {
-      mode,
-      dateStr: viewDateStr,
-      query,
-      selectedId: nextSelectedId
-    }).map(note => note.id))
-    if (selectedId === noteId) forgetDrawerSelected(viewDateStr)
-    showToast('便签已删除', 'success', 1200)
-  }, [confirm, currentNote, flushPending, mode, notes, query, selectedId, showToast, viewDateStr, writeIndex])
+      const nextSelectedId = selectedId === noteId ? null : selectedId
+      const nextCurrentNote = currentNote?.id === noteId ? null : currentNote
+      setNotes(nextNotes)
+      setSelectedId(nextSelectedId)
+      setCurrentNote(nextCurrentNote)
+      setSaveStatus(SAVE_IDLE)
+      setViewOrder(getDrawerVisibleNotes(nextNotes, {
+        mode,
+        dateStr: viewDateStr,
+        query,
+        selectedId: nextSelectedId
+      }).map(note => note.id))
+      if (selectedId === noteId) forgetDrawerSelected(viewDateStr)
+      showToast('便签已删除', 'success', 1200)
+    })
+  }, [confirm, currentNote, flushPending, mode, notes, query, selectedId, showToast, viewDateStr])
 
   useContextMenuCommand('notes-drawer-list', useCallback((id, context) => {
     const note = context?.noteId ? notes.find(item => item.id === context.noteId) : null
@@ -615,6 +621,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
                 </div>
                 <div className="notes-drawer-editor-body">
                   <TiptapEditor
+                    key={currentNote.id}
                     value={currentNote.content || emptyDoc()}
                     onChange={(content) => updateCurrentNote({ content })}
                     placeholder="写下长期计划、灵感或临时素材..."

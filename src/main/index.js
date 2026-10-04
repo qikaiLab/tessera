@@ -13,6 +13,7 @@ import {
   readManagedBackground,
   removeManagedBackgrounds
 } from './appearanceBackground.js'
+import { createAutomaticBackupStore } from './automaticBackup.js'
 
 // Platform path helpers
 const isDev = !app.isPackaged
@@ -20,7 +21,14 @@ const isDev = !app.isPackaged
 let mainWindow
 let dataDir = ''
 let isQuitting = false
+let closeRequestTimer = null
 let lastExternalOpen = { url: '', time: 0 }
+const backupStores = new Map()
+function automaticBackup() {
+  const directory = path.resolve(dataDir)
+  if (!backupStores.has(directory)) backupStores.set(directory, createAutomaticBackupStore(directory))
+  return backupStores.get(directory)
+}
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock()
 
@@ -217,21 +225,32 @@ function createWindow() {
     if (isQuitting) return // Already confirmed, let it close
 
     e.preventDefault()
+    if (closeRequestTimer) return
     // Ask renderer to flush pending saves
     mainWindow.webContents.send('app-before-close')
 
-    // Safety timeout: if renderer doesn't respond within 3s, force close
-    setTimeout(() => {
-      isQuitting = true
-      mainWindow.close()
-    }, 3000)
+    // A slow or failed checkpoint is never permission to discard pending edits.
+    closeRequestTimer = setTimeout(() => {
+      closeRequestTimer = null
+      if (mainWindow && !mainWindow.isDestroyed()) dialog.showMessageBox(mainWindow, {
+        type: 'warning', title: '尚未确认保存完成',
+        message: '应用仍在等待保存结果，已取消退出。请检查保存状态后重试。', buttons: ['继续使用']
+      })
+    }, 15000)
   })
 }
 
 // Fix #8: Renderer confirms it's safe to close
 ipcMain.handle('app:confirmClose', () => {
+  clearTimeout(closeRequestTimer)
+  closeRequestTimer = null
   isQuitting = true
   mainWindow?.close()
+})
+ipcMain.handle('app:cancelClose', () => {
+  clearTimeout(closeRequestTimer)
+  closeRequestTimer = null
+  return true
 })
 
 if (gotSingleInstanceLock) {
@@ -309,12 +328,7 @@ ipcMain.handle('fs:readFile', async (_, filePath) => {
 
 ipcMain.handle('fs:writeFile', async (_, filePath, content) => {
   try {
-    const full = safePath(filePath)
-    await ensureDir(path.dirname(full))
-    // Write to .tmp first, then rename for crash safety
-    const tmp = full + '.tmp'
-    await fsp.writeFile(tmp, content, 'utf8')
-    await fsp.rename(tmp, full)
+    await automaticBackup().write(filePath, content)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -323,12 +337,7 @@ ipcMain.handle('fs:writeFile', async (_, filePath, content) => {
 
 ipcMain.handle('fs:deleteFile', async (_, filePath) => {
   try {
-    const full = safePath(filePath)
-    try {
-      await fsp.unlink(full)
-    } catch (e) {
-      if (e.code !== 'ENOENT') throw e
-    }
+    await automaticBackup().delete(filePath)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -426,7 +435,8 @@ ipcMain.handle('fs:recoverTmp', async (_, tmpPath) => {
       throw new Error('Path traversal detected')
     }
     const target = tmpPath.replace(/\.tmp$/, '')
-    await fsp.rename(tmpPath, target)
+    await automaticBackup().write(path.relative(normalizedDataDir, target), await fsp.readFile(resolvedTmp, 'utf8'))
+    await fsp.unlink(resolvedTmp)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -516,6 +526,18 @@ ipcMain.handle('appearanceBackground:clear', async () => {
 })
 
 // Backup
+ipcMain.handle('backup:automaticList', async (_, filePath) => {
+  try { return { ok: true, data: await automaticBackup().list(filePath) } }
+  catch (error) { return { ok: false, error: error.message } }
+})
+ipcMain.handle('backup:automaticRead', async (_, id) => {
+  try { return { ok: true, data: await automaticBackup().read(id) } }
+  catch (error) { return { ok: false, error: error.message } }
+})
+ipcMain.handle('backup:automaticRestore', async (_, id) => {
+  try { return { ok: true, ...await automaticBackup().restore(id) } }
+  catch (error) { return { ok: false, error: error.message } }
+})
 ipcMain.handle('backup:create', async () => {
   try {
     const backupDir = path.join(dataDir, 'backups')
@@ -647,12 +669,8 @@ ipcMain.handle('metadata:get', async () => {
 })
 
 ipcMain.handle('metadata:set', async (_, content) => {
-  const metaPath = path.join(dataDir, 'metadata.json')
   try {
-    await ensureDir(path.dirname(metaPath))
-    const tmp = metaPath + '.tmp'
-    await fsp.writeFile(tmp, content, 'utf8')
-    await fsp.rename(tmp, metaPath)
+    await automaticBackup().write('metadata.json', content)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }

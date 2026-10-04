@@ -1,0 +1,10 @@
+.modal.automatic-history { width: min(1000px, 94vw); max-width: 1000px; max-height: 88vh; display: flex; flex-direction: column; gap: 12px; padding: 20px; }
+.history-description { color: var(--text-secondary); font-size: 13px; }
+.history-columns { display: grid; grid-template-columns: minmax(220px, 35%) minmax(0, 1fr); gap: 16px; min-height: 0; height: min(520px, 58vh); }
+.history-list { overflow: auto; min-height: 0; }
+.history-entry { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 12px; text-align: left; color: var(--text-primary); background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow-wrap: anywhere; }
+.history-entry.active { border-color: var(--accent); }
+.history-entry span, .history-entry small { color: var(--text-secondary); font-size: 12px; }
+.history-detail { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.history-preview { flex: 1; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 14px; line-height: 1.7; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+@media (max-width: 650px) { .history-columns { grid-template-columns: 1fr; height: 60vh; } .history-list { max-height: 20vh; } }

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { flushSaveCallbacks } from '../utils/pendingSaves'
 import {
   INTERFACE_STYLE_IDS,
   THEME_ACCENT_IDS,
@@ -79,6 +80,7 @@ export function AppProvider({ children }) {
   const hasChangedRef = useRef(false)
   // Fix #7: Write lock to prevent concurrent metadata writes
   const isWritingMetadataRef = useRef(false)
+  const metadataWriteRef = useRef(Promise.resolve())
   const needsRewriteRef = useRef(false)
 
   // Fix #8: Registry of pending flush callbacks for graceful shutdown
@@ -155,6 +157,17 @@ export function AppProvider({ children }) {
   }, [])
 
   // Fix #7: Debounced metadata save with write lock to prevent race conditions
+  const showToast = useCallback((message, type = 'info', duration = 3000) => {
+    const id = Date.now() + Math.random()
+    setToasts(prev => [...prev, { id, message, type, leaving: false }])
+    setTimeout(() => {
+      setToasts(prev => prev.map(t => t.id === id ? { ...t, leaving: true } : t))
+    }, duration)
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, duration + 220)
+  }, [])
+
   const doMetadataWrite = useCallback(async () => {
     if (isWritingMetadataRef.current) {
       // A write is in progress — mark that we need to re-write when done
@@ -166,8 +179,11 @@ export function AppProvider({ children }) {
       // Read latest state via functional setters' closure would be stale here,
       // so we rely on the fact that React state is committed before setTimeout fires
       const content = JSON.stringify({ countdowns, analytics }, null, 2)
-      await window.api.metadata.set(content)
+      metadataWriteRef.current = window.api.metadata.set(content)
+      const result = await metadataWriteRef.current
+      if (!result.ok) hasChangedRef.current = true
     } catch (e) {
+      hasChangedRef.current = true
       console.error('Failed to write metadata:', e)
     } finally {
       isWritingMetadataRef.current = false
@@ -202,6 +218,7 @@ export function AppProvider({ children }) {
   // Fix #8: Register metadata flush for graceful shutdown
   useEffect(() => {
     const flushMetadata = async () => {
+      try { await metadataWriteRef.current } catch { hasChangedRef.current = true }
       if (metadataTimerRef.current) {
         clearTimeout(metadataTimerRef.current)
         metadataTimerRef.current = null
@@ -210,31 +227,34 @@ export function AppProvider({ children }) {
         hasChangedRef.current = false
         needsRewriteRef.current = false
         const content = JSON.stringify({ countdowns, analytics }, null, 2)
-        await window.api.metadata.set(content)
+        const result = await window.api.metadata.set(content)
+        if (!result.ok) {
+          hasChangedRef.current = true
+          return false
+        }
       }
     }
     registerPendingFlush('metadata', flushMetadata)
     return () => unregisterPendingFlush('metadata')
   }, [countdowns, analytics, registerPendingFlush, unregisterPendingFlush])
 
+  const flushPendingSaves = useCallback(async () => {
+    return flushSaveCallbacks(pendingFlushesRef.current.values())
+  }, [])
+
   // Fix #8: Listen for app-before-close and flush all pending saves
   useEffect(() => {
     const cleanup = window.api.lifecycle.onBeforeClose(async () => {
-      // Execute all registered flush callbacks
-      const flushPromises = []
-      for (const [key, flushFn] of pendingFlushesRef.current) {
-        flushPromises.push(
-          Promise.resolve(flushFn()).catch(e =>
-            console.error(`Failed to flush "${key}":`, e)
-          )
-        )
+      if (!await flushPendingSaves()) {
+        await window.api.lifecycle.cancelClose()
+        showToast('保存失败，已取消退出。请重试保存，或先复制未保存的内容。', 'error')
+        return
       }
-      await Promise.all(flushPromises)
       // Tell main process it's safe to close now
       window.api.lifecycle.confirmClose()
     })
     return cleanup
-  }, [])
+  }, [flushPendingSaves, showToast])
 
   const saveSectionsData = useCallback(async (secs) => {
     await window.api.fs.writeFile('sections.json', JSON.stringify(secs, null, 2))
@@ -372,16 +392,7 @@ export function AppProvider({ children }) {
     window.api.config.set('editorLetterSpacing', val)
   }, [])
 
-  const showToast = useCallback((message, type = 'info', duration = 3000) => {
-    const id = Date.now() + Math.random()
-    setToasts(prev => [...prev, { id, message, type, leaving: false }])
-    setTimeout(() => {
-      setToasts(prev => prev.map(t => t.id === id ? { ...t, leaving: true } : t))
-    }, duration)
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, duration + 220)
-  }, [])
+
 
   const readDayData = useCallback(async (dateStr) => {
     // dateStr: YYYY-MM-DD
@@ -546,7 +557,7 @@ export function AppProvider({ children }) {
       analytics, saveAnalytics,
       confirm,
       // Fix #8: Expose flush registration for Today page
-      registerPendingFlush, unregisterPendingFlush
+      registerPendingFlush, unregisterPendingFlush, flushPendingSaves
     }}>
       {children}
       {confirmConfig && (

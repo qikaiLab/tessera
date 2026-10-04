@@ -22,6 +22,7 @@ import { defaultFrostedBackground } from '../theme/frostedGlassBackground'
 import { FROSTED_BACKGROUND_BLUR } from '../theme/frostedGlassPreferences'
 import './Settings.css'
 import JSZip from 'jszip'
+import AutomaticHistory from '../components/AutomaticHistory'
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
 const NUMBER_DEFAULT_MODE_MANUAL = 'manual'
@@ -41,6 +42,7 @@ const getNumberDefaultMode = (section) => {
 }
 
 export default function Settings() {
+  const [historyOpen, setHistoryOpen] = useState(false)
   const {
     sections, saveSections, dataDir, setDataDir, showToast, refreshDates, datesWithData, readDayData,
     fullscreenStandardWidth, updateFullscreenStandardWidth,
@@ -713,8 +715,10 @@ export default function Settings() {
         <div className="settings-card">
           <div className="settings-card-title">备份与导入导出</div>
           <div className="settings-card-desc">导出 ZIP 包含所有数据与配置。最多保留 30 份本地备份。</div>
+          <div className="settings-card-desc">自动历史只保存变化的文件，压缩并去重，保留最近 20 个版本及近 24 小时、30 天的代表版本，压缩内容总容量上限 200 MB。便签删除前也会保存，可恢复为新副本。</div>
           
           <div className="settings-actions">
+            <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>查看自动历史</button>
             <button className="btn btn-primary" onClick={createBackup} disabled={backingUp}>
               {backingUp ? '备份中...' : '立即备份到本地'}
             </button>
@@ -744,6 +748,7 @@ export default function Settings() {
 
       </div>
 
+      {historyOpen && <AutomaticHistory onClose={() => setHistoryOpen(false)} />}
       {/* Delete Modal */}
       {deleteModalState.isOpen && (
         <div className="modal-overlay" onClick={() => setDeleteModalState({ isOpen: false })}>

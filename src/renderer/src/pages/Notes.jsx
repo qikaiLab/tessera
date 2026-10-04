@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TiptapEditor from '../components/TiptapEditor'
 import SaveStatusBadge from '../components/SaveStatusBadge'
+import AutomaticHistory from '../components/AutomaticHistory'
 import { useApp } from '../context/AppContext'
 import { separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
 import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
+import { createNoteOperationBarrier } from '../utils/noteOperations'
 import './Notes.css'
 
 const NOTES_INDEX_PATH = 'notes/index.json'
@@ -187,6 +189,7 @@ export default function Notes() {
   const [notes, setNotes] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [currentNote, setCurrentNote] = useState(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [dateFilter, setDateFilter] = useState({
@@ -208,6 +211,8 @@ export default function Notes() {
   const saveTimerRef = useRef(null)
   const pendingNoteRef = useRef(null)
   const titleInputRef = useRef(null)
+  const noteOperationsRef = useRef(null)
+  if (!noteOperationsRef.current) noteOperationsRef.current = createNoteOperationBarrier()
 
   const writeIndex = useCallback(async (nextNotes) => {
     const cleanIndex = nextNotes.map(normalizeMeta)
@@ -251,8 +256,9 @@ export default function Notes() {
     }
     const pending = pendingNoteRef.current
     if (!pending) return true
-    pendingNoteRef.current = null
-    return persistNoteNow(pending.note, pending.notes)
+    const saved = await persistNoteNow(pending.note, pending.notes)
+    if (saved && pendingNoteRef.current === pending) pendingNoteRef.current = null
+    return saved
   }, [persistNoteNow])
 
   const scheduleSave = useCallback((note, nextNotes) => {
@@ -262,8 +268,10 @@ export default function Notes() {
     saveTimerRef.current = setTimeout(async () => {
       const pending = pendingNoteRef.current
       saveTimerRef.current = null
-      pendingNoteRef.current = null
-      if (pending) await persistNoteNow(pending.note, pending.notes)
+      if (pending) {
+        const saved = await persistNoteNow(pending.note, pending.notes)
+        if (saved && pendingNoteRef.current === pending) pendingNoteRef.current = null
+      }
     }, 800)
   }, [persistNoteNow])
 
@@ -304,14 +312,15 @@ export default function Notes() {
 
   useEffect(() => {
     const flushNotes = async () => {
-      await flushPending()
+      return flushPending()
     }
     registerPendingFlush('notes', flushNotes)
     return () => unregisterPendingFlush('notes')
   }, [flushPending, registerPendingFlush, unregisterPendingFlush])
 
   const selectNote = useCallback(async (note) => {
-    await flushPending()
+    await noteOperationsRef.current.wait()
+    if (!await flushPending()) return
     setSelectedId(note.id)
     setCurrentNote(note)
     setCharCount(countNoteChars(note.content))
@@ -321,7 +330,7 @@ export default function Notes() {
   }, [flushPending])
 
   const updateCurrentNote = useCallback((patch) => {
-    if (!currentNote) return
+    if (!currentNote || noteOperationsRef.current.busy()) return
     const updatedAt = new Date().toISOString()
     const nextNote = {
       ...currentNote,
@@ -340,7 +349,8 @@ export default function Notes() {
   }, [currentNote, notes, scheduleSave])
 
   const createNote = useCallback(async () => {
-    await flushPending()
+    await noteOperationsRef.current.wait()
+    if (!await flushPending()) return
     const now = new Date().toISOString()
     const note = {
       id: generateId(),
@@ -366,10 +376,11 @@ export default function Notes() {
   }, [flushPending, notes, persistNoteNow, showToast])
 
   const duplicateNoteById = useCallback(async (noteId) => {
+    await noteOperationsRef.current.wait()
     const source = notes.find(note => note.id === noteId)
     if (!source) return
 
-    await flushPending()
+    if (!await flushPending()) return
     const now = new Date().toISOString()
     const duplicate = {
       ...source,
@@ -402,7 +413,7 @@ export default function Notes() {
     const target = notes.find(note => note.id === noteId)
     if (!target) return
 
-    await flushPending()
+    if (!await flushPending()) return
     const nextNote = {
       ...target,
       pinned: !target.pinned,
@@ -420,7 +431,7 @@ export default function Notes() {
     const target = notes.find(note => note.id === noteId)
     if (!target) return
 
-    await flushPending()
+    if (!await flushPending()) return
     const nextNote = {
       ...target,
       archived: !target.archived,
@@ -442,40 +453,37 @@ export default function Notes() {
     const title = target.title?.trim() || '无标题便签'
     const confirmed = await confirm({
       title: '删除便签',
-      message: `确定要删除便签「${title}」吗？\n该操作会永久删除便签文件，无法撤销。`,
+      message: `确定要删除便签「${title}」吗？\n便签将从列表中移除，可在设置的自动历史中恢复为副本。`,
       confirmText: '删除',
       cancelText: '取消',
       danger: true
     })
     if (!confirmed) return
 
-    await flushPending()
-    const nextNotes = notes.filter(note => note.id !== noteId).sort(compareNotes)
-    const indexResult = await writeIndex(nextNotes)
-    if (!indexResult.ok) {
-      showToast('便签索引更新失败', 'error')
-      return
-    }
+    return noteOperationsRef.current.run(async () => {
 
-    const deleteResult = await window.api.fs.deleteFile(notePath(noteId))
-    if (!deleteResult.ok) {
-      showToast('便签文件删除失败', 'error')
-      return
-    }
+      if (!await flushPending()) return
+      const nextNotes = notes.filter(note => note.id !== noteId).sort(compareNotes)
+      const deleteResult = await window.api.fs.deleteFile(notePath(noteId))
+      if (!deleteResult.ok) {
+        showToast('便签文件删除失败', 'error')
+        return
+      }
 
-    const nextSelected = currentNote?.id === noteId
-      ? (nextNotes.find(note => showArchived ? note.archived : !note.archived) || nextNotes[0] || null)
-      : currentNote
+      const nextSelected = currentNote?.id === noteId
+        ? (nextNotes.find(note => showArchived ? note.archived : !note.archived) || nextNotes[0] || null)
+        : currentNote
 
-    setNotes(nextNotes)
-    setCurrentNote(nextSelected)
-    setSelectedId(nextSelected?.id || null)
-    setCharCount(nextSelected ? countNoteChars(nextSelected.content) : 0)
-    setFullScreenNoteId(null)
-    setDateLinkPanelOpen(false)
-    setSaveStatus(SAVE_IDLE)
-    showToast('便签已删除', 'success', 1200)
-  }, [confirm, currentNote, flushPending, notes, showArchived, showToast, writeIndex])
+      setNotes(nextNotes)
+      setCurrentNote(nextSelected)
+      setSelectedId(nextSelected?.id || null)
+      setCharCount(nextSelected ? countNoteChars(nextSelected.content) : 0)
+      setFullScreenNoteId(null)
+      setDateLinkPanelOpen(false)
+      setSaveStatus(SAVE_IDLE)
+      showToast('便签已删除', 'success', 1200)
+    })
+  }, [confirm, currentNote, flushPending, notes, showArchived, showToast])
 
   const openDateLinkPanelById = useCallback(async (noteId) => {
     const note = notes.find(item => item.id === noteId)
@@ -552,37 +560,34 @@ export default function Notes() {
     const title = currentNote.title?.trim() || '无标题便签'
     const confirmed = await confirm({
       title: '删除便签',
-      message: `确定要删除便签「${title}」吗？\n该操作会永久删除便签文件，无法撤销。`,
+      message: `确定要删除便签「${title}」吗？\n便签将从列表中移除，可在设置的自动历史中恢复为副本。`,
       confirmText: '删除',
       cancelText: '取消',
       danger: true
     })
     if (!confirmed) return
 
-    await flushPending()
-    const nextNotes = notes.filter(note => note.id !== currentNote.id).sort(compareNotes)
-    const indexResult = await writeIndex(nextNotes)
-    if (!indexResult.ok) {
-      showToast('便签索引更新失败', 'error')
-      return
-    }
+    return noteOperationsRef.current.run(async () => {
 
-    const deleteResult = await window.api.fs.deleteFile(notePath(currentNote.id))
-    if (!deleteResult.ok) {
-      showToast('便签文件删除失败', 'error')
-      return
-    }
+      if (!await flushPending()) return
+      const nextNotes = notes.filter(note => note.id !== currentNote.id).sort(compareNotes)
+      const deleteResult = await window.api.fs.deleteFile(notePath(currentNote.id))
+      if (!deleteResult.ok) {
+        showToast('便签文件删除失败', 'error')
+        return
+      }
 
-    const nextSelected = nextNotes.find(note => showArchived ? note.archived : !note.archived) || nextNotes[0] || null
-    setNotes(nextNotes)
-    setCurrentNote(nextSelected)
-    setSelectedId(nextSelected?.id || null)
-    setCharCount(nextSelected ? countNoteChars(nextSelected.content) : 0)
-    setFullScreenNoteId(null)
-    setDateLinkPanelOpen(false)
-    setSaveStatus(SAVE_IDLE)
-    showToast('便签已删除', 'success', 1200)
-  }, [confirm, currentNote, flushPending, notes, showArchived, showToast, writeIndex])
+      const nextSelected = nextNotes.find(note => showArchived ? note.archived : !note.archived) || nextNotes[0] || null
+      setNotes(nextNotes)
+      setCurrentNote(nextSelected)
+      setSelectedId(nextSelected?.id || null)
+      setCharCount(nextSelected ? countNoteChars(nextSelected.content) : 0)
+      setFullScreenNoteId(null)
+      setDateLinkPanelOpen(false)
+      setSaveStatus(SAVE_IDLE)
+      showToast('便签已删除', 'success', 1200)
+    })
+  }, [confirm, currentNote, flushPending, notes, showArchived, showToast])
 
   const openDateLinkPanel = () => {
     if (!currentNote) return
@@ -855,6 +860,7 @@ export default function Notes() {
                 placeholder="无标题便签"
               />
               <div className="notes-editor-actions">
+                <button className="btn btn-ghost btn-sm" onClick={async () => { if (await flushPending()) setHistoryOpen(true) }}>历史</button>
                 <SaveStatusBadge status={saveStatus} />
                 <div className="card-font-controls">
                   <button
@@ -964,6 +970,7 @@ export default function Notes() {
             </div>
             <div className="notes-editor-body">
               <TiptapEditor
+                key={currentNote.id}
                 value={currentNote.content || emptyDoc()}
                 onChange={(content) => updateCurrentNote({ content })}
                 placeholder="写下长期计划、灵感、素材或任何不属于某一天的内容..."
@@ -987,6 +994,7 @@ export default function Notes() {
           </div>
         )}
       </main>
+      {historyOpen && currentNote && <AutomaticHistory filePath={notePath(currentNote.id)} onClose={() => setHistoryOpen(false)} onRestore={loadNotes} />}
     </div>
   )
 }

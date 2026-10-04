@@ -50,6 +50,9 @@ const api = {
   },
   // Backup
   backup: {
+    automaticList: (filePath) => ipcRenderer.invoke('backup:automaticList', filePath),
+    automaticRead: (id) => ipcRenderer.invoke('backup:automaticRead', id),
+    automaticRestore: (id) => ipcRenderer.invoke('backup:automaticRestore', id),
     create: () => ipcRenderer.invoke('backup:create'),
     writeZip: (path, base64Data) => ipcRenderer.invoke('backup:writeZip', path, base64Data),
     list: () => ipcRenderer.invoke('backup:list'),
@@ -90,7 +93,8 @@ const api = {
       ipcRenderer.on('app-before-close', () => cb())
       return () => ipcRenderer.removeAllListeners('app-before-close')
     },
-    confirmClose: () => ipcRenderer.invoke('app:confirmClose')
+    confirmClose: () => ipcRenderer.invoke('app:confirmClose'),
+    cancelClose: () => ipcRenderer.invoke('app:cancelClose')
   }
 }
 

@@ -3,6 +3,7 @@ import { format, parseISO, addDays, subDays, isToday, isValid } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
+import { flushPendingValue } from '../utils/pendingSaves'
 import TiptapEditor from '../components/TiptapEditor'
 import NotesDrawer from '../components/NotesDrawer'
 import SaveStatusBadge from '../components/SaveStatusBadge'
@@ -220,11 +221,8 @@ export default function Today() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus(STATUS.SAVING)
-      const dataToSave = pendingDataRef.current
       saveTimerRef.current = null
-      pendingDataRef.current = null
-      
-      const result = await writeDayData(dateStrRef.current, dataToSave)
+      const result = await flushPendingValue(pendingDataRef, value => writeDayData(dateStrRef.current, value))
       if (result.ok) {
         setSaveStatus(STATUS.SAVED)
         // Fix #1: Removed refreshDates() call — writeDayData already updates datesWithData incrementally
@@ -242,11 +240,7 @@ export default function Today() {
         clearTimeout(saveTimerRef.current)
         saveTimerRef.current = null
       }
-      if (pendingDataRef.current) {
-        const dataToSave = pendingDataRef.current
-        pendingDataRef.current = null
-        await writeDayData(dateStrRef.current, dataToSave)
-      }
+      return flushPendingValue(pendingDataRef, value => writeDayData(dateStrRef.current, value))
     }
     registerPendingFlush('today', flushTodayData)
     return () => unregisterPendingFlush('today')
@@ -259,9 +253,7 @@ export default function Today() {
         saveTimerRef.current = null
       }
       setSaveStatus(STATUS.SAVING)
-      const dataToSave = pendingDataRef.current
-      pendingDataRef.current = null
-      writeDayData(dateStr, dataToSave).then(result => {
+      flushPendingValue(pendingDataRef, value => writeDayData(dateStr, value)).then(result => {
         if (result.ok) {
           setSaveStatus(STATUS.SAVED)
           showToast('已保存更改', 'success', 2000)
@@ -342,20 +334,17 @@ export default function Today() {
   }, [data, numberDefaults])
 
   // Fix #3: goTo() now catches write errors and shows user feedback
-  const goTo = (date) => {
+  const goTo = async (date) => {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
-      if (pendingDataRef.current) {
-        const dataToSave = pendingDataRef.current
-        pendingDataRef.current = null
-        writeDayData(dateStr, dataToSave).catch(e => {
-          console.error('Failed to save on date change:', e)
-          showToast('切换日期时保存失败', 'error')
-        })
-      }
     }
-    pendingDataRef.current = null
+    const result = await flushPendingValue(pendingDataRef, value => writeDayData(dateStr, value))
+    if (!result.ok) {
+      setSaveStatus(STATUS.FAILED)
+      showToast('切换日期时保存失败，已保留当前编辑', 'error')
+      return
+    }
     const currentTime = selectedDate.getTime()
     const nextTime = date.getTime()
     if (nextTime === currentTime) return
