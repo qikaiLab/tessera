@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react'
+import React, { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { HashRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import TitleBar from './components/TitleBar'
@@ -7,6 +7,7 @@ import Onboarding from './components/Onboarding'
 import ShortcutsModal from './components/ShortcutsModal'
 import CrashRecovery from './components/CrashRecovery'
 import ContextMenu from './components/ContextMenu'
+import Presence from './components/Presence'
 import ErrorBoundary from './components/ErrorBoundary'
 import Today from './pages/Today'
 import { isThemeToggleAvailable } from './theme/appearanceRegistry'
@@ -18,11 +19,35 @@ import './theme/appearanceSurfaces.css'
 
 // The record page is the landing page and loads eagerly; the heavier pages (charts, the
 // settings tree, ZIP handling) are split out so they only cost startup time when opened.
-const Timeline = lazy(() => import('./pages/Timeline'))
-const Calendar = lazy(() => import('./pages/Calendar'))
-const Analytics = lazy(() => import('./pages/Analytics'))
-const Notes = lazy(() => import('./pages/Notes'))
-const Settings = lazy(() => import('./pages/Settings'))
+const pageLoaders = {
+  timeline: () => import('./pages/Timeline'),
+  calendar: () => import('./pages/Calendar'),
+  analytics: () => import('./pages/Analytics'),
+  notes: () => import('./pages/Notes'),
+  settings: () => import('./pages/Settings')
+}
+const Timeline = lazy(pageLoaders.timeline)
+const Calendar = lazy(pageLoaders.calendar)
+const Analytics = lazy(pageLoaders.analytics)
+const Notes = lazy(pageLoaders.notes)
+const Settings = lazy(pageLoaders.settings)
+
+// Once the first screen has settled, fetch the other pages while the app is idle so opening
+// one never waits on its code (which would show up as a blank beat before the page fades in).
+function preloadPagesWhenIdle() {
+  const queue = Object.values(pageLoaders)
+  const next = () => {
+    const load = queue.shift()
+    if (!load) return
+    load().catch(() => {})
+    schedule()
+  }
+  const schedule = () => {
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(next, { timeout: 4000 })
+    else setTimeout(next, 600)
+  }
+  setTimeout(schedule, 1500)
+}
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const APP_SIDEBAR_MIN = 160
@@ -83,6 +108,7 @@ function AppContent() {
     window.api.fs.checkTmpFiles().then(files => {
       if (files.length > 0) setTmpFiles(files)
     })
+    preloadPagesWhenIdle()
   }, [isInitialized])
 
   // Global F1 and Ctrl+/ keydown listeners
@@ -180,13 +206,13 @@ function AppContent() {
       </div>
       <Toast />
       <ContextMenu />
-      {showOnboarding && (
+      <Presence>{showOnboarding && (
         <Onboarding
           onDone={handleOnboardingDone}
           onOpenShortcuts={() => setShowShortcuts(true)}
         />
-      )}
-      {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
+      )}</Presence>
+      <Presence>{showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}</Presence>
       {tmpFiles.length > 0 && (
         <CrashRecovery
           files={tmpFiles}
@@ -197,9 +223,40 @@ function AppContent() {
   )
 }
 
+// The highlight behind the current page slides between nav items instead of jumping.
+function useNavIndicator(navRef, pathname) {
+  const [box, setBox] = useState(null)
+  const [ready, setReady] = useState(false)
+
+  useLayoutEffect(() => {
+    const nav = navRef.current
+    if (!nav) return undefined
+    const measure = () => {
+      const active = nav.querySelector('.nav-item.active')
+      setBox(active ? { top: active.offsetTop, height: active.offsetHeight } : null)
+    }
+    measure()
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    observer?.observe(nav)
+    return () => observer?.disconnect()
+  }, [navRef, pathname])
+
+  // Skip the slide on the very first placement.
+  useEffect(() => {
+    if (!box || ready) return undefined
+    const frame = requestAnimationFrame(() => setReady(true))
+    return () => cancelAnimationFrame(frame)
+  }, [box, ready])
+
+  return { box, ready }
+}
+
 function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
   const { theme, toggleTheme, interfaceStyle } = useApp()
   const canToggleTheme = isThemeToggleAvailable(interfaceStyle)
+  const location = useLocation()
+  const navRef = useRef(null)
+  const { box: indicatorBox, ready: indicatorReady } = useNavIndicator(navRef, location.pathname)
 
   const navItems = [
     { to: '/today', icon: '✎', label: '记录', exact: false },
@@ -216,13 +273,21 @@ function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
         <span className="brand-icon">◈</span>
         <span className="brand-name">MotoTrace</span>
       </div>
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" ref={navRef}>
+        {indicatorBox && (
+          <span
+            className={`nav-indicator ${indicatorReady ? 'is-ready' : ''}`}
+            style={{ height: indicatorBox.height, transform: `translateY(${indicatorBox.top}px)` }}
+            aria-hidden="true"
+          />
+        )}
         {navItems.map(item => (
           <NavLink
             key={item.to}
             to={item.to}
+            // The app opens on "/", which shows the record page too.
             className={({ isActive }) =>
-              `nav-item ${isActive ? 'active' : ''}`
+              `nav-item ${isActive || (item.to === '/today' && location.pathname === '/') ? 'active' : ''}`
             }
             end={item.exact}
           >

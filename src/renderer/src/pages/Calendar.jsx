@@ -8,12 +8,15 @@ import {
 } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
+import Presence from '../components/Presence'
+import { useSlidingThumb } from '../utils/useSlidingThumb'
 import './Calendar.css'
 
 const VIEWS = ['month', 'week', 'year']
 const VIEW_LABELS = { month: '月', week: '周', year: '年' }
 
 export default function Calendar() {
+  const tabsThumbRef = useSlidingThumb()
   const navigate = useNavigate()
   const { datesWithData, selectedDate, setSelectedDate, countdowns, saveCountdowns, confirm } = useApp()
   const [view, setView] = useState('month')
@@ -63,7 +66,7 @@ export default function Calendar() {
     <div className="calendar-page">
       <div className="page-header">
         <span className="page-title">日历</span>
-        <div className="tabs" style={{ width: 'auto' }}>
+        <div className="tabs" style={{ width: 'auto' }} ref={tabsThumbRef}>
           {VIEWS.map(v => (
             <button key={v} className={`tab ${view === v ? 'active' : ''}`} onClick={() => setView(v)}>
               {VIEW_LABELS[v]}视图
@@ -111,14 +114,14 @@ export default function Calendar() {
         </div>
       )}
 
-      {showCountdownModal && (
+      <Presence>{showCountdownModal && (
         <CountdownModal
           countdowns={countdowns}
           onSave={saveCountdowns}
           onClose={() => setShowCountdownModal(false)}
           confirm={confirm}
         />
-      )}
+      )}</Presence>
     </div>
   )
 }

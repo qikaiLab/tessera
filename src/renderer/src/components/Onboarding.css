@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  animation: fadeIn var(--transition-base) both;
+  animation: overlayIn var(--transition-base) both;
 }
 
 .onboarding-modal {
@@ -23,7 +23,7 @@
   align-items: center;
   text-align: center;
   gap: var(--spacing-4);
-  animation: scaleIn var(--transition-spring) both;
+  animation: modalIn var(--transition-spring) both;
 }
 
 .onboarding-dots {
@@ -37,7 +37,7 @@
   border-radius: var(--radius-full);
   background: var(--border-hover);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
 }
 .onboarding-dot.active {
   width: 20px;
@@ -82,3 +82,11 @@
   margin-top: var(--spacing-1);
 }
 .onboarding-skip:hover { color: var(--text-secondary); }
+
+.presence.is-leaving > .onboarding-overlay {
+  animation: overlayOut var(--exit-duration) var(--ease-in) both;
+}
+
+.presence.is-leaving > .onboarding-overlay > .onboarding-modal {
+  animation: modalOut var(--exit-duration) var(--ease-in) both;
+}

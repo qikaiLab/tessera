@@ -6,7 +6,6 @@
   overflow: hidden;
   background: var(--bg-app);
   position: relative;
-  animation: pageSoftIn var(--transition-base) both;
 }
 
 .notes-list-panel {
@@ -386,6 +385,11 @@ body.is-resizing .notes-resize-handle::after {
   animation: pageSoftIn var(--transition-base) both;
   container-name: notes-editor;
   container-type: inline-size;
+}
+
+/* Switching notes remounts the editor; let the new one fade in rather than snap. */
+.notes-editor-body > .tiptap-shell {
+  animation: contentIn 180ms var(--ease-out) backwards;
 }
 
 .notes-fullscreen-active-parent {

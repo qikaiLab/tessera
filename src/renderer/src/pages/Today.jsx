@@ -60,8 +60,10 @@ export default function Today() {
   const [numberDefaults, setNumberDefaults] = useState({})
   const [saveStatus, setSaveStatus] = useState(STATUS.IDLE)
   const [loading, setLoading] = useState(true)
-  const [transitioningDate, setTransitioningDate] = useState(false)
   const [dateLeaving, setDateLeaving] = useState(false)
+  // Between the old day fading out and the new day's data arriving, nothing is shown, so the
+  // new cards enter once with the right content instead of flashing the previous day's.
+  const [dateHold, setDateHold] = useState(false)
   const [dateLeavingDir, setDateLeavingDir] = useState('jump')
   const [showSkeleton, setShowSkeleton] = useState(false)
   const [dateTransitionDir, setDateTransitionDir] = useState('jump')
@@ -92,7 +94,6 @@ export default function Today() {
   const dateSwitchTimerRef = useRef(null)
   const returnTodayTimerRef = useRef(null)
   const returnTodayPhaseRef = useRef(returnTodayPhase)
-  const suppressNextLoadTransitionRef = useRef(false)
   // Fix #11: Track escape-handler setTimeout for cleanup
   const escapeTimeoutRef = useRef(null)
 
@@ -152,12 +153,9 @@ export default function Today() {
     const seq = loadSeqRef.current + 1
     loadSeqRef.current = seq
     const hasLoadedOnce = hasLoadedOnceRef.current
-    const shouldSuppressLoadTransition = suppressNextLoadTransitionRef.current
-    suppressNextLoadTransitionRef.current = false
     let skeletonTimer = null
 
     setLoading(!hasLoadedOnce)
-    setTransitioningDate(hasLoadedOnce && !shouldSuppressLoadTransition)
     setShowSkeleton(false)
     setSaveStatus(STATUS.IDLE)
     setFullScreenSectionId(null) // Exit full screen on date change
@@ -185,7 +183,7 @@ export default function Today() {
         if (loadSeqRef.current !== seq) return
         hasLoadedOnceRef.current = true
         setLoading(false)
-        setTransitioningDate(false)
+        setDateHold(false)
         setShowSkeleton(false)
       })
 
@@ -364,19 +362,24 @@ export default function Today() {
 
   // Fix #3: goTo() now catches write errors and shows user feedback
   const goTo = async (date) => {
+    const currentTime = selectedDate.getTime()
+    const nextTime = date.getTime()
+    if (nextTime === currentTime) return
+    const nextDir = nextTime > currentTime ? 'next' : 'prev'
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
     }
+    // Start fading the current day out right away; saving happens while it plays.
+    setDateLeavingDir(nextDir)
+    setDateLeaving(true)
     const result = await flushPendingValue(pendingDataRef, value => writeDayData(dateStr, value))
     if (!result.ok) {
+      setDateLeaving(false)
       setSaveStatus(STATUS.FAILED)
       showToast('切换日期时保存失败，已保留当前编辑', 'error')
       return
     }
-    const currentTime = selectedDate.getTime()
-    const nextTime = date.getTime()
-    if (nextTime === currentTime) return
     const targetIsToday = isToday(date)
     const returnPhase = returnTodayPhaseRef.current
     if (targetIsToday && returnPhase !== 'hidden' && returnPhase !== 'leaving') {
@@ -384,14 +387,11 @@ export default function Today() {
     } else if (!targetIsToday && (returnPhase === 'hidden' || returnPhase === 'leaving')) {
       transitionReturnTodayButton('entering', 'visible')
     }
-    const nextDir = nextTime > currentTime ? 'next' : 'prev'
-    setDateLeavingDir(nextDir)
-    setDateLeaving(true)
     if (dateSwitchTimerRef.current) clearTimeout(dateSwitchTimerRef.current)
     dateSwitchTimerRef.current = setTimeout(() => {
       dateSwitchTimerRef.current = null
-      suppressNextLoadTransitionRef.current = true
       setDateTransitionDir(nextDir)
+      setDateHold(true)
       setSelectedDate(date)
       setDateLeaving(false)
     }, 140)
@@ -562,9 +562,9 @@ export default function Today() {
           <div
             ref={contentRef}
             onScroll={handleContentScroll}
-            className={`today-content ${transitioningDate ? 'is-date-transitioning' : ''} ${dateLeaving ? `is-date-leaving date-leaving-${dateLeavingDir}` : ''}`}
+            className={`today-content ${dateLeaving ? `is-date-leaving date-leaving-${dateLeavingDir}` : ''}`}
           >
-            {loading && showSkeleton ? (
+            {dateHold ? null : loading && showSkeleton ? (
               <div className="today-skeleton">
                 {[1, 2].map(i => (
                   <div key={i} className="skeleton-card">
@@ -594,7 +594,7 @@ export default function Today() {
                     onContextMenu={(event) => handleSectionContextMenu(event, sec)}
                     onUseRecentNumberValue={() => findRecentNumberValue(dateStr, sec.id)}
                     showToast={showToast}
-                    animationDelay={i * 50}
+                    animationDelay={Math.min(i, 5) * 40}
                     dateTransitionDir={dateTransitionDir}
                     isFullScreen={fullScreenSectionId === sec.id}
                     favorite={favoriteLookup.has(favoriteKey(dateStr, sec.id))}
@@ -609,7 +609,7 @@ export default function Today() {
             )}
 
             {/* Add non-resident section for today */}
-            {availableToAdd.length > 0 && (
+            {!dateHold && availableToAdd.length > 0 && (
               <div className="today-add-section">
                 <span className="add-section-label">添加记录</span>
                 <div className="add-section-list">

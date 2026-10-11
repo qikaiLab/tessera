@@ -28,7 +28,7 @@
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s;
   font-family: var(--font-sans);
   flex-shrink: 0;
 }
@@ -93,7 +93,7 @@
   border-radius: var(--radius-md);
   background: transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
   position: relative;
   font-family: var(--font-sans);
 }
@@ -252,7 +252,7 @@
   background: transparent;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
   font-family: var(--font-sans);
 }
 .year-day:hover { background: var(--bg-hover); }

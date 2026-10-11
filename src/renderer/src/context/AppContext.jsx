@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import Presence from '../components/Presence'
 import { flushSaveCallbacks } from '../utils/pendingSaves'
 import {
   INTERFACE_STYLE_IDS,
@@ -584,7 +585,7 @@ export function AppProvider({ children }) {
       registerPendingFlush, unregisterPendingFlush, flushPendingSaves
     }}>
       {children}
-      {confirmConfig && (
+      <Presence>{confirmConfig && (
         <div className="modal-overlay" onClick={() => { confirmConfig.resolve(false); setConfirmConfig(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
             <div className="modal-header">
@@ -610,7 +611,7 @@ export function AppProvider({ children }) {
             </div>
           </div>
         </div>
-      )}
+      )}</Presence>
     </AppContext.Provider>
   )
 }

@@ -24,7 +24,9 @@ import { FROSTED_BACKGROUND_BLUR } from '../theme/frostedGlassPreferences'
 import './Settings.css'
 import JSZip from 'jszip'
 import AutomaticHistory from '../components/AutomaticHistory'
+import Presence from '../components/Presence'
 import SelectMenu from '../components/SelectMenu'
+import { useSlidingThumb } from '../utils/useSlidingThumb'
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
 const SETTINGS_TABS = Object.freeze([
@@ -61,6 +63,7 @@ const getNumberDefaultMode = (section) => {
 }
 
 export default function Settings() {
+  const tabsThumbRef = useSlidingThumb()
   const [historyOpen, setHistoryOpen] = useState(false)
   const [activeTab, setActiveTab] = useState(readStoredSettingsTab)
   const selectTab = (id) => {
@@ -368,7 +371,7 @@ export default function Settings() {
       </div>
       <div className="settings-scroll">
       <div className="settings-content">
-        <div className="settings-tabs segmented-control" role="tablist" aria-label="设置分类">
+        <div className="settings-tabs segmented-control" role="tablist" aria-label="设置分类" ref={tabsThumbRef}>
           {SETTINGS_TABS.map(tab => (
             <button
               key={tab.id}
@@ -804,9 +807,9 @@ export default function Settings() {
       </div>
       </div>
 
-      {historyOpen && <AutomaticHistory onClose={() => setHistoryOpen(false)} />}
+      <Presence>{historyOpen && <AutomaticHistory onClose={() => setHistoryOpen(false)} />}</Presence>
       {/* Delete Modal */}
-      {deleteModalState.isOpen && (
+      <Presence>{deleteModalState.isOpen && (
         <div className="modal-overlay" onClick={() => setDeleteModalState({ isOpen: false })}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
             <div className="modal-header">
@@ -846,7 +849,7 @@ export default function Settings() {
             </div>
           </div>
         </div>
-      )}
+      )}</Presence>
     </div>
   )
 }

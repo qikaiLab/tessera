@@ -13,11 +13,13 @@ import {
   moveBindingToFront,
   setBoundSections
 } from '../utils/analyticsCard'
+import { useSlidingThumb } from '../utils/useSlidingThumb'
 import './AnalyticsCardEditor.css'
 
 function SegmentedControl({ options, value, onChange, ariaLabel }) {
+  const thumbRef = useSlidingThumb()
   return (
-    <div className="segmented-control" role="radiogroup" aria-label={ariaLabel}>
+    <div className="segmented-control" role="radiogroup" aria-label={ariaLabel} ref={thumbRef}>
       {options.map(option => (
         <button
           key={option.id}

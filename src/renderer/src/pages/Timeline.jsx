@@ -10,6 +10,7 @@ import TimelinePreview from '../components/TimelinePreview'
 import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
 import { richTextToPlainText } from '../utils/richText'
 import { useIncrementalList } from '../utils/useIncrementalList'
+import { useSlidingThumb } from '../utils/useSlidingThumb'
 import '../components/FilterChip.css'
 import './Timeline.css'
 
@@ -79,6 +80,7 @@ function getSnippet(text, query, maxLen = 120) {
 }
 
 export default function Timeline() {
+  const viewSwitchThumbRef = useSlidingThumb()
   const navigate = useNavigate()
   const { sections, datesWithData, readDayData, writeDayData, setSelectedDate, showToast, refreshDates, confirm, favorites, toggleFavorite } = useApp()
   const [query, setQuery] = useState('')
@@ -350,7 +352,7 @@ export default function Timeline() {
               onKeyDown={handleSearchKeyDown}
             />
           </div>
-          <div className="segmented-control timeline-view-switch" role="radiogroup" aria-label="查看方式">
+          <div className="segmented-control timeline-view-switch" role="radiogroup" aria-label="查看方式" ref={viewSwitchThumbRef}>
             <button
               type="button"
               role="radio"
@@ -491,9 +493,10 @@ export default function Timeline() {
                 找到 {filteredCards.length} 条记录
               </div>
             )}
-            {cardList.visible.map(card => (
+            {cardList.visible.map((card, index) => (
               <TimelineCard
                 key={card.dateStr}
+                motionIndex={index}
                 card={card}
                 query={query}
                 onClick={() => handleCardClick(card.dateStr)}
@@ -521,7 +524,7 @@ export default function Timeline() {
   )
 }
 
-function TimelineCard({ card, query, onClick, filterSections, showSnippets, favoriteLookup, onToggleFavorite, isManageMode, isSelected, onToggleSelect }) {
+function TimelineCard({ card, motionIndex, query, onClick, filterSections, showSnippets, favoriteLookup, onToggleFavorite, isManageMode, isSelected, onToggleSelect }) {
   const { dateStr, totalWords, recordedSections, sectionResults } = card
   // A one-line taste of the day's first text entry, so the list is more than a row of tags.
   const leadEntry = sectionResults.find(result => result.sec.type !== 'number' && result.text.trim())
@@ -543,7 +546,12 @@ function TimelineCard({ card, query, onClick, filterSections, showSnippets, favo
   }
 
   return (
-    <div className={`timeline-card animate-fade-in ${isManageMode ? 'manage-mode-card' : ''} ${isSelected ? 'selected' : ''}`} onClick={handleCardClick}>
+    <div
+      className={`timeline-card animate-fade-in ${isManageMode ? 'manage-mode-card' : ''} ${isSelected ? 'selected' : ''}`}
+      // The first screenful arrives in a short cascade; later batches simply appear.
+      style={motionIndex < 8 ? { animationDelay: `${motionIndex * 30}ms` } : undefined}
+      onClick={handleCardClick}
+    >
       {isManageMode && (
         <div className={`tl-card-checkbox-custom ${isSelected ? 'selected' : ''}`} onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}>
           <div className="checkbox-inner">

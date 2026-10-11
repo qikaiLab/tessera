@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { autoUpdate, computePosition, flip, offset, shift, size } from '@floating-ui/dom'
+import Presence from './Presence'
 import './SelectMenu.css'
 
 /**
@@ -170,8 +171,8 @@ export default function SelectMenu({
           <span className="select-menu-chevron" aria-hidden="true">▾</span>
         </button>
       )}
-      {open && createPortal(
-        <div
+      {createPortal(
+        <Presence duration={110}>{open && <div
           ref={menuRef}
           id={listId}
           role="listbox"
@@ -205,7 +206,7 @@ export default function SelectMenu({
               </div>
             )
           })}
-        </div>,
+        </div>}</Presence>,
         document.body
       )}
     </>

@@ -29,6 +29,7 @@ import {
   normalizeSeries
 } from '../utils/analyticsCard'
 import AnalyticsCardEditor from '../components/AnalyticsCardEditor'
+import Presence from '../components/Presence'
 import './Analytics.css'
 
 const SECONDARY_PALETTE = ['#34d399', '#f87171', '#fbbf24', '#60a5fa', '#f472b6']
@@ -224,7 +225,7 @@ export default function Analytics() {
       </div>
 
       {/* Task 6: Delete confirmation modal */}
-      {deleteConfirm && (
+      <Presence>{deleteConfirm && (
         <div className="modal-overlay" onClick={cancelDelete}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
             <div className="modal-header">
@@ -241,7 +242,7 @@ export default function Analytics() {
             </div>
           </div>
         </div>
-      )}
+      )}</Presence>
     </div>
   )
 }
@@ -561,6 +562,9 @@ const TooltipStyle = {
   labelFormatter: formatTooltipDate
 }
 
+// Recharts draws in over 1.5 s by default, which feels sluggish next to the rest of the UI.
+const CHART_MOTION = { isAnimationActive: true, animationDuration: 550, animationEasing: 'ease-out' }
+
 // Normalized series are plotted as percentages; the tooltip still reports the real number.
 function normalizedTooltipFormatter(value, name, item) {
   const raw = item?.payload?.__raw?.[name]
@@ -626,6 +630,7 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4 }}
+                {...CHART_MOTION}
                 yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : (yMode === 'single' || yMode === 'normalized') ? 'left' : undefined}
               />
             )
@@ -676,6 +681,7 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
                 dataKey={k}
                 fill={color}
                 radius={[3, 3, 0, 0]}
+                {...CHART_MOTION}
                 yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : (yMode === 'single' || yMode === 'normalized') ? 'left' : undefined}
               />
             )
@@ -699,6 +705,7 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
             dataKey="value"
             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
             labelLine={false}
+            {...CHART_MOTION}
           >
             {data.map((entry, i) => (
               <Cell key={i} fill={entry.fill} />

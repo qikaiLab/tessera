@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   z-index: 3000;
-  animation: fadeIn var(--transition-base, 0.2s) both;
+  animation: overlayIn var(--transition-base, 0.2s) both;
 }
 
 .shortcuts-modal {
@@ -19,7 +19,7 @@
   box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
-  animation: scaleIn var(--transition-spring, 0.3s) both;
+  animation: modalIn var(--transition-spring, 0.3s) both;
   overflow: hidden;
 }
 
@@ -57,7 +57,7 @@
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,7 +86,7 @@
   color: var(--text-secondary, #b3b3b3);
   border-radius: var(--radius-sm, 6px);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s;
   font-weight: 500;
 }
 
@@ -216,4 +216,12 @@
 
 :root[data-interface-style='frosted-glass'] :is(.shortcuts-close, .shortcuts-hint, .shortcuts-key-or) {
   color: var(--text-secondary);
+}
+
+.presence.is-leaving > .shortcuts-overlay {
+  animation: overlayOut var(--exit-duration, 140ms) var(--ease-in) both;
+}
+
+.presence.is-leaving > .shortcuts-overlay > .shortcuts-modal {
+  animation: modalOut var(--exit-duration, 140ms) var(--ease-in) both;
 }

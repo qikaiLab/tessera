@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom'
+import Presence from './Presence'
 import './Popover.css'
 
 /**
@@ -56,8 +57,8 @@ export default function Popover({ trigger, children, label, placement = 'bottom-
   return (
     <>
       {trigger({ ref: triggerRef, props: triggerProps, open })}
-      {open && createPortal(
-        <div
+      {createPortal(
+        <Presence duration={110}>{open && <div
           ref={panelRef}
           id={panelId}
           role="dialog"
@@ -73,7 +74,7 @@ export default function Popover({ trigger, children, label, placement = 'bottom-
           }}
         >
           {children({ close })}
-        </div>,
+        </div>}</Presence>,
         document.body
       )}
     </>

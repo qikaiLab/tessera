@@ -155,7 +155,7 @@
 .app-main > * {
   position: relative;
   z-index: 1;
-  animation: pageSoftIn var(--transition-base) both;
+  animation: pageIn 260ms var(--ease-out) both;
 }
 
 .app-main > .notes-fullscreen-active-parent {
@@ -324,6 +324,23 @@ body.is-resizing {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: relative;
+}
+
+/* Slides under whichever item is current. */
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  left: var(--spacing-2);
+  right: var(--spacing-2);
+  border-radius: var(--radius-md);
+  background: var(--accent-light);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.nav-indicator.is-ready {
+  transition: transform 320ms var(--ease-out), height 200ms var(--ease-out);
 }
 
 .nav-item {
@@ -336,7 +353,7 @@ body.is-resizing {
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
   position: relative;
 }
 
@@ -346,8 +363,15 @@ body.is-resizing {
 }
 
 .nav-item.active {
-  background: var(--accent-light);
   color: var(--accent);
+}
+
+.nav-item.active:hover {
+  background: transparent;
+}
+
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
 }
 
 .nav-icon {
@@ -355,6 +379,7 @@ body.is-resizing {
   width: 20px;
   text-align: center;
   flex-shrink: 0;
+  transition: transform 240ms var(--ease-out);
 }
 
 .nav-label {

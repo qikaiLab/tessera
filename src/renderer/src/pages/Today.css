@@ -199,13 +199,6 @@
   overflow-y: auto;
   padding: var(--spacing-6);
   position: relative;
-  transition: opacity 160ms ease, filter 160ms ease;
-}
-
-.today-content.is-date-transitioning {
-  opacity: 0.58;
-  filter: blur(0.6px);
-  pointer-events: none;
 }
 
 .today-content.is-date-leaving {
@@ -215,7 +208,7 @@
 .today-content.is-date-leaving .sections-grid,
 .today-content.is-date-leaving .today-add-section,
 .today-content.is-date-leaving .today-empty-day {
-  animation: dateContentLeaveNext 140ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: dateContentLeaveNext 140ms var(--ease-in) both;
 }
 
 .today-content.is-date-leaving.date-leaving-prev .sections-grid,
@@ -230,19 +223,18 @@
   gap: var(--spacing-4);
   max-width: 860px;
   margin: 0 auto;
-  animation: todayContentIn 120ms ease-out both;
 }
 
 .section-card.date-card-next {
-  animation: recordCardNext 240ms ease-out both;
+  animation: recordCardNext 320ms var(--ease-out) both;
 }
 
 .section-card.date-card-prev {
-  animation: recordCardPrev 240ms ease-out both;
+  animation: recordCardPrev 320ms var(--ease-out) both;
 }
 
 .section-card.date-card-jump {
-  animation: recordCardJump 220ms ease-out both;
+  animation: recordCardJump 300ms var(--ease-out) both;
 }
 
 .section-type-badge {
@@ -277,7 +269,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
   flex-shrink: 0;
 }
 .num-btn:hover { background: var(--bg-hover); border-color: var(--border-hover); }
@@ -343,7 +335,7 @@
   color: var(--text-secondary);
   font-size: var(--text-sm);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
   font-family: var(--font-sans);
 }
 .add-section-btn:hover {
@@ -488,12 +480,10 @@
   from {
     opacity: 1;
     transform: none;
-    filter: blur(0);
   }
   to {
     opacity: 0;
     transform: translateX(-12px) scale(0.995);
-    filter: blur(0.8px);
   }
 }
 
@@ -501,12 +491,10 @@
   from {
     opacity: 1;
     transform: none;
-    filter: blur(0);
   }
   to {
     opacity: 0;
     transform: translateX(12px) scale(0.995);
-    filter: blur(0.8px);
   }
 }
 
@@ -625,23 +613,50 @@
   display: block;
   font-size: 12px;
   line-height: 1;
-  transition: transform var(--transition-fast);
+  transition: transform 260ms var(--ease-out);
 }
 
 .section-card.is-collapsed .section-collapse-chevron {
   transform: rotate(-90deg);
 }
 
-/* The editor stays mounted while collapsed so its state and word count are kept. */
-.section-card.is-collapsed .section-card-body {
-  display: none;
+/* The editor stays mounted while collapsed so its state and word count are kept. The body
+ * glides shut by animating its single grid row from 1fr to 0fr. */
+.section-card .text-editor-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 300ms var(--ease-out),
+    opacity 200ms var(--ease-out),
+    visibility 0s;
+}
+
+.section-card:not(.fullscreen-active-parent) .text-editor-body > .tiptap-shell {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.section-card.is-collapsed .text-editor-body {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    grid-template-rows 280ms var(--ease-out),
+    opacity 160ms var(--ease-out),
+    visibility 0s linear 280ms;
+}
+
+.section-card-header::after {
+  transition: opacity var(--transition-base);
 }
 
 .section-card.is-collapsed .section-card-header::after {
-  display: none;
+  opacity: 0;
 }
 
 .section-collapsed-preview {
+  animation: fadeIn var(--transition-base) both;
   flex: 1;
   min-width: 0;
   margin-left: var(--spacing-2);
