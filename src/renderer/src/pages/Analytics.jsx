@@ -120,13 +120,15 @@ export default function Analytics() {
 
   // DnD sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    // A plain click on the handle must not start a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   const handleDragEnd = (event) => {
     const { active, over } = event
-    if (active.id !== over?.id) {
+    // Dropping outside every card leaves `over` empty: nothing to reorder.
+    if (over && active.id !== over.id) {
       setCards(prev => {
         const oldIndex = prev.findIndex(c => c.id === active.id)
         const newIndex = prev.findIndex(c => c.id === over.id)

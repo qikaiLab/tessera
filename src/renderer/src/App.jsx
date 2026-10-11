@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import TitleBar from './components/TitleBar'
 import Toast from './components/Toast'
@@ -7,6 +7,7 @@ import Onboarding from './components/Onboarding'
 import ShortcutsModal from './components/ShortcutsModal'
 import CrashRecovery from './components/CrashRecovery'
 import ContextMenu from './components/ContextMenu'
+import ErrorBoundary from './components/ErrorBoundary'
 import Today from './pages/Today'
 import Timeline from './pages/Timeline'
 import Calendar from './pages/Calendar'
@@ -24,6 +25,16 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const APP_SIDEBAR_MIN = 160
 const APP_SIDEBAR_MAX = 280
 const APP_SIDEBAR_DEFAULT = 200
+
+function PageBoundary({ children }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return (
+    <ErrorBoundary resetKey={location.pathname} onHome={() => navigate('/today')}>
+      {children}
+    </ErrorBoundary>
+  )
+}
 
 function AppContent() {
   const { isInitialized, adjustInterfaceZoom } = useApp()
@@ -149,6 +160,7 @@ function AppContent() {
           onOpenOnboarding={() => setShowOnboarding(true)}
         />
         <main className="app-main">
+          <PageBoundary>
           <Routes>
             <Route path="/" element={<Today />} />
             <Route path="/today" element={<Today />} />
@@ -158,6 +170,7 @@ function AppContent() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
+          </PageBoundary>
         </main>
       </div>
       <Toast />
