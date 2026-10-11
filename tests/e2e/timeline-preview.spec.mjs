@@ -27,7 +27,7 @@ async function seed(sandbox) {
     { id: 'running', name: '跑步', type: 'number', unit: 'm', resident: false, order: 2 }
   ]))
   const days = [
-    [1, { diary: doc('昨天第一段', '昨天第二段，只有预览能看到完整内容'), running: '3000' }],
+    [1, { diary: doc('昨天第一段', `昨天第二段${'很长的内容'.repeat(40)}，尾部标记只有预览可见`), running: '3000' }],
     [2, { diary: doc('前天的日记里提到了咖啡'), study: doc('学习了线性代数') }],
     [5, { diary: doc('五天前的日记'), running: '5200' }]
   ]
@@ -55,14 +55,14 @@ test('previews the filtered days in full without leaving the timeline', async ({
   const { app, window, problems } = await openTimeline(sandbox)
   try {
     const list = window.locator('.timeline-list')
-    await expect(list.getByText('昨天第二段，只有预览能看到完整内容')).toHaveCount(0)
+    await expect(list.getByText('尾部标记只有预览可见')).toHaveCount(0)
 
     await window.getByRole('radio', { name: /预览/ }).click()
     await expect(window.locator('.timeline-card')).toHaveCount(0)
     await expect(window.locator('.preview-day')).toHaveCount(3)
     await expect(window.locator('.preview-summary')).toContainText('3')
     // Full text of the newest day, newest first, with the number shown as a chip.
-    await expect(window.locator('.preview-day').first()).toContainText('昨天第二段，只有预览能看到完整内容')
+    await expect(window.locator('.preview-day').first()).toContainText('尾部标记只有预览可见')
     await expect(window.locator('.preview-day').first().locator('.preview-number')).toContainText('3000')
     expect(new URL(window.url()).hash).toContain('timeline')
 
