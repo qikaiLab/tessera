@@ -1,5 +1,40 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { AllSelection, TextSelection } from '@tiptap/pm/state'
+
+// editor.isActive() reports false for list nodes when the whole document is selected
+// (Ctrl+A), so derive the state from the textblocks inside the selection instead.
+function isSelectionInList(editor, listName) {
+  const { doc, selection } = editor.state
+  let textblocks = 0
+  let insideList = 0
+  doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+    if (!node.isTextblock) return true
+    const $pos = doc.resolve(pos)
+    let inList = false
+    for (let depth = $pos.depth; depth > 0; depth -= 1) {
+      if ($pos.node(depth).type.name === listName) {
+        inList = true
+        break
+      }
+    }
+    textblocks += 1
+    if (inList) insideList += 1
+    return false
+  })
+  return textblocks > 0 && textblocks === insideList
+}
+
+// A select-all (AllSelection) makes list toggling wrap the document boundaries
+// inconsistently, so run list commands against the equivalent text range instead.
+function toggleList(editor, command) {
+  const { doc, selection } = editor.state
+  const chain = editor.chain().focus()
+  if (selection instanceof AllSelection) {
+    chain.setTextSelection({ from: TextSelection.atStart(doc).from, to: TextSelection.atEnd(doc).to })
+  }
+  chain[command]().run()
+}
 
 /**
  * Bubble toolbar rendered via ReactDOM.createPortal directly into document.body.
@@ -21,6 +56,9 @@ export function BubbleToolbar({ editor }) {
   // Cache the toolbar size so we don't need a DOM read every time
   const cachedSizeRef           = useRef({ w: 280, h: 38 })
   const rafRef                  = useRef(null)
+  // Bumped on every refresh so the active state of the buttons tracks the selection,
+  // even when the toolbar position itself did not change.
+  const [, setRevision]         = useState(0)
 
   /* ── measure toolbar size once on mount (and on resize) ──────── */
   useLayoutEffect(() => {
@@ -79,6 +117,7 @@ export function BubbleToolbar({ editor }) {
 
         setPos({ top: Math.round(top), left: Math.round(left) })
         setVisible(true)
+        setRevision(revision => revision + 1)
       } catch {
         setVisible(false)
       }
@@ -148,6 +187,10 @@ export function BubbleToolbar({ editor }) {
       <div className="bubble-sep" />
       {btn('</>', () => editor.chain().focus().toggleCode().run(),        editor.isActive('code'),               '行内代码')}
       {btn('"',   () => editor.chain().focus().toggleBlockquote().run(), editor.isActive('blockquote'),         '引用')}
+      <div className="bubble-sep" />
+      {btn('•',  () => toggleList(editor, 'toggleBulletList'),  isSelectionInList(editor, 'bulletList'),  '无序列表')}
+      {btn('1.', () => toggleList(editor, 'toggleOrderedList'), isSelectionInList(editor, 'orderedList'), '有序列表')}
+      {btn('☑',  () => toggleList(editor, 'toggleTaskList'),    isSelectionInList(editor, 'taskList'),    '任务列表')}
     </div>
   )
 
