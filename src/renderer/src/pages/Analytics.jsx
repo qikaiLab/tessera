@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
+import { createHeatmapScale, getHeatmapAlpha, HEATMAP_EMPTY_COLOR } from '../utils/heatmapScale'
 import './Analytics.css'
 
 const CHART_TYPES = [
@@ -841,7 +842,8 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
 
 function Heatmap({ data, color, dateRange }) {
   const scrollRef = React.useRef(null)
-  const max = data.length ? Math.max(...data.map(d => d.value), 1) : 1
+  const scale = React.useMemo(() => createHeatmapScale(data.map(d => d.value)), [data])
+  const maxValue = React.useMemo(() => data.reduce((max, d) => Math.max(max, d.value), 0), [data])
 
   // Scroll to rightmost on mount/data change
   React.useEffect(() => {
@@ -870,10 +872,25 @@ function Heatmap({ data, color, dateRange }) {
   }, [data])
 
   const getColor = (v) => {
-    if (v === 0) return 'rgba(128,128,128,0.15)'
-    const intensity = v / max
-    return hexToRgba(color, Math.max(0.15, intensity))
+    const intensity = scale(v)
+    if (intensity === 0) return HEATMAP_EMPTY_COLOR
+    return hexToRgba(color, getHeatmapAlpha(intensity))
   }
+
+  const legend = (
+    <div className="heatmap-legend" aria-hidden="true">
+      <span>少</span>
+      {[0, 0.25, 0.5, 0.75, 1].map(step => (
+        <span
+          key={step}
+          className="heatmap-legend-swatch"
+          style={{ background: step === 0 ? HEATMAP_EMPTY_COLOR : hexToRgba(color, getHeatmapAlpha(step)) }}
+        />
+      ))}
+      <span>多</span>
+      {maxValue > 0 && <span className="heatmap-legend-max">最高 {Number(maxValue.toFixed(2))}</span>}
+    </div>
+  )
 
   if (!data.length) return null
 
@@ -881,6 +898,7 @@ function Heatmap({ data, color, dateRange }) {
   if (dateRange === '7') {
     const weekDays = ['日', '一', '二', '三', '四', '五', '六']
     return (
+      <div className="heatmap-block">
       <div className="heatmap-7d">
         {data.map((d, i) => {
           const dateObj = parseISO(d.date)
@@ -897,6 +915,8 @@ function Heatmap({ data, color, dateRange }) {
           )
         })}
       </div>
+      {legend}
+      </div>
     )
   }
 
@@ -904,20 +924,23 @@ function Heatmap({ data, color, dateRange }) {
   const isCompact = dateRange === '30' || dateRange === '90'
 
   return (
-    <div
-      className={`heatmap-wrapper${isCompact ? ' heatmap-compact' : ''}`}
-      ref={scrollRef}
-    >
-      <div className={`heatmap${isCompact ? ' heatmap-compact-grid' : ''}`}>
-        {data.map((d, i) => (
-          <div
-            key={i}
-            className="heatmap-cell"
-            style={{ background: getColor(d.value) }}
-            title={`${d.date}: ${d.value}`}
-          />
-        ))}
+    <div className="heatmap-block">
+      <div
+        className={`heatmap-wrapper${isCompact ? ' heatmap-compact' : ''}`}
+        ref={scrollRef}
+      >
+        <div className={`heatmap${isCompact ? ' heatmap-compact-grid' : ''}`}>
+          {data.map((d, i) => (
+            <div
+              key={i}
+              className="heatmap-cell"
+              style={{ background: getColor(d.value) }}
+              title={`${d.date}: ${d.value}`}
+            />
+          ))}
+        </div>
       </div>
+      {legend}
     </div>
   )
 }

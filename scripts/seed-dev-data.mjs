@@ -12,6 +12,7 @@ import path from 'node:path'
 
 const MARKER = '.mototrace-dev-seed'
 const DAYS = 150
+const OUTLIER_DAY = 9
 
 const realDataDir = path.resolve(os.homedir(), 'MotoTrace', 'data')
 const target = path.resolve(process.argv[2] || path.join(os.homedir(), 'MotoTrace-dev', 'data'))
@@ -133,9 +134,9 @@ function createDay(daysAgo, random) {
     )))
   }
 
-  if (random() > 0.4) {
+  if (daysAgo === OUTLIER_DAY || random() > 0.4) {
     // One huge outlier makes it easy to check how the heatmap copes with skewed data.
-    const distance = daysAgo === 9 ? 38000 : Math.round(1500 + random() * 6500)
+    const distance = daysAgo === OUTLIER_DAY ? 38000 : Math.round(1500 + random() * 6500)
     day.running = entry(String(distance))
   }
   if (random() > 0.25) day.sleep = entry(String((5.5 + random() * 3).toFixed(1)))
@@ -213,7 +214,7 @@ async function main() {
   let written = 0
   for (let daysAgo = 0; daysAgo < DAYS; daysAgo += 1) {
     // Leave gaps so "days with data" differs from the calendar.
-    if (daysAgo > 0 && random() < 0.22) continue
+    if (daysAgo > 0 && daysAgo !== OUTLIER_DAY && random() < 0.22) continue
     const { year, month, day } = dateParts(daysAgo)
     await writeJson(path.join(target, year, month, `${day}.json`), createDay(daysAgo, random))
     written += 1
