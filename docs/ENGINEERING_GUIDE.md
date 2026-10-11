@@ -75,6 +75,15 @@ npx playwright test   # 已有最新构建时直接运行
 
 两个变量必须同时设置且为绝对路径，否则主进程启动即报错，避免隔离不完整而回落到真实数据目录。测试夹具为每个用例创建临时目录并在结束后删除。手工做实机验证时也应使用这两个变量。
 
+### 开发进程与已安装版本隔离
+
+未打包的启动（`npm run dev`、`electron .`）默认使用独立目录，不会碰已安装版本的配置和记录：
+
+- 配置目录：`%APPDATA%\mototrace-dev`（已安装版本为 `%APPDATA%\mototrace`）；
+- 数据目录：`~/MotoTrace-dev/data`（已安装版本为 `~/MotoTrace/data`）。
+
+`npm run seed:dev` 会向开发数据目录写入示例数据（约 150 天记录、便签、倒数日和图表，含一个极端值用于测试热力图），可重复运行；脚本拒绝覆盖非空且不是它创建的目录，也拒绝触碰真实数据目录。确需用开发版读写真实数据时，才设置 `MOTOTRACE_USE_REAL_DATA=1`，并先备份。显式的 `MOTOTRACE_USER_DATA_DIR` / `MOTOTRACE_DATA_DIR` 优先于以上默认值。
+
 未设置 `ELECTRON_RENDERER_URL`（仅 `electron-vite dev` 会注入）时，未打包的启动会加载构建产物而不是开发服务器。CI 在 `npm run check` 之后运行冒烟测试；它们不属于 `npm run check`，改动主进程、预加载桥接、编辑器保存或窗口生命周期时请在本地运行。
 
 ## 6. 合并与评审

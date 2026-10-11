@@ -16,9 +16,13 @@ import {
 import { createAutomaticBackupStore } from './automaticBackup.js'
 import { resolveRuntimeOverrides, shouldUseDevServer } from './runtimeOverrides.js'
 
-// Automated runs isolate user data via env overrides; this must precede the
-// single-instance lock, which is scoped to the userData directory.
-const runtimeOverrides = resolveRuntimeOverrides(process.env)
+// Automated and development runs keep their own userData/data directories; this must
+// precede the single-instance lock, which is scoped to the userData directory.
+const runtimeOverrides = resolveRuntimeOverrides(process.env, {
+  isPackaged: app.isPackaged,
+  appDataDir: app.getPath('appData'),
+  homeDir: os.homedir()
+})
 if (runtimeOverrides) app.setPath('userData', runtimeOverrides.userDataDir)
 
 const isDev = shouldUseDevServer({ isPackaged: app.isPackaged, env: process.env })
@@ -152,7 +156,7 @@ async function openExternalUrl(url) {
 function createWindow() {
   const cfg = loadConfig()
   
-  let initialDataDir = runtimeOverrides ? runtimeOverrides.dataDir : cfg.dataDir
+  let initialDataDir = runtimeOverrides?.fixedDataDir ? runtimeOverrides.dataDir : cfg.dataDir
   if (!initialDataDir) {
     try {
       const datapathFile = path.join(app.getPath('userData'), 'datapath.txt')
@@ -169,7 +173,7 @@ function createWindow() {
     }
   }
 
-  dataDir = initialDataDir || getDefaultDataDir()
+  dataDir = initialDataDir || runtimeOverrides?.dataDir || getDefaultDataDir()
   ensureDirSync(dataDir)
   ensureDirSync(path.join(dataDir, 'backups'))
 

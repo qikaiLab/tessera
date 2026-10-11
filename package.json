@@ -8,6 +8,7 @@
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",
+    "seed:dev": "node scripts/seed-dev-data.mjs",
     "postinstall": "node scripts/patch-brace-expansion.cjs",
     "clean": "node scripts/clean.mjs",
     "build": "electron-vite build",

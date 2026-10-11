@@ -15,7 +15,7 @@
 2. 涉及用户数据、路径、导入导出、备份恢复、日期逻辑或 IPC 时，必须增加或更新回归测试。
 3. 修改依赖时同步提交 `package-lock.json`；修改工程流程时同步更新本文件、`CONTRIBUTING.md` 或工程指南。
 4. 合并前必须通过 `npm run check`，不得通过跳过测试、降低规则或删除失败测试来获得通过结果。
-5. 以下改动需要额外的真实验证（构建、打包或隔离启动）：`src/main` 主进程、预加载桥接、打包配置、Electron 或构建工具依赖。其中启动验证优先使用 `npm run test:e2e` 和 `MOTOTRACE_USER_DATA_DIR` / `MOTOTRACE_DATA_DIR` 隔离目录，绝不使用真实数据目录。纯渲染层样式与文案改动用 dev 预览确认即可。
+5. 以下改动需要额外的真实验证（构建、打包或隔离启动）：`src/main` 主进程、预加载桥接、打包配置、Electron 或构建工具依赖。其中启动验证优先使用 `npm run test:e2e` 和 `MOTOTRACE_USER_DATA_DIR` / `MOTOTRACE_DATA_DIR` 隔离目录；`npm run dev` 默认使用独立的开发目录并可用 `npm run seed:dev` 填充示例数据，绝不使用真实数据目录。纯渲染层样式与文案改动用 dev 预览确认即可。
 6. 修复界面或编辑器交互类 bug 时，尽量先写能复现问题的 Electron 冒烟用例，再修复。
 
 ## Git 与合并（按风险分级）
