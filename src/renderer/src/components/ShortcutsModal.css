@@ -70,7 +70,7 @@
 
 .shortcuts-tabs {
   display: flex;
-  background: var(--bg-dark, #121212);
+  background: var(--bg-surface-3, #2a2a2a);
   padding: 4px;
   margin: 12px 20px 8px;
   border-radius: var(--radius-md, 8px);
@@ -118,7 +118,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 10px;
-  background: var(--bg-dark, #121212);
+  background: var(--bg-surface-2, #232323);
   border: 1px solid var(--border, #2d2d2d);
   border-radius: var(--radius-md, 8px);
   transition: background 0.2s;
@@ -174,7 +174,7 @@
 }
 
 .shortcuts-hint kbd {
-  background: var(--bg-dark, #121212);
+  background: var(--bg-surface-2, #232323);
   border: 1px solid var(--border, #2d2d2d);
   border-radius: 3px;
   padding: 1px 4px;
@@ -197,4 +197,23 @@
 
 .shortcuts-content::-webkit-scrollbar-thumb:hover {
   background: var(--border-hover, #444444);
+}
+
+/* Frosted glass: lighter dimming and a pane opaque enough to keep text readable over any background. */
+:root[data-interface-style='frosted-glass'] .shortcuts-overlay {
+  background: rgba(8, 12, 20, 0.3);
+}
+
+:root[data-interface-style='frosted-glass'] .shortcuts-modal {
+  background: hsl(var(--frosted-accent-h) 30% 13% / 0.8);
+  backdrop-filter: var(--glass-backdrop-elevated);
+  -webkit-backdrop-filter: var(--glass-backdrop-elevated);
+}
+
+:root[data-interface-style='frosted-glass'][data-theme='light'] .shortcuts-modal {
+  background: hsl(var(--frosted-accent-h) 30% 97% / 0.82);
+}
+
+:root[data-interface-style='frosted-glass'] :is(.shortcuts-close, .shortcuts-hint, .shortcuts-key-or) {
+  color: var(--text-secondary);
 }
