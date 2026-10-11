@@ -17,7 +17,10 @@ import {
   useContextMenuCommand
 } from '../utils/contextMenu'
 import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
+import { getSectionPreview } from '../utils/sectionPreview'
 import './Today.css'
+
+const BACK_TO_TOP_THRESHOLD = 320
 
 // Save status enum
 const STATUS = {
@@ -67,6 +70,11 @@ export default function Today() {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [jumpInput, setJumpInput] = useState('')
   const [fullScreenSectionId, setFullScreenSectionId] = useState(null)
+  // Collapsed record cards, keyed by date + section. Session-only on purpose: a card
+  // collapsed on one day must never hide the writing area on another.
+  const [collapsedCards, setCollapsedCards] = useState(() => new Set())
+  const [showBackToTop, setShowBackToTop] = useState(false)
+  const contentRef = useRef(null)
   const [notesDrawerOpen, setNotesDrawerOpen] = useState(false)
   const [notesDrawerMounted, setNotesDrawerMounted] = useState(false)
   const [notesDrawerWidth, setNotesDrawerWidth] = useState(() => {
@@ -448,6 +456,24 @@ export default function Today() {
     }
   }
 
+  const toggleCardCollapsed = (sectionId) => {
+    const key = `${dateStr}:${sectionId}`
+    setCollapsedCards(prev => {
+      const next = new Set(prev)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
+  }
+
+  const handleContentScroll = (event) => {
+    const reveal = event.currentTarget.scrollTop > BACK_TO_TOP_THRESHOLD
+    setShowBackToTop(prev => (prev === reveal ? prev : reveal))
+  }
+
+  const scrollToTop = () => {
+    contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <div className="today-page">
       <div className={`today-main-split ${notesDrawerMounted ? 'has-notes-drawer' : ''}`}>
@@ -512,7 +538,11 @@ export default function Today() {
           </div>
 
           {/* Content */}
-          <div className={`today-content ${transitioningDate ? 'is-date-transitioning' : ''} ${dateLeaving ? `is-date-leaving date-leaving-${dateLeavingDir}` : ''}`}>
+          <div
+            ref={contentRef}
+            onScroll={handleContentScroll}
+            className={`today-content ${transitioningDate ? 'is-date-transitioning' : ''} ${dateLeaving ? `is-date-leaving date-leaving-${dateLeavingDir}` : ''}`}
+          >
             {loading && showSkeleton ? (
               <div className="today-skeleton">
                 {[1, 2].map(i => (
@@ -546,6 +576,8 @@ export default function Today() {
                     animationDelay={i * 50}
                     dateTransitionDir={dateTransitionDir}
                     isFullScreen={fullScreenSectionId === sec.id}
+                    collapsed={collapsedCards.has(`${dateStr}:${sec.id}`)}
+                    onToggleCollapsed={() => toggleCardCollapsed(sec.id)}
                     onToggleFullScreen={() => setFullScreenSectionId(prev => prev === sec.id ? null : sec.id)}
                     onSave={handleManualSave}
                   />
@@ -577,6 +609,16 @@ export default function Today() {
               </div>
             )}
           </div>
+          <button
+            type="button"
+            className={`back-to-top-btn ${showBackToTop && !fullScreenSectionId ? 'is-visible' : ''}`}
+            onClick={scrollToTop}
+            title="回到顶端"
+            aria-label="回到顶端"
+            tabIndex={showBackToTop && !fullScreenSectionId ? 0 : -1}
+          >
+            ↑
+          </button>
         </div>
         {notesDrawerMounted && (
           <NotesDrawer
@@ -602,8 +644,10 @@ function SectionCard({
   animationDelay,
   dateTransitionDir,
   isFullScreen,
-  onToggleFullScreen,
-  onSave
+  collapsed,
+  onToggleCollapsed,
+  onSave,
+  onToggleFullScreen
 }) {
   const [charCount, setCharCount] = useState(0)
   const [fontSize, setFontSize] = useState(() => {
@@ -662,16 +706,33 @@ function SectionCard({
 
   return (
     <div
-      className={`section-card date-card-${dateTransitionDir} ${isFullScreen ? 'fullscreen-active-parent' : ''}`}
+      className={`section-card date-card-${dateTransitionDir} ${isFullScreen ? 'fullscreen-active-parent' : ''} ${collapsed && !isFullScreen ? 'is-collapsed' : ''}`}
       style={{ animationDelay: `${animationDelay}ms` }}
       onContextMenu={onContextMenu}
     >
       <div className="section-card-header">
         <div className="section-card-header-left">
+          {!isFullScreen && (
+            <button
+              type="button"
+              className="section-collapse-btn"
+              onClick={onToggleCollapsed}
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? `展开${section.name}` : `收起${section.name}`}
+              title={collapsed ? '展开' : '收起'}
+            >
+              <span className="section-collapse-chevron" aria-hidden="true">▾</span>
+            </button>
+          )}
           <span className="section-card-title">{section.name}</span>
           <span className={`section-type-badge ${section.resident ? 'resident' : 'activated'}`}>
             {section.resident ? '常驻' : '激发'}
           </span>
+          {collapsed && !isFullScreen && (
+            <button type="button" className="section-collapsed-preview" onClick={onToggleCollapsed}>
+              {getSectionPreview(value) || '（空）'}
+            </button>
+          )}
         </div>
         {!isFullScreen && (
           <div className="section-card-header-right">

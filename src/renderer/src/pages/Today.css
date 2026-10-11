@@ -180,6 +180,7 @@
 }
 
 .today-record-pane {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -355,12 +356,15 @@
 .section-card-header-left {
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
   gap: var(--spacing-2);
 }
 
 .section-card-header-right {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: var(--spacing-4);
 }
 
@@ -592,4 +596,112 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/* ─── Collapsible record cards ───────────────────────────────────────────── */
+.section-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-left: -4px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.section-collapse-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.section-collapse-chevron {
+  display: block;
+  font-size: 12px;
+  line-height: 1;
+  transition: transform var(--transition-fast);
+}
+
+.section-card.is-collapsed .section-collapse-chevron {
+  transform: rotate(-90deg);
+}
+
+/* The editor stays mounted while collapsed so its state and word count are kept. */
+.section-card.is-collapsed .section-card-body {
+  display: none;
+}
+
+.section-card.is-collapsed .section-card-header::after {
+  display: none;
+}
+
+.section-collapsed-preview {
+  flex: 1;
+  min-width: 0;
+  margin-left: var(--spacing-2);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.section-collapsed-preview:hover {
+  color: var(--text-secondary);
+}
+
+/* ─── Back to top ────────────────────────────────────────────────────────── */
+.back-to-top-btn {
+  position: absolute;
+  right: var(--spacing-8, 32px);
+  bottom: var(--spacing-6);
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 18px;
+  line-height: 1;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity var(--transition-base), transform var(--transition-base),
+    visibility var(--transition-base), background var(--transition-fast), color var(--transition-fast);
+}
+
+.back-to-top-btn.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.back-to-top-btn:hover {
+  background: var(--accent);
+  color: var(--accent-contrast, #fff);
+}
+
+:root[data-interface-style='frosted-glass'] .back-to-top-btn {
+  backdrop-filter: var(--glass-backdrop-elevated);
+  -webkit-backdrop-filter: var(--glass-backdrop-elevated);
 }
