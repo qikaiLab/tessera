@@ -8,6 +8,7 @@ import TaskItem from '@tiptap/extension-task-item'
 import CharacterCount from '@tiptap/extension-character-count'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Extension } from '@tiptap/core'
+import { TextSelection } from '@tiptap/pm/state'
 import { BubbleToolbar } from './BubbleToolbar'
 import { SlashExtension } from './slashExtension'
 import { useApp } from '../../context/AppContext'
@@ -148,6 +149,28 @@ function normalizeExternalUrl(url) {
 const ExternalLink = Link.extend({
   inclusive: false,
 })
+
+function isTaskCheckbox(target) {
+  return Boolean(target?.closest?.('ul[data-type="taskList"] li > label'))
+}
+
+// Ticking a to-do makes Tiptap's TaskItem focus the editor at its current selection. In an
+// editor that has never had focus that selection is the very start of the document, so the
+// view jumped back to the top. Moving the selection into the clicked item first (no focus, no
+// scrolling) makes that focus a no-op for the scroll position.
+function selectTaskItemUnderPointer(editor, target) {
+  if (!editor || editor.isDestroyed || editor.isFocused || !isTaskCheckbox(target)) return
+  try {
+    const item = target.closest('li')
+    const pos = editor.view.posAtDOM(item, 0)
+    editor.chain().command(({ tr, dispatch }) => {
+      if (dispatch) tr.setSelection(TextSelection.near(tr.doc.resolve(pos), 1))
+      return true
+    }).run()
+  } catch {
+    // Selection is a nicety; the tick itself must still go through.
+  }
+}
 
 function isClearFormattingShortcut(event) {
   if (event.altKey || event.shiftKey) return false
@@ -362,6 +385,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
   const handleEditorClick = useCallback((event) => {
     const linkEl = event.target?.closest?.('a[href]')
     if (!linkEl) {
+      if (isTaskCheckbox(event.target)) return
       editor?.commands.focus()
       return
     }
@@ -372,6 +396,10 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     event.preventDefault()
     event.stopPropagation()
     window.api?.shell?.openExternal?.(url)
+  }, [editor])
+
+  const handleEditorMouseDownCapture = useCallback((event) => {
+    selectTaskItemUnderPointer(editor, event.target)
   }, [editor])
 
   const copyEditorSelection = useCallback(() => {
@@ -509,6 +537,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
           '--editor-line-height': editorLineHeight || '1.8',
           '--editor-letter-spacing': formatCSSLetterSpacing(editorLetterSpacing, '0px')
         }}
+        onMouseDownCapture={handleEditorMouseDownCapture}
         onClick={handleEditorClick}
         onContextMenu={handleEditorContextMenu}
       >
