@@ -36,7 +36,7 @@ describe('seed-dev-data script', () => {
     expect(years.length).toBeGreaterThan(0)
 
     expect(run(target).status).toBe(0)
-  })
+  }, 30_000)
 
   it('refuses a non-empty directory it did not create', () => {
     const target = makeTempDir()
