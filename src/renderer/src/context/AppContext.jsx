@@ -564,6 +564,7 @@ export function AppProvider({ children }) {
       countdowns, saveCountdowns,
       analytics, saveAnalytics,
       favorites, toggleFavorite,
+      reloadMetadata: loadMetadata,
       confirm,
       // Fix #8: Expose flush registration for Today page
       registerPendingFlush, unregisterPendingFlush, flushPendingSaves

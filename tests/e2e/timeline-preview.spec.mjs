@@ -57,7 +57,7 @@ test('previews the filtered days in full without leaving the timeline', async ({
     const list = window.locator('.timeline-list')
     await expect(list.getByText('昨天第二段，只有预览能看到完整内容')).toHaveCount(0)
 
-    await window.getByRole('button', { name: /预览/ }).click()
+    await window.getByRole('radio', { name: /预览/ }).click()
     await expect(window.locator('.timeline-card')).toHaveCount(0)
     await expect(window.locator('.preview-day')).toHaveCount(3)
     await expect(window.locator('.preview-summary')).toContainText('3')
@@ -81,11 +81,11 @@ test('previews the filtered days in full without leaving the timeline', async ({
     await expect(window.locator('.preview-day')).not.toContainText('前天的日记里提到了咖啡')
 
     // Reverse the order, then leave the preview.
-    await window.getByRole('button', { name: '清除' }).click()
+    await window.getByRole('button', { name: /清除筛选/ }).click()
     await window.getByRole('button', { name: /新到旧/ }).click()
     await expect(window.locator('.preview-day').first()).toContainText('五天前的日记')
 
-    await window.getByRole('button', { name: '退出预览' }).click()
+    await window.getByRole('radio', { name: /列表/ }).click()
     await expect(window.locator('.preview-day')).toHaveCount(0)
     await expect(window.locator('.timeline-card')).toHaveCount(3)
     expect(problems).toEqual([])
@@ -103,9 +103,9 @@ test('opens a previewed day in the record page and filters several sections at o
     await window.getByRole('option', { name: /跑步/ }).click()
     await window.keyboard.press('Escape')
     await expect(window.locator('.timeline-card')).toHaveCount(3)
-    await window.getByRole('button', { name: '清除' }).click()
+    await window.getByRole('button', { name: /清除筛选/ }).click()
 
-    await window.getByRole('button', { name: /预览/ }).click()
+    await window.getByRole('radio', { name: /预览/ }).click()
     await window.locator('.preview-day').nth(1).getByRole('button', { name: /在记录页打开/ }).click()
     await expect(window.locator('.nav-item.active')).toContainText('记录')
     await expect(window.locator('.sections-grid .ProseMirror').first()).toContainText('前天的日记里提到了咖啡')

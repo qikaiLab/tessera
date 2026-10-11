@@ -5,6 +5,7 @@ const fsp = require('fs').promises
 const os = require('os')
 import {
   resolveSafePath,
+  isPathInside,
   isAllowedExternalUrl,
   isAppNavigationUrl as isAllowedAppNavigation
 } from './security.js'
@@ -580,6 +581,8 @@ ipcMain.handle('backup:create', async () => {
 // Fix #4: Use base64 instead of Array.from(buffer) for IPC transfers
 ipcMain.handle('backup:writeZip', async (_, backupPath, base64Data) => {
   try {
+    // Only ever write inside the data directory's backups folder.
+    if (!isPathInside(path.join(dataDir, 'backups'), backupPath)) throw new Error('Backup path is outside the backups folder')
     const buffer = Buffer.from(base64Data, 'base64')
     await fsp.writeFile(backupPath, buffer)
     // Enforce max 30 backups
@@ -631,6 +634,7 @@ ipcMain.handle('backup:list', async () => {
 // Fix #4: Use base64 instead of Array.from(buffer)
 ipcMain.handle('backup:readZip', async (_, backupPath) => {
   try {
+    if (!isPathInside(path.join(dataDir, 'backups'), backupPath)) throw new Error('Backup path is outside the backups folder')
     const buffer = await fsp.readFile(backupPath)
     return { ok: true, data: buffer.toString('base64') }
   } catch (e) {

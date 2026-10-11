@@ -403,3 +403,15 @@ body.is-resizing {
 [data-interface-style='frosted-glass'] .notes-page {
   background: color-mix(in srgb, var(--bg-app) 68%, transparent);
 }
+
+/* Frosted light: the footer sits over the darker lower part of the photo, so give it a pane. */
+:root[data-interface-style='frosted-glass'][data-theme='light'] .sidebar-footer {
+  --text-muted: #2f2f2f;
+  --text-tertiary: #2f2f2f;
+  margin: var(--spacing-2) var(--spacing-3);
+  padding: 0 var(--spacing-2);
+  border-radius: var(--radius-full);
+  background: hsl(var(--frosted-accent-h) 40% 98% / 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}

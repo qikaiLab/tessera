@@ -5,9 +5,14 @@
   overflow: hidden;
 }
 
-.settings-content {
+/* The scroll area spans the window so the scrollbar sits at its edge; content stays centred. */
+.settings-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+}
+
+.settings-content {
   padding: var(--spacing-6);
   display: flex;
   flex-direction: column;
@@ -15,6 +20,19 @@
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
+}
+
+.settings-card[hidden] {
+  display: none;
+}
+
+.settings-tabs {
+  position: sticky;
+  top: var(--spacing-2);
+  z-index: 5;
+  align-self: flex-start;
+  margin-bottom: calc(var(--spacing-4) * -1);
+  box-shadow: var(--shadow-sm);
 }
 
 .settings-card {
@@ -621,13 +639,22 @@
   flex: 0 0 auto;
 }
 
-.settings-page select.input.section-default-mode-select--compact {
+.section-default-mode-select--compact {
   width: 126px;
   min-width: 126px;
   max-width: 126px;
+}
+
+.section-default-mode-select--compact .select-menu-trigger {
+  min-height: 32px;
   height: 32px;
   font-size: var(--text-xs);
-  padding: 0 24px 0 8px;
+  padding: 0 8px;
+}
+
+.add-section-type {
+  flex: 0 0 100px;
+  width: 100px;
 }
 
 @media (max-width: 760px) {
@@ -646,7 +673,7 @@
     padding-left: 32px;
   }
 
-  .settings-page select.input.section-default-mode-select--compact {
+  .section-default-mode-select--compact {
     width: 150px;
     min-width: 150px;
     max-width: 150px;

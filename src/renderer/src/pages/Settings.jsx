@@ -24,8 +24,26 @@ import { FROSTED_BACKGROUND_BLUR } from '../theme/frostedGlassPreferences'
 import './Settings.css'
 import JSZip from 'jszip'
 import AutomaticHistory from '../components/AutomaticHistory'
+import SelectMenu from '../components/SelectMenu'
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
+const SETTINGS_TABS = Object.freeze([
+  { id: 'appearance', label: '外观' },
+  { id: 'sections', label: '数据版块' },
+  { id: 'editor', label: '编辑器' },
+  { id: 'data', label: '数据与备份' }
+])
+const SETTINGS_TAB_STORAGE_KEY = 'mototrace_settings_tab'
+
+function readStoredSettingsTab() {
+  try {
+    const stored = localStorage.getItem(SETTINGS_TAB_STORAGE_KEY)
+    return SETTINGS_TABS.some(tab => tab.id === stored) ? stored : SETTINGS_TABS[0].id
+  } catch {
+    return SETTINGS_TABS[0].id
+  }
+}
+
 const NUMBER_DEFAULT_MODE_MANUAL = 'manual'
 const NUMBER_DEFAULT_MODE_CARRY = 'carry'
 
@@ -44,8 +62,13 @@ const getNumberDefaultMode = (section) => {
 
 export default function Settings() {
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState(readStoredSettingsTab)
+  const selectTab = (id) => {
+    setActiveTab(id)
+    try { localStorage.setItem(SETTINGS_TAB_STORAGE_KEY, id) } catch { /* remembering the tab is optional */ }
+  }
   const {
-    sections, saveSections, dataDir, setDataDir, showToast, refreshDates, datesWithData, readDayData,
+    sections, saveSections, loadSections, reloadMetadata, dataDir, setDataDir, showToast, refreshDates, datesWithData, readDayData,
     fullscreenStandardWidth, updateFullscreenStandardWidth,
     fullscreenWideWidth, updateFullscreenWideWidth,
     editorLineHeight, updateEditorLineHeight,
@@ -104,17 +127,18 @@ export default function Settings() {
 
   // Section DnD
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    // A plain click on the handle must not start a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   const handleDragEnd = async (event) => {
     const { active, over } = event
-    if (active.id !== over.id) {
+    // Dropping outside every row leaves `over` empty: nothing to reorder.
+    if (over && active.id !== over.id) {
       const oldIndex = sections.findIndex(s => s.id === active.id)
       const newIndex = sections.findIndex(s => s.id === over.id)
-      const next = arrayMove(sections, oldIndex, newIndex)
-      next.forEach((s, i) => s.order = i)
+      const next = arrayMove(sections, oldIndex, newIndex).map((s, i) => ({ ...s, order: i }))
       await saveSections(next)
     }
   }
@@ -269,6 +293,12 @@ export default function Settings() {
     })
 
     if (filePath) {
+      const confirmed = await confirm({
+        title: '导入数据',
+        message: '导入会用压缩包里的内容覆盖同名文件（相同日期的记录、便签、版块与图表设置等）；压缩包里没有的现有数据不会被删除。被覆盖的文件会先存入自动历史。\n是否继续导入？',
+        confirmText: '继续导入'
+      })
+      if (!confirmed) return
       setImporting(true)
       showToast('正在读取...', 'info')
       const r = await window.api.import.readFile(filePath)
@@ -276,15 +306,23 @@ export default function Settings() {
         try {
           const zip = await JSZip.loadAsync(r.data, { base64: true })
           let count = 0
+          const failed = []
           for (const [path, file] of Object.entries(zip.files)) {
             if (!file.dir && path.endsWith('.json') && !path.startsWith('backups/')) {
               const text = await file.async('string')
-              await window.api.fs.writeFile(path, text)
-              count++
+              const written = await window.api.fs.writeFile(path, text)
+              if (written.ok) count++
+              else failed.push(path)
             }
           }
-          await refreshDates()
-          showToast(`导入成功，共恢复 ${count} 个文件，请重启软件加载所有数据。`, 'success', 5000)
+          // Reload what the app keeps in memory; otherwise the next save would write the
+          // old sections / charts / favorites back over the imported files.
+          await Promise.all([refreshDates(), loadSections(), reloadMetadata()])
+          if (failed.length > 0) {
+            showToast(`已恢复 ${count} 个文件，${failed.length} 个文件写入失败（如 ${failed[0]}）`, 'error', 6000)
+          } else {
+            showToast(`导入成功，共恢复 ${count} 个文件。`, 'success', 4000)
+          }
         } catch (e) {
           showToast(`解析失败: ${e.message}`, 'error')
         }
@@ -328,9 +366,25 @@ export default function Settings() {
       <div className="page-header">
         <span className="page-title">设置</span>
       </div>
+      <div className="settings-scroll">
       <div className="settings-content">
+        <div className="settings-tabs segmented-control" role="tablist" aria-label="设置分类">
+          {SETTINGS_TABS.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`settings-tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              className={`segmented-btn ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => selectTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-        <div className="settings-card appearance-settings-card">
+        <div className="settings-card appearance-settings-card" hidden={activeTab !== 'appearance'}>
           <div className="settings-card-title">{appearanceText(APPEARANCE_MESSAGE_KEYS.sectionTitle)}</div>
           <div className="settings-card-desc">{appearanceText(APPEARANCE_MESSAGE_KEYS.sectionDescription)}</div>
 
@@ -468,7 +522,7 @@ export default function Settings() {
           ) : null}
         </div>
 
-        <div className="settings-card interface-display-card">
+        <div className="settings-card interface-display-card" hidden={activeTab !== 'appearance'}>
           <div className="settings-card-title">{appearanceText(APPEARANCE_MESSAGE_KEYS.displaySectionTitle)}</div>
           <div className="settings-card-desc">{appearanceText(APPEARANCE_MESSAGE_KEYS.displaySectionDescription)}</div>
 
@@ -521,15 +575,14 @@ export default function Settings() {
                 <span className="interface-preference-title">{appearanceText(APPEARANCE_MESSAGE_KEYS.fontTitle)}</span>
                 <span className="interface-preference-description">{appearanceText(APPEARANCE_MESSAGE_KEYS.fontDescription)}</span>
               </div>
-              <select
-                className="input interface-preference-select"
-                value={interfaceFont}
-                onChange={event => updateInterfaceFont(event.target.value)}
-              >
-                {INTERFACE_FONT_OPTIONS.map(option => (
-                  <option key={option.id} value={option.id}>{appearanceText(option.labelKey)}</option>
-                ))}
-              </select>
+              <div className="interface-preference-select">
+                <SelectMenu
+                  ariaLabel="软件字体"
+                  options={INTERFACE_FONT_OPTIONS.map(option => ({ value: option.id, label: appearanceText(option.labelKey) }))}
+                  value={interfaceFont}
+                  onChange={updateInterfaceFont}
+                />
+              </div>
             </div>
 
             <div className="interface-preference-row">
@@ -556,7 +609,7 @@ export default function Settings() {
         </div>
         
         {/* Section Management */}
-        <div className="settings-card">
+        <div className="settings-card" hidden={activeTab !== 'sections'}>
           <div className="settings-card-title">数据版块管理</div>
           <div className="settings-card-desc">自由添加、删除和排序您的记录版块。设置为常驻的版块每天都会固定显示在最前方。<br/>拖拽左侧的 ☷ 图标可以排序。</div>
           
@@ -579,15 +632,14 @@ export default function Settings() {
           </DndContext>
 
           <form className="add-section-form" onSubmit={addSection}>
-            <select
-              className="input"
-              value={newSectionType}
-              onChange={e => setNewSectionType(e.target.value)}
-              style={{ width: 100 }}
-            >
-              <option value="text">文字</option>
-              <option value="number">数字</option>
-            </select>
+            <div className="add-section-type">
+              <SelectMenu
+                ariaLabel="版块类型"
+                options={[{ value: 'text', label: '文字' }, { value: 'number', label: '数字' }]}
+                value={newSectionType}
+                onChange={setNewSectionType}
+              />
+            </div>
             <label className="color-swatch-btn color-swatch-btn--lg" title="设定版块主题色" style={{ '--swatch-color': newSectionColor }}>
               <input
                 type="color"
@@ -614,15 +666,17 @@ export default function Settings() {
                 onChange={e => setNewSectionUnit(e.target.value)}
                 style={{ width: 100 }}
               />
-                <select
-                  className="input section-default-mode-select"
-                  value={newSectionNumberDefaultMode}
-                  onChange={e => setNewSectionNumberDefaultMode(e.target.value)}
-                  title="数字默认填充方式"
-                >
-                  <option value={NUMBER_DEFAULT_MODE_MANUAL}>每日手动输入，默认 0</option>
-                  <option value={NUMBER_DEFAULT_MODE_CARRY}>延续前一日数据</option>
-                </select>
+                <div className="section-default-mode-select">
+                  <SelectMenu
+                    ariaLabel="数字默认填充方式"
+                    options={[
+                      { value: NUMBER_DEFAULT_MODE_MANUAL, label: '每日手动输入，默认 0' },
+                      { value: NUMBER_DEFAULT_MODE_CARRY, label: '延续前一日数据' }
+                    ]}
+                    value={newSectionNumberDefaultMode}
+                    onChange={setNewSectionNumberDefaultMode}
+                  />
+                </div>
               </>
             )}
             <button className="btn btn-secondary" type="submit">添加版块</button>
@@ -630,7 +684,7 @@ export default function Settings() {
         </div>
 
         {/* Editor Typesetting Settings */}
-        <div className="settings-card animate-fade-in">
+        <div className="settings-card animate-fade-in" hidden={activeTab !== 'editor'}>
           <div className="settings-card-title">编辑器排版设置</div>
           <div className="settings-card-desc">自定义日记与文本编辑器在沉浸式全屏及常规模式下的排版显示效果。</div>
           
@@ -686,7 +740,7 @@ export default function Settings() {
         </div>
 
         {/* Storage Management */}
-        <div className="settings-card">
+        <div className="settings-card" hidden={activeTab !== 'data'}>
           <div className="settings-card-title">数据存储</div>
           <div className="settings-card-desc">所有记录数据均在本地存储为 JSON 文件。</div>
           
@@ -713,7 +767,7 @@ export default function Settings() {
         </div>
 
         {/* Backup & Import/Export */}
-        <div className="settings-card">
+        <div className="settings-card" hidden={activeTab !== 'data'}>
           <div className="settings-card-title">备份与导入导出</div>
           <div className="settings-card-desc">导出 ZIP 包含所有数据与配置。最多保留 30 份本地备份。</div>
           <div className="settings-card-desc">自动历史只保存变化的文件，压缩并去重，保留最近 20 个版本及近 24 小时、30 天的代表版本，压缩内容总容量上限 200 MB。便签删除前也会保存，可恢复为新副本。</div>
@@ -747,6 +801,7 @@ export default function Settings() {
           )}
         </div>
 
+      </div>
       </div>
 
       {historyOpen && <AutomaticHistory onClose={() => setHistoryOpen(false)} />}
@@ -859,16 +914,21 @@ function SortableSection({ section, onToggleResident, onChangeColor, onRename, o
       </div>
       <div className="sec-item-actions">
         {section.type === 'number' && (
-          <select
-            className="input section-default-mode-select section-default-mode-select--compact"
-            value={getNumberDefaultMode(section)}
-            onChange={e => onChangeNumberDefaultMode(e.target.value)}
+          <div
+            className="section-default-mode-select section-default-mode-select--compact"
             onPointerDown={e => e.stopPropagation()}
             title="数字默认填充方式"
           >
-            <option value={NUMBER_DEFAULT_MODE_MANUAL}>每日手动输入</option>
-            <option value={NUMBER_DEFAULT_MODE_CARRY}>延续前一日</option>
-          </select>
+            <SelectMenu
+              ariaLabel={`${section.name}的数字默认填充方式`}
+              options={[
+                { value: NUMBER_DEFAULT_MODE_MANUAL, label: '每日手动输入' },
+                { value: NUMBER_DEFAULT_MODE_CARRY, label: '延续前一日' }
+              ]}
+              value={getNumberDefaultMode(section)}
+              onChange={onChangeNumberDefaultMode}
+            />
+          </div>
         )}
         <label className="color-swatch-btn" title="修改版块颜色" style={{ '--swatch-color': section.color || '#7c6aff' }}>
           <input

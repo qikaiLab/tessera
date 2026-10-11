@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TiptapEditor from '../components/TiptapEditor'
 import SaveStatusBadge from '../components/SaveStatusBadge'
 import AutomaticHistory from '../components/AutomaticHistory'
+import SelectMenu from '../components/SelectMenu'
 import { useApp } from '../context/AppContext'
 import { separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
 import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
@@ -736,18 +737,19 @@ export default function Notes() {
           </div>
 
           <div className={`notes-date-filter ${isDateFilterActive ? 'active' : ''}`}>
-            <select
-              className="input notes-date-filter-select"
+            <SelectMenu
+              ariaLabel="日期筛选"
+              className="notes-date-filter-select"
+              options={[
+                { value: DATE_FILTER_ALL, label: '全部日期' },
+                { value: DATE_FILTER_LINKED, label: '有日期关联' },
+                { value: DATE_FILTER_UNLINKED, label: '无日期关联' },
+                { value: DATE_FILTER_CONTAINS, label: '包含某一天' },
+                { value: DATE_FILTER_OVERLAP, label: '与时间段交集' }
+              ]}
               value={dateFilter.mode}
-              onChange={e => setDateFilter(prev => ({ ...prev, mode: e.target.value }))}
-              title="日期筛选"
-            >
-              <option value={DATE_FILTER_ALL}>全部日期</option>
-              <option value={DATE_FILTER_LINKED}>有日期关联</option>
-              <option value={DATE_FILTER_UNLINKED}>无日期关联</option>
-              <option value={DATE_FILTER_CONTAINS}>包含某一天</option>
-              <option value={DATE_FILTER_OVERLAP}>与时间段交集</option>
-            </select>
+              onChange={mode => setDateFilter(prev => ({ ...prev, mode }))}
+            />
             {isDateFilterActive && (
               <button
                 type="button"
@@ -860,8 +862,8 @@ export default function Notes() {
                 placeholder="无标题便签"
               />
               <div className="notes-editor-actions">
-                <button className="btn btn-ghost btn-sm" onClick={async () => { if (await flushPending()) setHistoryOpen(true) }}>历史</button>
                 <SaveStatusBadge status={saveStatus} />
+                <button className="btn btn-ghost btn-sm" onClick={async () => { if (await flushPending()) setHistoryOpen(true) }}>历史</button>
                 <div className="card-font-controls">
                   <button
                     className="btn btn-ghost btn-xs font-ctrl-btn"
@@ -887,6 +889,7 @@ export default function Notes() {
                 >
                   ⛶
                 </button>
+                <span className="notes-actions-sep" aria-hidden="true" />
                 <button className={`btn btn-ghost btn-sm ${currentNote.pinned ? 'notes-action-active' : ''}`} onClick={togglePinned}>
                   {currentNote.pinned ? '取消置顶' : '置顶'}
                 </button>

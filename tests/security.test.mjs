@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { resolveSafePath, isAllowedExternalUrl, isAppNavigationUrl } from '../src/main/security.js'
+import { resolveSafePath, isAllowedExternalUrl, isAppNavigationUrl, isPathInside } from '../src/main/security.js'
 
 describe('resolveSafePath', () => {
   const baseDir = path.resolve('C:/MotoTrace/data')
@@ -44,5 +44,24 @@ describe('isAppNavigationUrl', () => {
   it('allows file navigation only in packaged mode', () => {
     expect(isAppNavigationUrl('file:///app/renderer/index.html', { isDev: false })).toBe(true)
     expect(isAppNavigationUrl('https://example.com', { isDev: false })).toBe(false)
+  })
+})
+
+describe('isPathInside', () => {
+  const parent = path.resolve('C:/MotoTrace/data/backups')
+
+  it('accepts the folder itself and anything below it', () => {
+    expect(isPathInside(parent, parent)).toBe(true)
+    expect(isPathInside(parent, path.join(parent, 'backup-1.zip'))).toBe(true)
+    expect(isPathInside(parent, path.join(parent, 'nested', 'a.zip'))).toBe(true)
+  })
+
+  it('rejects siblings, parents, traversal and bad input', () => {
+    expect(isPathInside(parent, path.resolve('C:/MotoTrace/data/notes.json'))).toBe(false)
+    expect(isPathInside(parent, path.resolve('C:/MotoTrace/data'))).toBe(false)
+    expect(isPathInside(parent, path.join(parent, '..', 'secret.zip'))).toBe(false)
+    expect(isPathInside(parent, path.resolve('D:/elsewhere/a.zip'))).toBe(false)
+    expect(isPathInside(parent, undefined)).toBe(false)
+    expect(isPathInside('', parent)).toBe(false)
   })
 })

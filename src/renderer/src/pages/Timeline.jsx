@@ -5,9 +5,10 @@ import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
 import EasterEgg from '../components/EasterEgg'
 import SelectMenu from '../components/SelectMenu'
+import DateRangeMenu from '../components/DateRangeMenu'
 import TimelinePreview from '../components/TimelinePreview'
-import { getPresetRange, RANGE_PRESETS } from '../utils/timelineRange'
 import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
+import '../components/FilterChip.css'
 import './Timeline.css'
 
 function escapeRegex(str) {
@@ -119,6 +120,18 @@ export default function Timeline() {
 
   const favoriteLookup = useMemo(() => buildFavoriteLookup(favorites), [favorites])
   const isPreview = viewMode === 'preview'
+  const hasActiveFilter = Boolean(query || filterSections.length > 0 || dateFrom || dateTo || onlyFavorites)
+  const sectionFilterLabel = filterSections.length === 0
+    ? '所有版块'
+    : filterSections.length === 1
+      ? (sections.find(item => item.id === filterSections[0])?.name || '1 个版块')
+      : `${filterSections.length} 个版块`
+
+  const switchView = (mode) => {
+    setViewMode(mode)
+    setIsManageMode(false)
+    setSelectedDates(new Set())
+  }
 
   const filteredCards = useMemo(() => {
     const sortedDates = [...datesWithData].sort((a, b) => (sortDesc ? b.localeCompare(a) : a.localeCompare(b)))
@@ -316,109 +329,108 @@ export default function Timeline() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="timeline-filters">
-        <div className="search-wrap flex-1">
-          <span className="search-icon">⌕</span>
-          <input
-            className="input search-input"
-            placeholder="搜索记录内容..."
-            value={query}
-            onChange={handleSearchChange}
-            onKeyDown={handleSearchKeyDown}
-          />
+      {/* Toolbar: search + view/manage on top, filters underneath */}
+      <div className="timeline-toolbar">
+        <div className="timeline-toolbar-main">
+          <div className="search-wrap flex-1">
+            <span className="search-icon">⌕</span>
+            <input
+              className="input search-input"
+              placeholder="搜索记录内容..."
+              value={query}
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
+            />
+          </div>
+          <div className="segmented-control timeline-view-switch" role="radiogroup" aria-label="查看方式">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!isPreview}
+              className={`segmented-btn ${!isPreview ? 'active' : ''}`}
+              onClick={() => switchView('list')}
+              title="按日期查看摘要"
+            >
+              ☰ 列表
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={isPreview}
+              className={`segmented-btn ${isPreview ? 'active' : ''}`}
+              onClick={() => switchView('preview')}
+              title="按当前筛选条件连续阅读完整内容"
+            >
+              📖 预览
+            </button>
+          </div>
+          <button
+            type="button"
+            className={`btn btn-sm ${isManageMode ? 'btn-secondary' : 'btn-ghost'}`}
+            disabled={isPreview || onlyFavorites}
+            onClick={() => {
+              setIsManageMode(!isManageMode)
+              setSelectedDates(new Set())
+            }}
+            title={isPreview ? '预览模式下不可管理' : onlyFavorites ? '收藏视图下不可批量删除' : isManageMode ? '退出管理' : '管理时间线'}
+          >
+            {isManageMode ? '退出管理' : '⚙ 管理'}
+          </button>
         </div>
-        <div className="timeline-section-filter">
+
+        <div className="timeline-toolbar-filters">
           <SelectMenu
             multiple
             ariaLabel="筛选版块"
-            placeholder="所有版块"
             options={sections.map(s => ({ value: s.id, label: s.name, color: s.color }))}
             value={filterSections}
             onChange={setFilterSections}
+            trigger={({ ref, props, open }) => (
+              <button
+                ref={ref}
+                {...props}
+                className={`filter-chip ${filterSections.length ? 'is-active' : ''} ${open ? 'is-open' : ''}`}
+              >
+                <span className="filter-chip-icon" aria-hidden="true">▤</span>
+                <span className="filter-chip-text">{sectionFilterLabel}</span>
+                <span className="filter-chip-chevron" aria-hidden="true">▾</span>
+              </button>
+            )}
           />
-        </div>
-        <button
-          type="button"
-          className={`btn btn-sm timeline-favorite-filter ${onlyFavorites ? 'btn-secondary is-active' : 'btn-ghost'}`}
-          aria-pressed={onlyFavorites}
-          onClick={() => setOnlyFavorites(value => !value)}
-          title="只看已收藏的内容"
-        >
-          {onlyFavorites ? '★' : '☆'} 收藏{favorites.length ? ` ${favorites.length}` : ''}
-        </button>
-        <div className="timeline-range-preset">
-          <SelectMenu
-            ariaLabel="快捷时间范围"
-            placeholder="快捷范围"
-            options={RANGE_PRESETS}
-            value={undefined}
-            onChange={(preset) => {
-              const range = getPresetRange(preset)
-              setDateFrom(range.from)
-              setDateTo(range.to)
-            }}
+          <DateRangeMenu
+            from={dateFrom}
+            to={dateTo}
+            onChange={(from, to) => { setDateFrom(from); setDateTo(to) }}
           />
-        </div>
-        <input
-          type="date"
-          className="input"
-          style={{ width: 140 }}
-          value={dateFrom}
-          onChange={e => setDateFrom(e.target.value)}
-          placeholder="开始日期"
-          title="开始日期"
-        />
-        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
-        <input
-          type="date"
-          className="input"
-          style={{ width: 140 }}
-          value={dateTo}
-          onChange={e => setDateTo(e.target.value)}
-          placeholder="结束日期"
-          title="结束日期"
-        />
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm timeline-sort-btn"
-          onClick={() => setSortDesc(value => !value)}
-          title="切换日期排序"
-        >
-          {sortDesc ? '↓ 新到旧' : '↑ 旧到新'}
-        </button>
-        <button
-          type="button"
-          className={`btn btn-sm ${isPreview ? 'btn-secondary' : 'btn-primary'}`}
-          aria-pressed={isPreview}
-          onClick={() => {
-            setViewMode(isPreview ? 'list' : 'preview')
-            setIsManageMode(false)
-            setSelectedDates(new Set())
-          }}
-          title={isPreview ? '回到时间线列表' : '按当前筛选条件阅读完整内容'}
-        >
-          {isPreview ? '退出预览' : '📖 预览'}
-        </button>
-        <button
-          className={`btn btn-sm ${isManageMode ? 'btn-secondary' : 'btn-ghost'}`}
-          disabled={isPreview || onlyFavorites}
-          onClick={() => {
-            setIsManageMode(!isManageMode)
-            setSelectedDates(new Set())
-          }}
-          title={isPreview ? '预览模式下不可管理' : onlyFavorites ? '收藏视图下不可批量删除' : isManageMode ? '退出管理' : '管理时间线'}
-        >
-          {isManageMode ? '退出管理' : '⚙ 管理'}
-        </button>
-        {(query || filterSections.length > 0 || dateFrom || dateTo || onlyFavorites) && (
           <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => { setQuery(''); setFilterSections([]); setDateFrom(''); setDateTo(''); setOnlyFavorites(false) }}
+            type="button"
+            className={`filter-chip ${onlyFavorites ? 'is-active' : ''}`}
+            aria-pressed={onlyFavorites}
+            onClick={() => setOnlyFavorites(value => !value)}
+            title="只看已收藏的内容"
           >
-            ✕ 清除
+            <span className="filter-chip-icon" aria-hidden="true">{onlyFavorites ? '★' : '☆'}</span>
+            <span className="filter-chip-text">收藏{favorites.length ? ` ${favorites.length}` : ''}</span>
           </button>
-        )}
+          <span className="timeline-toolbar-spacer" />
+          <button
+            type="button"
+            className="filter-chip"
+            onClick={() => setSortDesc(value => !value)}
+            title="切换日期排序"
+          >
+            <span className="filter-chip-text">{sortDesc ? '↓ 新到旧' : '↑ 旧到新'}</span>
+          </button>
+          {hasActiveFilter && (
+            <button
+              type="button"
+              className="filter-chip is-clear"
+              onClick={() => { setQuery(''); setFilterSections([]); setDateFrom(''); setDateTo(''); setOnlyFavorites(false) }}
+            >
+              <span className="filter-chip-text">✕ 清除筛选</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Sticky Manage Bar */}

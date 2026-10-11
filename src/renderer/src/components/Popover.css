@@ -1,0 +1,21 @@
+/* Floating panel; position is set by floating-ui, so override the inline-menu defaults. */
+.popover-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 4000;
+  min-width: 240px;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: var(--spacing-3);
+  outline: none;
+  transform-origin: top left;
+}
+
+/* Frosted glass: floating panels need to stay legible over busy content behind them. */
+:root[data-interface-style='frosted-glass'] .dropdown-menu:is(.popover-panel, .select-menu-popover) {
+  background: hsl(var(--frosted-accent-h) 30% 13% / 0.88);
+}
+
+:root[data-interface-style='frosted-glass'][data-theme='light'] .dropdown-menu:is(.popover-panel, .select-menu-popover) {
+  background: hsl(var(--frosted-accent-h) 30% 98% / 0.9);
+}

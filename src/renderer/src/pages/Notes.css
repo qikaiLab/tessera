@@ -179,8 +179,9 @@ body.is-resizing .notes-resize-handle::after {
   min-width: 0;
 }
 
-.notes-date-filter-select {
+.notes-date-filter .notes-date-filter-select {
   width: 100%;
+  min-height: 32px;
   height: 32px;
   padding: 4px 24px 4px 10px;
   border-color: transparent;
@@ -191,8 +192,8 @@ body.is-resizing .notes-resize-handle::after {
 }
 
 .notes-date-filter.active .notes-date-filter-select,
-.notes-date-filter-select:hover,
-.notes-date-filter-select:focus {
+.notes-date-filter .notes-date-filter-select:hover,
+.notes-date-filter .notes-date-filter-select.is-open {
   border-color: var(--border);
   background: var(--bg-surface);
   color: var(--text-primary);
@@ -788,4 +789,12 @@ body.is-resizing .notes-resize-handle::after {
     min-height: 30px;
     padding-inline: 6px;
   }
+}
+
+.notes-actions-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 var(--spacing-1);
+  background: var(--border);
+  flex-shrink: 0;
 }

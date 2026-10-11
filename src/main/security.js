@@ -42,7 +42,15 @@ function isAppNavigationUrl(url, { isDev, rendererUrl } = {}) {
   }
 }
 
+// True when `target` is `parent` itself or lives somewhere inside it.
+function isPathInside(parent, target) {
+  if (typeof parent !== 'string' || typeof target !== 'string' || !parent || !target) return false
+  const relative = path.relative(path.resolve(parent), path.resolve(target))
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
+}
+
 export {
+  isPathInside,
   resolveSafePath,
   isAllowedExternalUrl,
   isAppNavigationUrl

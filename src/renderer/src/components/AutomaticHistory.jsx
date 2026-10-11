@@ -68,6 +68,14 @@ export default function AutomaticHistory({ filePath, onClose, onRestore }) {
     }
   }
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !busy) onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [busy, onClose])
+
   const visibleEntries = entries.filter(entry => entry.path !== 'notes/index.json' &&
     `${entry.title} ${entry.path}`.toLowerCase().includes(filter.toLowerCase()))
 

@@ -26,3 +26,17 @@ export function getPresetRange(presetId, today = new Date()) {
       return { from: '', to: '' }
   }
 }
+
+function formatEdge(value, today) {
+  const [year, month, day] = value.split('-').map(Number)
+  if (!year || !month || !day) return value
+  return year === today.getFullYear() ? `${month}月${day}日` : `${year}/${month}/${day}`
+}
+
+// Short label for the range button, e.g. "全部时间" or "5月1日 – 5月17日".
+export function formatRangeLabel(from, to, today = new Date()) {
+  if (from && to) return `${formatEdge(from, today)} – ${formatEdge(to, today)}`
+  if (from) return `${formatEdge(from, today)} 起`
+  if (to) return `截至 ${formatEdge(to, today)}`
+  return '全部时间'
+}

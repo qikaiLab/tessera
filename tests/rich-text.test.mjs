@@ -2,7 +2,7 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { isSafeLink, parseRichText, richTextToPlainText } from '../src/renderer/src/utils/richText.js'
-import { getPresetRange } from '../src/renderer/src/utils/timelineRange.js'
+import { formatRangeLabel, getPresetRange } from '../src/renderer/src/utils/timelineRange.js'
 import RichTextView from '../src/renderer/src/components/RichTextView.jsx'
 
 const text = (value, marks) => ({ type: 'text', text: value, ...(marks ? { marks } : {}) })
@@ -97,5 +97,20 @@ describe('getPresetRange', () => {
     expect(getPresetRange('month', today)).toEqual({ from: '2026-05-01', to: '2026-05-31' })
     expect(getPresetRange('year', today)).toEqual({ from: '2026-01-01', to: '2026-05-17' })
     expect(getPresetRange('all', today)).toEqual({ from: '', to: '' })
+  })
+})
+
+describe('formatRangeLabel', () => {
+  const today = new Date(2026, 4, 17)
+
+  it('describes open, half-open and closed ranges', () => {
+    expect(formatRangeLabel('', '', today)).toBe('全部时间')
+    expect(formatRangeLabel('2026-05-01', '2026-05-17', today)).toBe('5月1日 – 5月17日')
+    expect(formatRangeLabel('2026-05-01', '', today)).toBe('5月1日 起')
+    expect(formatRangeLabel('', '2026-05-17', today)).toBe('截至 5月17日')
+  })
+
+  it('includes the year for dates outside the current year', () => {
+    expect(formatRangeLabel('2025-12-01', '2026-01-10', today)).toBe('2025/12/1 – 1月10日')
   })
 })
