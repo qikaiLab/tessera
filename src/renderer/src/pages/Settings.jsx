@@ -18,6 +18,7 @@ import {
 import defaultStylePreview from '../assets/themes/default-preview.png'
 import linenStylePreview from '../assets/themes/linen-preview.png'
 import jadeStylePreview from '../assets/themes/jade-preview.png'
+import frostedStylePreview from '../assets/themes/frosted-glass-preview.webp'
 import { defaultFrostedBackground } from '../theme/frostedGlassBackground'
 import { FROSTED_BACKGROUND_BLUR } from '../theme/frostedGlassPreferences'
 import './Settings.css'
@@ -32,7 +33,7 @@ const STYLE_PREVIEW_BY_ID = Object.freeze({
   [INTERFACE_STYLE_IDS.DEFAULT]: defaultStylePreview,
   [INTERFACE_STYLE_IDS.LINEN_STUDY]: linenStylePreview,
   [INTERFACE_STYLE_IDS.JADE_ARCHIVE]: jadeStylePreview,
-  [INTERFACE_STYLE_IDS.FROSTED_GLASS]: defaultFrostedBackground
+  [INTERFACE_STYLE_IDS.FROSTED_GLASS]: frostedStylePreview
 })
 
 const getNumberDefaultMode = (section) => {

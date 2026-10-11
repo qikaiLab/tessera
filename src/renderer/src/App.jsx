@@ -184,7 +184,7 @@ function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
   const canToggleTheme = isThemeToggleAvailable(interfaceStyle)
 
   const navItems = [
-    { to: '/today', icon: '◎', label: '记录', exact: false },
+    { to: '/today', icon: '✎', label: '记录', exact: false },
     { to: '/notes', icon: 'N', label: '便签' },
     { to: '/timeline', icon: '☰', label: '时间线' },
     { to: '/calendar', icon: '⊞', label: '日历' },
