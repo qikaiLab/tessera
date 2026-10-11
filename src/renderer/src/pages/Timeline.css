@@ -255,3 +255,30 @@
   user-select: none;
   line-height: 1;
 }
+
+/* ─── Favorites ──────────────────────────────────────────────────────────── */
+.timeline-favorite-filter.is-active {
+  color: var(--warning);
+}
+
+.tl-favorite-mark {
+  margin-right: 3px;
+  font-size: 11px;
+  color: var(--warning);
+}
+
+.tl-favorite-toggle {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--warning);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tl-favorite-toggle:hover {
+  opacity: 0.7;
+}

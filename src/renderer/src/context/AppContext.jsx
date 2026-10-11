@@ -10,6 +10,7 @@ import {
   normalizeThemeAccentId
 } from '../theme/appearanceRegistry'
 import { applyFrostedGlassBackground } from '../theme/frostedGlassBackground'
+import { buildMetadataContent, normalizeFavorites, toggleFavoriteEntry } from '../utils/favorites'
 import {
   FROSTED_BACKGROUND_BLUR,
   applyFrostedBackgroundBlur,
@@ -76,6 +77,7 @@ export function AppProvider({ children }) {
   // Metadata Settings (Countdowns and Charts)
   const [countdowns, setCountdowns] = useState([])
   const [analytics, setAnalytics] = useState([])
+  const [favorites, setFavorites] = useState([])
   const metadataTimerRef = useRef(null)
   const hasChangedRef = useRef(false)
   // Fix #7: Write lock to prevent concurrent metadata writes
@@ -133,10 +135,11 @@ export function AppProvider({ children }) {
 
         setCountdowns(cds)
         setAnalytics(charts)
+        setFavorites(normalizeFavorites(meta.favorites))
 
         if (migrated) {
           // Write back migrated data to metadata.json and clean up localStorage
-          await window.api.metadata.set(JSON.stringify({ countdowns: cds, analytics: charts }, null, 2))
+          await window.api.metadata.set(buildMetadataContent({ countdowns: cds, analytics: charts, favorites: meta.favorites }))
           localStorage.removeItem('mototrace_countdowns')
           localStorage.removeItem('mototrace_analytics')
         }
@@ -154,6 +157,11 @@ export function AppProvider({ children }) {
   const saveAnalytics = useCallback((cards) => {
     hasChangedRef.current = true
     setAnalytics(cards)
+  }, [])
+
+  const toggleFavorite = useCallback((dateStr, sectionId) => {
+    hasChangedRef.current = true
+    setFavorites(prev => toggleFavoriteEntry(prev, dateStr, sectionId))
   }, [])
 
   // Fix #7: Debounced metadata save with write lock to prevent race conditions
@@ -178,7 +186,7 @@ export function AppProvider({ children }) {
     try {
       // Read latest state via functional setters' closure would be stale here,
       // so we rely on the fact that React state is committed before setTimeout fires
-      const content = JSON.stringify({ countdowns, analytics }, null, 2)
+      const content = buildMetadataContent({ countdowns, analytics, favorites })
       metadataWriteRef.current = window.api.metadata.set(content)
       const result = await metadataWriteRef.current
       if (!result.ok) hasChangedRef.current = true
@@ -199,7 +207,7 @@ export function AppProvider({ children }) {
         }, 50)
       }
     }
-  }, [countdowns, analytics])
+  }, [countdowns, analytics, favorites])
 
   useEffect(() => {
     if (!hasChangedRef.current) return
@@ -213,7 +221,7 @@ export function AppProvider({ children }) {
     return () => {
       if (metadataTimerRef.current) clearTimeout(metadataTimerRef.current)
     }
-  }, [countdowns, analytics, doMetadataWrite])
+  }, [countdowns, analytics, favorites, doMetadataWrite])
 
   // Fix #8: Register metadata flush for graceful shutdown
   useEffect(() => {
@@ -226,7 +234,7 @@ export function AppProvider({ children }) {
       if (hasChangedRef.current || needsRewriteRef.current) {
         hasChangedRef.current = false
         needsRewriteRef.current = false
-        const content = JSON.stringify({ countdowns, analytics }, null, 2)
+        const content = buildMetadataContent({ countdowns, analytics, favorites })
         const result = await window.api.metadata.set(content)
         if (!result.ok) {
           hasChangedRef.current = true
@@ -236,7 +244,7 @@ export function AppProvider({ children }) {
     }
     registerPendingFlush('metadata', flushMetadata)
     return () => unregisterPendingFlush('metadata')
-  }, [countdowns, analytics, registerPendingFlush, unregisterPendingFlush])
+  }, [countdowns, analytics, favorites, registerPendingFlush, unregisterPendingFlush])
 
   const flushPendingSaves = useCallback(async () => {
     return flushSaveCallbacks(pendingFlushesRef.current.values())
@@ -555,6 +563,7 @@ export function AppProvider({ children }) {
       editorLetterSpacing, updateEditorLetterSpacing,
       countdowns, saveCountdowns,
       analytics, saveAnalytics,
+      favorites, toggleFavorite,
       confirm,
       // Fix #8: Expose flush registration for Today page
       registerPendingFlush, unregisterPendingFlush, flushPendingSaves

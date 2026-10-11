@@ -18,6 +18,7 @@ import {
 } from '../utils/contextMenu'
 import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
 import { getSectionPreview } from '../utils/sectionPreview'
+import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
 import './Today.css'
 
 const BACK_TO_TOP_THRESHOLD = 320
@@ -52,7 +53,7 @@ export default function Today() {
   const navigate = useNavigate()
   const {
     sections, datesWithData, readDayData, writeDayData, selectedDate, setSelectedDate, showToast,
-    registerPendingFlush, unregisterPendingFlush
+    registerPendingFlush, unregisterPendingFlush, favorites, toggleFavorite
   } = useApp()
 
   const [data, setData] = useState({})
@@ -310,10 +311,25 @@ export default function Today() {
     showToast('已清空记录', 'success', 1200)
   }, [scheduleSave, showToast])
 
+  const favoriteLookup = React.useMemo(() => buildFavoriteLookup(favorites), [favorites])
+
+  const handleToggleFavorite = useCallback((section) => {
+    const isFavorite = favoriteLookup.has(favoriteKey(dateStr, section.id))
+    if (!isFavorite && !hasStoredValue(data[section.id])) {
+      showToast('先记录一些内容再收藏', 'info', 1800)
+      return
+    }
+    toggleFavorite(dateStr, section.id)
+    showToast(isFavorite ? '已取消收藏' : '已收藏，可在时间线的「收藏」中查看', 'success', 1600)
+  }, [dateStr, data, favoriteLookup, showToast, toggleFavorite])
+
   const handleSectionContextMenu = useCallback((event, section) => {
     if (isEditableMenuTarget(event.target)) return
 
+    const isFavorite = favoriteLookup.has(favoriteKey(dateStr, section.id))
     showContextMenu(event, [
+      { id: 'favorite', label: isFavorite ? '取消收藏' : '收藏' },
+      separator,
       { id: 'clear', label: '清空', tone: 'danger' },
       separator,
       { id: 'edit-settings', label: '在设置中编辑' }
@@ -321,10 +337,15 @@ export default function Today() {
       scope: 'today-section',
       sectionId: section.id
     })
-  }, [])
+  }, [dateStr, favoriteLookup])
 
   useContextMenuCommand('today-section', useCallback((id, context) => {
     if (!context?.sectionId) return
+    if (id === 'favorite') {
+      const target = sections.find(item => item.id === context.sectionId)
+      if (target) handleToggleFavorite(target)
+      return
+    }
     if (id === 'clear') {
       clearSection(context.sectionId)
       return
@@ -332,7 +353,7 @@ export default function Today() {
     if (id === 'edit-settings') {
       navigate('/settings')
     }
-  }, [clearSection, navigate]))
+  }, [clearSection, handleToggleFavorite, navigate, sections]))
 
   const getSectionDisplayValue = useCallback((section) => {
     const stored = data[section.id]?.value
@@ -576,6 +597,8 @@ export default function Today() {
                     animationDelay={i * 50}
                     dateTransitionDir={dateTransitionDir}
                     isFullScreen={fullScreenSectionId === sec.id}
+                    favorite={favoriteLookup.has(favoriteKey(dateStr, sec.id))}
+                    onToggleFavorite={() => handleToggleFavorite(sec)}
                     collapsed={collapsedCards.has(`${dateStr}:${sec.id}`)}
                     onToggleCollapsed={() => toggleCardCollapsed(sec.id)}
                     onToggleFullScreen={() => setFullScreenSectionId(prev => prev === sec.id ? null : sec.id)}
@@ -634,6 +657,21 @@ export default function Today() {
   )
 }
 
+function FavoriteButton({ favorite, onToggle, name }) {
+  return (
+    <button
+      type="button"
+      className={`favorite-btn ${favorite ? 'is-active' : ''}`}
+      onClick={onToggle}
+      aria-pressed={favorite}
+      aria-label={favorite ? `取消收藏${name}` : `收藏${name}`}
+      title={favorite ? '取消收藏' : '收藏这天的这个版块'}
+    >
+      {favorite ? '★' : '☆'}
+    </button>
+  )
+}
+
 function SectionCard({
   section,
   value,
@@ -644,6 +682,8 @@ function SectionCard({
   animationDelay,
   dateTransitionDir,
   isFullScreen,
+  favorite,
+  onToggleFavorite,
   collapsed,
   onToggleCollapsed,
   onSave,
@@ -688,6 +728,7 @@ function SectionCard({
             <span className={`section-type-badge ${section.resident ? 'resident' : 'activated'}`}>
               {section.resident ? '常驻' : '激发'}
             </span>
+            <FavoriteButton favorite={favorite} onToggle={onToggleFavorite} name={section.name} />
           </div>
           <div className="number-card-right">
             <NumberInput
@@ -736,6 +777,7 @@ function SectionCard({
         </div>
         {!isFullScreen && (
           <div className="section-card-header-right">
+            <FavoriteButton favorite={favorite} onToggle={onToggleFavorite} name={section.name} />
             <span className="char-count-badge">{charCount} 字</span>
             <div className="card-font-controls">
               <button

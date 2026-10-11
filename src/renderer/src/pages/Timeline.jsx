@@ -4,6 +4,7 @@ import { format, parseISO, startOfDay, endOfDay } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
 import EasterEgg from '../components/EasterEgg'
+import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
 import './Timeline.css'
 
 function escapeRegex(str) {
@@ -71,12 +72,13 @@ function getSnippet(text, query, maxLen = 120) {
 
 export default function Timeline() {
   const navigate = useNavigate()
-  const { sections, datesWithData, readDayData, writeDayData, setSelectedDate, showToast, refreshDates, confirm } = useApp()
+  const { sections, datesWithData, readDayData, writeDayData, setSelectedDate, showToast, refreshDates, confirm, favorites, toggleFavorite } = useApp()
   const [query, setQuery] = useState('')
   const [easterEggSearch, setEasterEggSearch] = useState('')
   const [filterSection, setFilterSection] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [onlyFavorites, setOnlyFavorites] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadedDates, setLoadedDates] = useState({})
 
@@ -108,6 +110,8 @@ export default function Timeline() {
     fetchAll()
     return () => { aborted = true }
   }, [datesWithData, readDayData])
+
+  const favoriteLookup = useMemo(() => buildFavoriteLookup(favorites), [favorites])
 
   const filteredCards = useMemo(() => {
     const sortedDates = [...datesWithData].sort((a, b) => b.localeCompare(a))
@@ -147,6 +151,7 @@ export default function Timeline() {
           }
           return true
         })
+        .filter(sid => !onlyFavorites || favoriteLookup.has(favoriteKey(dateStr, sid)))
         .map(sid => {
           const sec = sections.find(s => s.id === sid)
           const entry = dayData[sid]
@@ -156,7 +161,7 @@ export default function Timeline() {
           return { sec, text, snippet, wordCount: countWords(text), rawValue }
         })
 
-      if (sectionResults.length === 0 && query) return null
+      if (sectionResults.length === 0 && (query || onlyFavorites)) return null
       // Task 3: when a specific section is selected, hide dates where
       // that section has no recorded data
       if (sectionResults.length === 0 && filterSection !== 'all') return null
@@ -174,7 +179,7 @@ export default function Timeline() {
 
       return { dateStr, dayData, sectionResults, totalWords, recordedSections }
     }).filter(Boolean)
-  }, [datesWithData, loadedDates, filterSection, query, dateFrom, dateTo, sections])
+  }, [datesWithData, loadedDates, filterSection, query, dateFrom, dateTo, sections, onlyFavorites, favoriteLookup])
 
   const handleCardClick = (dateStr) => {
     setSelectedDate(parseISO(dateStr))
@@ -326,6 +331,15 @@ export default function Timeline() {
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
+        <button
+          type="button"
+          className={`btn btn-sm timeline-favorite-filter ${onlyFavorites ? 'btn-secondary is-active' : 'btn-ghost'}`}
+          aria-pressed={onlyFavorites}
+          onClick={() => setOnlyFavorites(value => !value)}
+          title="只看已收藏的内容"
+        >
+          {onlyFavorites ? '★' : '☆'} 收藏{favorites.length ? ` ${favorites.length}` : ''}
+        </button>
         <input
           type="date"
           className="input"
@@ -355,10 +369,10 @@ export default function Timeline() {
         >
           {isManageMode ? '退出管理' : '⚙ 管理'}
         </button>
-        {(query || filterSection !== 'all' || dateFrom || dateTo) && (
+        {(query || filterSection !== 'all' || dateFrom || dateTo || onlyFavorites) && (
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => { setQuery(''); setFilterSection('all'); setDateFrom(''); setDateTo('') }}
+            onClick={() => { setQuery(''); setFilterSection('all'); setDateFrom(''); setDateTo(''); setOnlyFavorites(false) }}
           >
             ✕ 清除
           </button>
@@ -394,9 +408,9 @@ export default function Timeline() {
           </div>
         ) : filteredCards.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-state-icon">{query ? '🔍' : '📋'}</span>
-            <p className="empty-state-title">{query ? '没有找到匹配记录' : '暂无记录'}</p>
-            <p className="empty-state-desc">{query ? '尝试其他关键词或调整筛选条件' : '去「今日记录」页面开始你的第一条记录吧'}</p>
+            <span className="empty-state-icon">{onlyFavorites ? '☆' : query ? '🔍' : '📋'}</span>
+            <p className="empty-state-title">{onlyFavorites ? '还没有符合条件的收藏' : query ? '没有找到匹配记录' : '暂无记录'}</p>
+            <p className="empty-state-desc">{onlyFavorites ? '在「记录」页点击版块标题栏的 ☆，即可收藏当天的这个版块' : query ? '尝试其他关键词或调整筛选条件' : '去「今日记录」页面开始你的第一条记录吧'}</p>
           </div>
         ) : (
           <>
@@ -412,6 +426,9 @@ export default function Timeline() {
                 query={query}
                 onClick={() => handleCardClick(card.dateStr)}
                 filterSection={filterSection}
+                showSnippets={Boolean(query) || onlyFavorites}
+                favoriteLookup={favoriteLookup}
+                onToggleFavorite={toggleFavorite}
                 sections={sections}
                 isManageMode={isManageMode}
                 isSelected={selectedDates.has(card.dateStr)}
@@ -425,7 +442,7 @@ export default function Timeline() {
   )
 }
 
-function TimelineCard({ card, query, onClick, filterSection, sections, isManageMode, isSelected, onToggleSelect }) {
+function TimelineCard({ card, query, onClick, filterSection, showSnippets, favoriteLookup, onToggleFavorite, sections, isManageMode, isSelected, onToggleSelect }) {
   const { dateStr, totalWords, recordedSections, sectionResults } = card
   const date = parseISO(dateStr)
   const dayOfWeek = format(date, 'EEEE', { locale: zhCN })
@@ -480,18 +497,32 @@ function TimelineCard({ card, query, onClick, filterSection, sections, isManageM
                         }}
                       />
                     )}
+                    {favoriteLookup.has(favoriteKey(dateStr, sec.id)) && <span className="tl-favorite-mark" aria-label="已收藏">★</span>}
                     {sec.name}
                   </span>
                 ))}
               </div>
               <span className="tl-wordcount">{totalWords} 字</span>
             </div>
-            {query && sectionResults.map(({ sec, snippet }) => (
+            {showSnippets && sectionResults.map(({ sec, snippet, rawValue }) => (
               <div key={sec.id} className="tl-snippet">
                 <span className="tl-snippet-label">{sec.name}</span>
                 <span className="tl-snippet-text selectable">
-                  {highlightText(snippet, query)}
+                  {sec.type === 'number'
+                    ? `${rawValue ?? ''}${sec.unit ? ` ${sec.unit}` : ''}`
+                    : highlightText(snippet, query)}
                 </span>
+                {favoriteLookup.has(favoriteKey(dateStr, sec.id)) && (
+                  <button
+                    type="button"
+                    className="tl-favorite-toggle"
+                    title="取消收藏"
+                    aria-label={`取消收藏${sec.name}`}
+                    onClick={(event) => { event.stopPropagation(); onToggleFavorite(dateStr, sec.id) }}
+                  >
+                    ★
+                  </button>
+                )}
               </div>
             ))}
           </>
