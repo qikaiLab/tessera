@@ -14,9 +14,14 @@ import {
   removeManagedBackgrounds
 } from './appearanceBackground.js'
 import { createAutomaticBackupStore } from './automaticBackup.js'
+import { resolveRuntimeOverrides, shouldUseDevServer } from './runtimeOverrides.js'
 
-// Platform path helpers
-const isDev = !app.isPackaged
+// Automated runs isolate user data via env overrides; this must precede the
+// single-instance lock, which is scoped to the userData directory.
+const runtimeOverrides = resolveRuntimeOverrides(process.env)
+if (runtimeOverrides) app.setPath('userData', runtimeOverrides.userDataDir)
+
+const isDev = shouldUseDevServer({ isPackaged: app.isPackaged, env: process.env })
 
 let mainWindow
 let dataDir = ''
@@ -147,7 +152,7 @@ async function openExternalUrl(url) {
 function createWindow() {
   const cfg = loadConfig()
   
-  let initialDataDir = cfg.dataDir
+  let initialDataDir = runtimeOverrides ? runtimeOverrides.dataDir : cfg.dataDir
   if (!initialDataDir) {
     try {
       const datapathFile = path.join(app.getPath('userData'), 'datapath.txt')

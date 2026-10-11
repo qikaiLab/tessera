@@ -16,6 +16,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "npm run build && playwright test",
     "audit": "npm audit --audit-level=high",
     "verify:version": "node scripts/verify-version.mjs",
     "check": "npm run lint && npm run test && npm run audit && npm run verify:version && npm run build"
@@ -51,6 +52,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.64.0",
     "@vitejs/plugin-react": "^5.2.0",
     "brace-expansion": "5.0.12",
     "electron": "^43.1.1",

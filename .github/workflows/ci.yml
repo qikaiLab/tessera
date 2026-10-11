@@ -36,3 +36,6 @@ jobs:
 
       - name: Run quality gate
         run: npm run check
+
+      - name: Run Electron smoke tests
+        run: npx playwright test

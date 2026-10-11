@@ -57,7 +57,25 @@ npm run check
 4. 便签保存、关联和去重；
 5. 外链协议、IPC 参数和窗口生命周期。
 
-纯逻辑应抽成无 UI、无 Electron 生命周期依赖的小模块，再做单元测试。关键用户流程后续可增加 Playwright Electron 冒烟测试。
+纯逻辑应抽成无 UI、无 Electron 生命周期依赖的小模块，再做单元测试。
+
+### Electron 冒烟测试与隔离数据目录
+
+`tests/e2e/` 使用 Playwright 启动构建后的真实 Electron 应用（`out/`），覆盖启动、各页面渲染、日记保存和重启后读取。运行：
+
+```bash
+npm run test:e2e   # 先构建再运行
+npx playwright test   # 已有最新构建时直接运行
+```
+
+测试通过环境变量隔离数据，应用不会碰真实记录：
+
+- `MOTOTRACE_USER_DATA_DIR`：覆盖 Electron `userData` 目录（配置、背景图、单实例锁）。
+- `MOTOTRACE_DATA_DIR`：覆盖记录数据目录。
+
+两个变量必须同时设置且为绝对路径，否则主进程启动即报错，避免隔离不完整而回落到真实数据目录。测试夹具为每个用例创建临时目录并在结束后删除。手工做实机验证时也应使用这两个变量。
+
+未设置 `ELECTRON_RENDERER_URL`（仅 `electron-vite dev` 会注入）时，未打包的启动会加载构建产物而不是开发服务器。CI 在 `npm run check` 之后运行冒烟测试；它们不属于 `npm run check`，改动主进程、预加载桥接、编辑器保存或窗口生命周期时请在本地运行。
 
 ## 6. 合并与评审
 
