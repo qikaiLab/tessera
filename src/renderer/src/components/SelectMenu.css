@@ -1,0 +1,123 @@
+.select-menu-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  width: 100%;
+  min-height: 34px;
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-body);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.select-menu-trigger:hover {
+  border-color: var(--border-hover);
+}
+
+.select-menu-trigger:focus-visible,
+.select-menu-trigger.is-open {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.select-menu-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-menu-value.is-placeholder {
+  color: var(--text-muted);
+}
+
+.select-menu-chevron {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.select-menu-trigger.is-open .select-menu-chevron {
+  transform: rotate(180deg);
+}
+
+/* Floating list; position is set by floating-ui, so override the inline-menu defaults. */
+.select-menu-popover {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 4000;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-1);
+  overflow-y: auto;
+  outline: none;
+  transform-origin: top left;
+}
+
+.select-menu-option {
+  gap: var(--spacing-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.select-menu-option.is-active {
+  background: var(--bg-hover);
+}
+
+.select-menu-option.is-selected {
+  color: var(--accent);
+}
+
+.select-menu-option.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.select-menu-check {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.select-menu-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+}
+
+.select-menu-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-menu-hint {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.select-menu-empty {
+  padding: var(--spacing-3);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-align: center;
+}

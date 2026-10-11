@@ -1,0 +1,143 @@
+.card-editor-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--spacing-3);
+}
+
+.card-editor-label {
+  padding-top: 7px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.card-editor-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.card-editor-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.card-editor-series {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.series-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  transition: opacity var(--transition-fast), border-color var(--transition-fast);
+}
+
+.series-chip:hover {
+  border-color: var(--border-hover);
+}
+
+.series-chip.is-unused {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.series-chip.is-unused:hover {
+  opacity: 0.9;
+}
+
+.series-chip.is-missing .series-chip-name {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.series-chip-main,
+.series-chip-remove {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-sans);
+}
+
+.series-chip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 4px 4px 10px;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  cursor: default;
+}
+
+.series-chip-main:not(:disabled) {
+  cursor: pointer;
+}
+
+.series-chip-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+}
+
+.series-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.series-chip-metric {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.series-chip-remove {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 3px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.series-chip-remove:hover {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+.series-add-btn {
+  padding: 4px 12px;
+  border: 1px dashed var(--border-hover);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.series-add-btn:hover,
+.series-add-btn.is-open,
+.series-add-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}

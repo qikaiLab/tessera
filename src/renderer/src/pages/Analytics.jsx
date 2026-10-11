@@ -16,49 +16,21 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
 import { createHeatmapScale, getHeatmapAlpha, HEATMAP_EMPTY_COLOR } from '../utils/heatmapScale'
+import {
+  DATE_AXIS_CONTINUOUS,
+  DATE_AXIS_RECORDED,
+  LINE_STYLE_SMOOTH,
+  LINE_STYLE_STRAIGHT,
+  getDateAxisMode,
+  getLineStyle
+} from '../utils/analyticsCard'
+import AnalyticsCardEditor from '../components/AnalyticsCardEditor'
 import './Analytics.css'
 
-const CHART_TYPES = [
-  { id: 'line', label: '折线图', icon: '📈' },
-  { id: 'bar', label: '柱状图', icon: '📊' },
-  { id: 'pie', label: '饼图', icon: '🍩' },
-  { id: 'heatmap', label: '热力图', icon: '🗓' }
-]
-
-const DATE_RANGES = [
-  { id: '7', label: '近7天' },
-  { id: '30', label: '近30天' },
-  { id: '90', label: '近90天' },
-  { id: '365', label: '近一年' },
-  { id: 'all', label: '全部' }
-]
-
 const SECONDARY_PALETTE = ['#34d399', '#f87171', '#fbbf24', '#60a5fa', '#f472b6']
-const DATE_AXIS_RECORDED = 'recorded'
-const DATE_AXIS_CONTINUOUS = 'continuous'
-const LINE_STYLE_SMOOTH = 'smooth'
-const LINE_STYLE_STRAIGHT = 'straight'
 const NUMBER_DEFAULT_MODE_CARRY = 'carry'
 
-const DATE_AXIS_MODES = [
-  { id: DATE_AXIS_RECORDED, label: '仅显示有数据日期' },
-  { id: DATE_AXIS_CONTINUOUS, label: '连续日期横坐标' }
-]
-
-const LINE_STYLE_MODES = [
-  { id: LINE_STYLE_SMOOTH, label: '曲线' },
-  { id: LINE_STYLE_STRAIGHT, label: '直线折线' }
-]
-
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
-
-function getDateAxisMode(card) {
-  return card.dateAxisMode === DATE_AXIS_CONTINUOUS ? DATE_AXIS_CONTINUOUS : DATE_AXIS_RECORDED
-}
-
-function getLineStyle(card) {
-  return card.lineStyle === LINE_STYLE_STRAIGHT ? LINE_STYLE_STRAIGHT : LINE_STYLE_SMOOTH
-}
 
 function isCarryNumberSection(section) {
   return section?.type === 'number' && section.numberDefaultMode === NUMBER_DEFAULT_MODE_CARRY
@@ -467,6 +439,12 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, palette, isE
 
   const bindings = useMemo(() => card.bindings || [], [card.bindings])
 
+  // Mount the editor on first open and keep it so the collapse animation can play.
+  const [editorMounted, setEditorMounted] = useState(isEditing)
+  useEffect(() => {
+    if (isEditing) setEditorMounted(true)
+  }, [isEditing])
+
   // Task 5.3: get heatmap color from section palette index
   const heatmapColor = useMemo(() => {
     if (card.type !== 'heatmap' || !bindings[0]) return palette[0]
@@ -531,13 +509,22 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, palette, isE
         </div>
       </div>
 
-      {isEditing && (
-        <CardEditor
-          card={card}
-          sections={sections}
-          onUpdate={onUpdate}
-        />
-      )}
+      {/* Stays mounted after the first open so closing can animate; inert while collapsed. */}
+      <div
+        className={`card-editor-collapse ${isEditing ? 'is-open' : ''}`}
+        aria-hidden={!isEditing}
+        inert={isEditing ? undefined : ''}
+      >
+        <div className="card-editor-collapse-inner">
+          {editorMounted && (
+            <AnalyticsCardEditor
+              card={card}
+              sections={sections}
+              onUpdate={onUpdate}
+            />
+          )}
+        </div>
+      </div>
 
       <div className="analytics-chart-area">
         {chartData.length === 0 || bindings.length === 0 ? (
@@ -547,146 +534,6 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, palette, isE
         ) : (
           <ChartRenderer card={card} data={chartData} sections={sections} heatmapColor={heatmapColor} palette={palette} />
         )}
-      </div>
-    </div>
-  )
-}
-
-// ─── Card Editor ──────────────────────────────────────────────────────────────
-
-function CardEditor({ card, sections, onUpdate }) {
-  const isHeatmap = card.type === 'heatmap'
-  const supportsDateAxisMode = card.type === 'line' || card.type === 'bar'
-  const hasMaxBindings = isHeatmap && (card.bindings || []).length >= 1 // Task 5.1: heatmap max 1
-
-  const addBinding = () => {
-    const sec = sections[0]
-    if (!sec) return
-    // Task 3: auto-lock metric based on section type
-    const metric = sec.type === 'text' ? 'wordcount' : 'value'
-    onUpdate({ bindings: [...(card.bindings || []), { sectionId: sec.id, metric }] })
-  }
-
-  const updateBinding = (i, sectionId) => {
-    const sec = sections.find(s => s.id === sectionId)
-    if (!sec) return
-    const metric = sec.type === 'text' ? 'wordcount' : 'value'
-    const next = [...(card.bindings || [])]
-    next[i] = { sectionId, metric }
-    onUpdate({ bindings: next })
-  }
-
-  const removeBinding = (i) => {
-    onUpdate({ bindings: (card.bindings || []).filter((_, idx) => idx !== i) })
-  }
-
-  return (
-    <div className="card-editor">
-      {/* Chart type */}
-      <div className="editor-row">
-        <label className="editor-label">图表类型</label>
-        <div className="chart-type-selector">
-          {CHART_TYPES.map(t => (
-            <button
-              key={t.id}
-              className={`chart-type-btn ${card.type === t.id ? 'active' : ''}`}
-              onClick={() => onUpdate({ type: t.id, bindings: [] })}
-            >
-              <span>{t.icon}</span>
-              <span>{t.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Date range */}
-      <div className="editor-row">
-        <label className="editor-label">时间范围</label>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {DATE_RANGES.map(r => (
-            <button
-              key={r.id}
-              className={`btn btn-sm ${card.dateRange === r.id ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => onUpdate({ dateRange: r.id })}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Date axis mode */}
-      {supportsDateAxisMode && (
-        <div className="editor-row">
-          <label className="editor-label">日期横坐标</label>
-          <div className="segmented-control">
-            {DATE_AXIS_MODES.map(mode => (
-              <button
-                key={mode.id}
-                className={`segmented-btn ${getDateAxisMode(card) === mode.id ? 'active' : ''}`}
-                onClick={() => onUpdate({ dateAxisMode: mode.id })}
-              >
-                {mode.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Line style */}
-      {card.type === 'line' && (
-        <div className="editor-row">
-          <label className="editor-label">线条样式</label>
-          <div className="segmented-control">
-            {LINE_STYLE_MODES.map(mode => (
-              <button
-                key={mode.id}
-                className={`segmented-btn ${getLineStyle(card) === mode.id ? 'active' : ''}`}
-                onClick={() => onUpdate({ lineStyle: mode.id })}
-              >
-                {mode.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Bindings */}
-      <div className="editor-row">
-        <label className="editor-label">
-          数据绑定
-          {isHeatmap && <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>（热力图仅支持1个数据源）</span>}
-        </label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {(card.bindings || []).map((b, i) => {
-            // Task 3: show metric as read-only badge
-            const metricLabel = b.metric === 'wordcount' ? '字数' : '数值'
-            return (
-              <div key={i} className="binding-row">
-                <select
-                  className="input"
-                  style={{ flex: 1 }}
-                  value={b.sectionId}
-                  onChange={e => updateBinding(i, e.target.value)}
-                >
-                  {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                {/* Task 3: metric locked badge (no manual selection) */}
-                <span
-                  className="btn btn-sm btn-secondary"
-                  style={{ width: 60, textAlign: 'center', pointerEvents: 'none', opacity: 0.75 }}
-                >
-                  {metricLabel}
-                </span>
-                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => removeBinding(i)}>✕</button>
-              </div>
-            )
-          })}
-          {/* Task 5.1: hide add button when heatmap already has 1 binding */}
-          {sections.length > 0 && !hasMaxBindings && (
-            <button className="btn btn-ghost btn-sm" onClick={addBinding}>⊕ 添加数据</button>
-          )}
-        </div>
       </div>
     </div>
   )
