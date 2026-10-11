@@ -15,6 +15,7 @@ import {
   removeManagedBackgrounds
 } from './appearanceBackground.js'
 import { createAutomaticBackupStore } from './automaticBackup.js'
+import { readConfigFile, writeConfigFile } from './configStore.js'
 import { resolveRuntimeOverrides, shouldUseDevServer } from './runtimeOverrides.js'
 
 // Automated and development runs keep their own userData/data directories; this must
@@ -102,21 +103,11 @@ function safePath(filePath) {
 // ─── Config (uses app userData, not dataDir — no safePath needed) ──────────────
 
 function loadConfig() {
-  const configPath = path.join(app.getPath('userData'), 'config.json')
-  try {
-    if (fs.existsSync(configPath)) {
-      const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-      return cfg
-    }
-  } catch (e) {
-    console.error('Failed to load config:', e)
-  }
-  return {}
+  return readConfigFile(path.join(app.getPath('userData'), 'config.json'))
 }
 
 function saveConfig(cfg) {
-  const configPath = path.join(app.getPath('userData'), 'config.json')
-  fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8')
+  writeConfigFile(path.join(app.getPath('userData'), 'config.json'), cfg)
 }
 
 // ─── Async helpers ────────────────────────────────────────────────────────────
