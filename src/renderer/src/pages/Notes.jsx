@@ -280,12 +280,25 @@ export default function Notes() {
     setLoading(true)
     const indexResult = await window.api.fs.readFile(NOTES_INDEX_PATH)
     let metas = []
+    let indexUsable = false
     if (indexResult.ok) {
       try {
         const parsed = JSON.parse(indexResult.data)
-        metas = Array.isArray(parsed) ? parsed : []
+        if (!Array.isArray(parsed)) throw new Error('notes index is not a list')
+        metas = parsed
+        indexUsable = true
       } catch {
-        showToast('便签索引读取失败', 'error')
+        showToast('便签索引已损坏，正在根据便签文件重新建立', 'error')
+      }
+    }
+    if (!indexUsable) {
+      // A missing or unreadable index must not make existing notes vanish: every note
+      // lives in its own notes/<id>.json file, so rebuild the list from those.
+      const listing = await window.api.fs.listDir('notes')
+      if (listing.ok) {
+        metas = listing.data
+          .filter(name => name.endsWith('.json') && name !== 'index.json')
+          .map(name => ({ id: name.slice(0, -'.json'.length) }))
       }
     }
 

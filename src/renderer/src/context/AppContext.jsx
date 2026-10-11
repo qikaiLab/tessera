@@ -143,10 +143,13 @@ export function AppProvider({ children }) {
           localStorage.removeItem('mototrace_countdowns')
           localStorage.removeItem('mototrace_analytics')
         }
+        return true
       } catch (e) {
         console.error('Failed to parse metadata.json:', e)
+        return false
       }
     }
+    return false
   }, [])
 
   const saveCountdowns = useCallback((cds) => {
@@ -269,27 +272,36 @@ export function AppProvider({ children }) {
   }, [])
 
   const loadSections = useCallback(async () => {
-    const result = await window.api.fs.readFile('sections.json')
-    if (result.ok) {
-      try {
-        const s = JSON.parse(result.data)
-        setSections(s)
-        return s
-      } catch (e) {
-        // Fix #10: Log parsing errors
-        console.error('Failed to parse sections.json:', e)
-        // Fall through to defaults
-      }
-    }
-    // Default sections on first run
     const defaults = [
       { id: 'diary', name: '日记', type: 'text', unit: '', resident: true, order: 0 },
       { id: 'running', name: '今日跑步[m]', type: 'number', unit: 'm', resident: false, order: 1 }
     ]
+    const result = await window.api.fs.readFile('sections.json')
+    if (result.ok) {
+      try {
+        const parsed = JSON.parse(result.data)
+        if (!Array.isArray(parsed)) throw new Error('sections.json is not a list')
+        setSections(parsed)
+        return parsed
+      } catch (e) {
+        console.error('Failed to parse sections.json:', e)
+        // Never overwrite a file that exists but cannot be understood: keep it on disk
+        // and run on the defaults in memory until the user edits their sections.
+        setSections(defaults)
+        showToast('版块配置文件无法读取，已临时使用默认版块。原文件未被改动，可在「设置 → 数据与备份 → 查看自动历史」中找回。', 'error', 8000)
+        return defaults
+      }
+    }
+    // Only a missing file means "first run"; any other read failure must not clobber it.
+    if (!/ENOENT/.test(result.error || '')) {
+      setSections(defaults)
+      showToast('读取版块配置失败，已临时使用默认版块，未改动原文件。', 'error', 6000)
+      return defaults
+    }
     await saveSectionsData(defaults)
     setSections(defaults)
     return defaults
-  }, [saveSectionsData])
+  }, [saveSectionsData, showToast])
 
   const saveSections = useCallback(async (secs) => {
     setSections(secs)
@@ -489,7 +501,9 @@ export function AppProvider({ children }) {
 
         await loadSections()
         await refreshDates()
-        await loadMetadata()
+        if (!await loadMetadata()) {
+          showToast('图表、倒数日等配置无法读取，已暂用空配置。原文件在被覆盖前会存入自动历史，可在「设置 → 数据与备份 → 查看自动历史」中找回。', 'error', 9000)
+        }
         setIsInitialized(true)
       } catch (e) {
         console.error('Init error:', e)
@@ -497,7 +511,7 @@ export function AppProvider({ children }) {
       }
     }
     init()
-  }, [loadMetadata, loadSections, refreshDates])
+  }, [loadMetadata, loadSections, refreshDates, showToast])
 
   // Fix #9: Use functional update for setDatesWithData to eliminate stale closure dependency
   const writeDayData = useCallback(async (dateStr, data) => {

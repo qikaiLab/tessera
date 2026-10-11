@@ -21,7 +21,7 @@ export default function DateRangeMenu({ from, to, onChange }) {
           className={`filter-chip ${active ? 'is-active' : ''} ${open ? 'is-open' : ''}`}
           aria-label={`时间范围：${formatRangeLabel(from, to)}`}
         >
-          <span className="filter-chip-icon" aria-hidden="true">📅</span>
+          <span className="filter-chip-icon" aria-hidden="true">◷</span>
           <span className="filter-chip-text">{formatRangeLabel(from, to)}</span>
           <span className="filter-chip-chevron" aria-hidden="true">▾</span>
         </button>
