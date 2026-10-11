@@ -282,3 +282,38 @@
 .tl-favorite-toggle:hover {
   opacity: 0.7;
 }
+
+/* ─── Filters & preview ──────────────────────────────────────────────────── */
+.timeline-section-filter {
+  width: 150px;
+  flex-shrink: 0;
+}
+
+.timeline-range-preset {
+  width: 112px;
+  flex-shrink: 0;
+}
+
+.timeline-filters {
+  flex-wrap: wrap;
+}
+
+.timeline-sort-btn {
+  white-space: nowrap;
+}
+
+.tl-section-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-3);
+}
+
+.tl-section-row .tl-snippet-label {
+  flex-shrink: 0;
+  min-width: 56px;
+}
+
+.tl-section-row .tl-snippet-text {
+  flex: 1;
+  min-width: 0;
+}

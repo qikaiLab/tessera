@@ -4,6 +4,9 @@ import { format, parseISO, startOfDay, endOfDay } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useApp } from '../context/AppContext'
 import EasterEgg from '../components/EasterEgg'
+import SelectMenu from '../components/SelectMenu'
+import TimelinePreview from '../components/TimelinePreview'
+import { getPresetRange, RANGE_PRESETS } from '../utils/timelineRange'
 import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
 import './Timeline.css'
 
@@ -75,7 +78,10 @@ export default function Timeline() {
   const { sections, datesWithData, readDayData, writeDayData, setSelectedDate, showToast, refreshDates, confirm, favorites, toggleFavorite } = useApp()
   const [query, setQuery] = useState('')
   const [easterEggSearch, setEasterEggSearch] = useState('')
-  const [filterSection, setFilterSection] = useState('all')
+  // Empty = every section; otherwise only the listed section ids.
+  const [filterSections, setFilterSections] = useState([])
+  const [sortDesc, setSortDesc] = useState(true)
+  const [viewMode, setViewMode] = useState('list')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [onlyFavorites, setOnlyFavorites] = useState(false)
@@ -112,17 +118,18 @@ export default function Timeline() {
   }, [datesWithData, readDayData])
 
   const favoriteLookup = useMemo(() => buildFavoriteLookup(favorites), [favorites])
+  const isPreview = viewMode === 'preview'
 
   const filteredCards = useMemo(() => {
-    const sortedDates = [...datesWithData].sort((a, b) => b.localeCompare(a))
+    const sortedDates = [...datesWithData].sort((a, b) => (sortDesc ? b.localeCompare(a) : a.localeCompare(b)))
 
     return sortedDates.map(dateStr => {
       const dayData = loadedDates[dateStr] || {}
 
       // Section filter
-      const sectionIds = filterSection === 'all'
+      const sectionIds = filterSections.length === 0
         ? Object.keys(dayData)
-        : [filterSection]
+        : filterSections
 
       // Date range filter
       if (dateFrom) {
@@ -164,7 +171,7 @@ export default function Timeline() {
       if (sectionResults.length === 0 && (query || onlyFavorites)) return null
       // Task 3: when a specific section is selected, hide dates where
       // that section has no recorded data
-      if (sectionResults.length === 0 && filterSection !== 'all') return null
+      if (sectionResults.length === 0 && filterSections.length > 0) return null
 
       const totalWords = Object.entries(dayData).reduce((acc, [sid, e]) => {
         const sec = sections.find(s => s.id === sid)
@@ -179,7 +186,7 @@ export default function Timeline() {
 
       return { dateStr, dayData, sectionResults, totalWords, recordedSections }
     }).filter(Boolean)
-  }, [datesWithData, loadedDates, filterSection, query, dateFrom, dateTo, sections, onlyFavorites, favoriteLookup])
+  }, [datesWithData, loadedDates, filterSections, sortDesc, query, dateFrom, dateTo, sections, onlyFavorites, favoriteLookup])
 
   const handleCardClick = (dateStr) => {
     setSelectedDate(parseISO(dateStr))
@@ -212,8 +219,13 @@ export default function Timeline() {
     if (selectedDates.size === 0) return
     const count = selectedDates.size
     
+    const clearedSections = filterSections
+      .map(id => sections.find(s => s.id === id))
+      .filter(Boolean)
+    const clearedNames = clearedSections.map(section => `「${section.name}」`).join('、')
+
     let confirmed = false
-    if (filterSection === 'all') {
+    if (filterSections.length === 0) {
       const confirmMsg = `确定要删除所选的这 ${count} 天的全部记录吗？\n该操作将永久物理删除文件，且无法撤销！`
       confirmed = await confirm({
         message: confirmMsg,
@@ -222,9 +234,7 @@ export default function Timeline() {
         danger: true
       })
     } else {
-      const section = sections.find(s => s.id === filterSection)
-      const secName = section?.name || filterSection
-      const confirmMsg = `确定要清除所选这 ${count} 天的「${secName}」版块数据吗？\n其他版块的内容将会被保留。`
+      const confirmMsg = `确定要清除所选这 ${count} 天的${clearedNames}版块数据吗？\n其他版块的内容将会被保留。`
       confirmed = await confirm({
         message: confirmMsg,
         title: '确认清除版块',
@@ -237,7 +247,7 @@ export default function Timeline() {
 
     setLoading(true)
     try {
-      if (filterSection === 'all') {
+      if (filterSections.length === 0) {
         const promises = Array.from(selectedDates).map(dateStr => {
           const [year, month, day] = dateStr.split('-')
           const filePath = `${year}/${month}/${day}.json`
@@ -246,12 +256,10 @@ export default function Timeline() {
         await Promise.all(promises)
         showToast(`成功删除 ${count} 天的记录`, 'success')
       } else {
-        const section = sections.find(s => s.id === filterSection)
-        const secName = section?.name || filterSection
         const promises = Array.from(selectedDates).map(async (dateStr) => {
           const dayData = loadedDates[dateStr] || {}
           const updatedData = { ...dayData }
-          delete updatedData[filterSection]
+          for (const id of filterSections) delete updatedData[id]
           
           const hasContentLeft = Object.values(updatedData).some(
             entry => entry?.value !== undefined && entry?.value !== null && !isValueEmpty(entry.value)
@@ -266,7 +274,7 @@ export default function Timeline() {
           }
         })
         await Promise.all(promises)
-        showToast(`成功清除 ${count} 天的「${secName}」数据`, 'success')
+        showToast(`成功清除 ${count} 天的${clearedNames}数据`, 'success')
       }
 
       // Refresh the date list in context
@@ -320,17 +328,16 @@ export default function Timeline() {
             onKeyDown={handleSearchKeyDown}
           />
         </div>
-        <select
-          className="input"
-          style={{ width: 140 }}
-          value={filterSection}
-          onChange={e => setFilterSection(e.target.value)}
-        >
-          <option value="all">所有版块</option>
-          {sections.map(s => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+        <div className="timeline-section-filter">
+          <SelectMenu
+            multiple
+            ariaLabel="筛选版块"
+            placeholder="所有版块"
+            options={sections.map(s => ({ value: s.id, label: s.name, color: s.color }))}
+            value={filterSections}
+            onChange={setFilterSections}
+          />
+        </div>
         <button
           type="button"
           className={`btn btn-sm timeline-favorite-filter ${onlyFavorites ? 'btn-secondary is-active' : 'btn-ghost'}`}
@@ -340,6 +347,19 @@ export default function Timeline() {
         >
           {onlyFavorites ? '★' : '☆'} 收藏{favorites.length ? ` ${favorites.length}` : ''}
         </button>
+        <div className="timeline-range-preset">
+          <SelectMenu
+            ariaLabel="快捷时间范围"
+            placeholder="快捷范围"
+            options={RANGE_PRESETS}
+            value={undefined}
+            onChange={(preset) => {
+              const range = getPresetRange(preset)
+              setDateFrom(range.from)
+              setDateTo(range.to)
+            }}
+          />
+        </div>
         <input
           type="date"
           className="input"
@@ -360,19 +380,41 @@ export default function Timeline() {
           title="结束日期"
         />
         <button
+          type="button"
+          className="btn btn-ghost btn-sm timeline-sort-btn"
+          onClick={() => setSortDesc(value => !value)}
+          title="切换日期排序"
+        >
+          {sortDesc ? '↓ 新到旧' : '↑ 旧到新'}
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${isPreview ? 'btn-secondary' : 'btn-primary'}`}
+          aria-pressed={isPreview}
+          onClick={() => {
+            setViewMode(isPreview ? 'list' : 'preview')
+            setIsManageMode(false)
+            setSelectedDates(new Set())
+          }}
+          title={isPreview ? '回到时间线列表' : '按当前筛选条件阅读完整内容'}
+        >
+          {isPreview ? '退出预览' : '📖 预览'}
+        </button>
+        <button
           className={`btn btn-sm ${isManageMode ? 'btn-secondary' : 'btn-ghost'}`}
+          disabled={isPreview || onlyFavorites}
           onClick={() => {
             setIsManageMode(!isManageMode)
             setSelectedDates(new Set())
           }}
-          title={isManageMode ? "退出管理" : "管理时间线"}
+          title={isPreview ? '预览模式下不可管理' : onlyFavorites ? '收藏视图下不可批量删除' : isManageMode ? '退出管理' : '管理时间线'}
         >
           {isManageMode ? '退出管理' : '⚙ 管理'}
         </button>
-        {(query || filterSection !== 'all' || dateFrom || dateTo || onlyFavorites) && (
+        {(query || filterSections.length > 0 || dateFrom || dateTo || onlyFavorites) && (
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => { setQuery(''); setFilterSection('all'); setDateFrom(''); setDateTo(''); setOnlyFavorites(false) }}
+            onClick={() => { setQuery(''); setFilterSections([]); setDateFrom(''); setDateTo(''); setOnlyFavorites(false) }}
           >
             ✕ 清除
           </button>
@@ -380,7 +422,7 @@ export default function Timeline() {
       </div>
 
       {/* Sticky Manage Bar */}
-      {isManageMode && (
+      {isManageMode && !isPreview && (
         <div className="timeline-manage-bar">
           <div className="manage-info">
             已选择 <strong className="selected-count">{selectedDates.size}</strong> 天记录
@@ -413,6 +455,16 @@ export default function Timeline() {
             <p className="empty-state-desc">{onlyFavorites ? '在「记录」页点击版块标题栏的 ☆，即可收藏当天的这个版块' : query ? '尝试其他关键词或调整筛选条件' : '去「今日记录」页面开始你的第一条记录吧'}</p>
           </div>
         ) : (
+          isPreview ? (
+            <TimelinePreview
+              cards={filteredCards}
+              sections={sections}
+              query={query}
+              favoriteLookup={favoriteLookup}
+              onToggleFavorite={toggleFavorite}
+              onOpenDay={handleCardClick}
+            />
+          ) : (
           <>
             {query && (
               <div className="search-result-count">
@@ -425,24 +477,24 @@ export default function Timeline() {
                 card={card}
                 query={query}
                 onClick={() => handleCardClick(card.dateStr)}
-                filterSection={filterSection}
+                filterSections={filterSections}
                 showSnippets={Boolean(query) || onlyFavorites}
                 favoriteLookup={favoriteLookup}
                 onToggleFavorite={toggleFavorite}
-                sections={sections}
                 isManageMode={isManageMode}
                 isSelected={selectedDates.has(card.dateStr)}
                 onToggleSelect={() => handleToggleSelect(card.dateStr)}
               />
             ))}
           </>
+          )
         )}
       </div>
     </div>
   )
 }
 
-function TimelineCard({ card, query, onClick, filterSection, showSnippets, favoriteLookup, onToggleFavorite, sections, isManageMode, isSelected, onToggleSelect }) {
+function TimelineCard({ card, query, onClick, filterSections, showSnippets, favoriteLookup, onToggleFavorite, isManageMode, isSelected, onToggleSelect }) {
   const { dateStr, totalWords, recordedSections, sectionResults } = card
   const date = parseISO(dateStr)
   const dayOfWeek = format(date, 'EEEE', { locale: zhCN })
@@ -474,7 +526,7 @@ function TimelineCard({ card, query, onClick, filterSection, showSnippets, favor
       </div>
       <div className="timeline-card-divider" />
       <div className="timeline-card-content">
-        {filterSection === 'all' ? (
+        {filterSections.length === 0 ? (
           <>
             <div className="tl-meta">
               <div className="tl-sections">
@@ -528,37 +580,22 @@ function TimelineCard({ card, query, onClick, filterSection, showSnippets, favor
           </>
         ) : (
           <>
-            {(() => {
-              const selectedSec = sections.find(s => s.id === filterSection)
-              const isNumeric = selectedSec?.type === 'number'
-              const firstResult = sectionResults[0]
-              if (isNumeric) {
-                return (
-                  <div className="tl-meta">
-                    <span className="tl-numeric-value">
-                      {firstResult?.rawValue !== undefined && firstResult?.rawValue !== null
-                        ? firstResult.rawValue
-                        : '—'}
-                      {selectedSec?.unit ? <span className="tl-numeric-unit"> {selectedSec.unit}</span> : null}
-                    </span>
-                  </div>
-                )
-              }
-              return (
-                <>
-                  <div className="tl-meta">
-                    <span className="tl-wordcount">{firstResult?.wordCount || 0} 字</span>
-                  </div>
-                  {sectionResults.map(({ sec, snippet }) => (
-                    <div key={sec.id} className="tl-snippet">
-                      <span className="tl-snippet-text selectable">
-                        {highlightText(snippet, query)}
-                      </span>
-                    </div>
-                  ))}
-                </>
-              )
-            })()}
+            {sectionResults.map(({ sec, snippet, wordCount, rawValue }) => (
+              <div key={sec.id} className="tl-section-row">
+                <span className="tl-snippet-label">{sec.name}</span>
+                {sec.type === 'number' ? (
+                  <span className="tl-numeric-value">
+                    {rawValue !== undefined && rawValue !== null ? rawValue : '—'}
+                    {sec.unit ? <span className="tl-numeric-unit"> {sec.unit}</span> : null}
+                  </span>
+                ) : (
+                  <>
+                    <span className="tl-snippet-text selectable">{highlightText(snippet, query)}</span>
+                    <span className="tl-wordcount">{wordCount} 字</span>
+                  </>
+                )}
+              </div>
+            ))}
           </>
         )}
       </div>
