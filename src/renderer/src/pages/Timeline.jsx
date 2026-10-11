@@ -8,6 +8,7 @@ import SelectMenu from '../components/SelectMenu'
 import DateRangeMenu from '../components/DateRangeMenu'
 import TimelinePreview from '../components/TimelinePreview'
 import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
+import { richTextToPlainText } from '../utils/richText'
 import '../components/FilterChip.css'
 import './Timeline.css'
 
@@ -508,6 +509,11 @@ export default function Timeline() {
 
 function TimelineCard({ card, query, onClick, filterSections, showSnippets, favoriteLookup, onToggleFavorite, isManageMode, isSelected, onToggleSelect }) {
   const { dateStr, totalWords, recordedSections, sectionResults } = card
+  // A one-line taste of the day's first text entry, so the list is more than a row of tags.
+  const leadEntry = sectionResults.find(result => result.sec.type !== 'number' && result.text.trim())
+  const leadText = leadEntry
+    ? richTextToPlainText(leadEntry.rawValue).replace(/\s+/g, ' ').slice(0, 140)
+    : ''
   const date = parseISO(dateStr)
   const dayOfWeek = format(date, 'EEEE', { locale: zhCN })
   const dateDisplay = format(date, 'MM月dd日')
@@ -568,6 +574,7 @@ function TimelineCard({ card, query, onClick, filterSections, showSnippets, favo
               </div>
               <span className="tl-wordcount">{totalWords} 字</span>
             </div>
+            {!showSnippets && leadText && <div className="tl-lead">{leadText}</div>}
             {showSnippets && sectionResults.map(({ sec, snippet, rawValue }) => (
               <div key={sec.id} className="tl-snippet">
                 <span className="tl-snippet-label">{sec.name}</span>

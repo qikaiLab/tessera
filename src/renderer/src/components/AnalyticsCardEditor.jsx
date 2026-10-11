@@ -125,6 +125,9 @@ export default function AnalyticsCardEditor({ card, sections, onUpdate }) {
             )}
           />
         </div>
+        {(card.type === 'line' || card.type === 'bar') && bindings.length >= 3 && (
+          <p className="card-editor-hint">三个及以上的数据共用同一纵轴且不显示刻度；数值相差很大时，较小的数据会贴近底部，可以改为两项数据对比。</p>
+        )}
         {isHeatmap && bindings.length > 1 && (
           <p className="card-editor-hint">热力图只绘制第一项数据；点击灰色的数据项可将其设为热力图数据，其余选择会保留。</p>
         )}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   getDrawnBindings,
+  getHeatmapDays,
   getMetricForSection,
   moveBindingToFront,
   setBoundSections
@@ -63,5 +64,32 @@ describe('analytics card bindings', () => {
       'mood', 'running', 'diary'
     ])
     expect(moveBindingToFront(bindings, 'ghost')).toBe(bindings)
+  })
+})
+
+describe('getHeatmapDays', () => {
+  // Wednesday 2026-05-20.
+  const today = new Date(2026, 4, 20)
+
+  it('covers the last N days and starts on a Monday', () => {
+    const days = getHeatmapDays({ dateRange: '7' }, [], today)
+    expect(days[0]).toBe('2026-05-11')
+    expect(days[days.length - 1]).toBe('2026-05-20')
+    expect(new Date(days[0]).getUTCDay()).toBe(1)
+  })
+
+  it('runs all-time views from the first recorded day, keeping empty days', () => {
+    const days = getHeatmapDays({ dateRange: 'all' }, ['2026-05-06', '2026-05-18'], today)
+    // 2026-05-06 is a Wednesday, so the grid starts on Monday 05-04.
+    expect(days[0]).toBe('2026-05-04')
+    expect(days).toContain('2026-05-12')
+    expect(days[days.length - 1]).toBe('2026-05-20')
+    expect(days).toHaveLength(17)
+  })
+
+  it('falls back to a year when nothing is recorded or the dates are unusable', () => {
+    expect(getHeatmapDays({ dateRange: 'all' }, [], today).length).toBeGreaterThanOrEqual(365)
+    expect(getHeatmapDays({ dateRange: 'all' }, ['not-a-date'], today).length).toBeGreaterThanOrEqual(365)
+    expect(getHeatmapDays({ dateRange: 'all' }, ['2099-01-01'], today).length).toBeGreaterThanOrEqual(365)
   })
 })

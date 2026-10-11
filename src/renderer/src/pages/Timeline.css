@@ -321,3 +321,12 @@
   flex: 1;
   min-width: 0;
 }
+
+.tl-lead {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

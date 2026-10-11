@@ -22,6 +22,7 @@ import {
   LINE_STYLE_SMOOTH,
   LINE_STYLE_STRAIGHT,
   getDateAxisMode,
+  getHeatmapDays,
   getLineStyle
 } from '../utils/analyticsCard'
 import AnalyticsCardEditor from '../components/AnalyticsCardEditor'
@@ -288,18 +289,6 @@ function getDateRange(card, datesWithData, bindings = [], loadedData = {}) {
   return getRecordedDateRange(card, datesWithData)
 }
 
-// Generate all calendar days in range (for heatmap), aligned to Mon-Sun columns
-function getAllDaysInRange(card) {
-  const days = card.dateRange === 'all' ? 365 : parseInt(card.dateRange) || 30
-  const end = new Date()
-  const start = subDays(end, days - 1)
-  // Task 7.4: pad start back to Monday so every column is Mon-Sun
-  const dayOfWeek = start.getDay() // 0=Sun,1=Mon,...
-  const daysFromMon = (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
-  const paddedStart = subDays(start, daysFromMon)
-  return eachDayOfInterval({ start: paddedStart, end }).map(d => format(d, 'yyyy-MM-dd'))
-}
-
 // ─── Chart Data Builder ───────────────────────────────────────────────────────
 
 function hasChartBindingData(dateStr, bindings, loadedData) {
@@ -389,7 +378,7 @@ function buildChartData(card, sections, loadedData, datesWithData, palette) {
 
   if (card.type === 'heatmap') {
     // Task 5.2: show all days in range, not just days with data
-    const allDays = card.dateRange === 'all' ? dates : getAllDaysInRange(card)
+    const allDays = getHeatmapDays(card, datesWithData)
     const b = bindings[0]
     if (!b) return allDays.map(d => ({ date: d, value: 0 }))
     return allDays.map(d => {
