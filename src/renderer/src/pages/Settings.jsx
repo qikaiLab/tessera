@@ -15,9 +15,9 @@ import {
   INTERFACE_WEIGHT_OPTIONS,
   INTERFACE_ZOOM
 } from '../theme/interfacePreferences'
-import defaultStylePreview from '../assets/themes/default-preview.png'
-import linenStylePreview from '../assets/themes/linen-preview.png'
-import jadeStylePreview from '../assets/themes/jade-preview.png'
+import defaultStylePreview from '../assets/themes/default-preview.webp'
+import linenStylePreview from '../assets/themes/linen-preview.webp'
+import jadeStylePreview from '../assets/themes/jade-preview.webp'
 import frostedStylePreview from '../assets/themes/frosted-glass-preview.webp'
 import { defaultFrostedBackground } from '../theme/frostedGlassBackground'
 import { FROSTED_BACKGROUND_BLUR } from '../theme/frostedGlassPreferences'

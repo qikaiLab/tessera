@@ -2,9 +2,11 @@ import React, { useMemo } from 'react'
 import SelectMenu from './SelectMenu'
 import {
   CHART_TYPES,
+  AXIS_MODES,
   DATE_AXIS_MODES,
   DATE_RANGES,
   LINE_STYLE_MODES,
+  getAxisMode,
   getDateAxisMode,
   getLineStyle,
   getMetricLabel,
@@ -125,8 +127,8 @@ export default function AnalyticsCardEditor({ card, sections, onUpdate }) {
             )}
           />
         </div>
-        {(card.type === 'line' || card.type === 'bar') && bindings.length >= 3 && (
-          <p className="card-editor-hint">三个及以上的数据共用同一纵轴且不显示刻度；数值相差很大时，较小的数据会贴近底部，可以改为两项数据对比。</p>
+        {(card.type === 'line' || card.type === 'bar') && bindings.length >= 3 && getAxisMode(card) === 'raw' && (
+          <p className="card-editor-hint">三个及以上的数据共用同一纵轴且不显示刻度；数值相差很大时，较小的数据会贴近底部。可在下方将纵轴改为「归一化」，让每项按自己的峰值显示为 0–100%。</p>
         )}
         {isHeatmap && bindings.length > 1 && (
           <p className="card-editor-hint">热力图只绘制第一项数据；点击灰色的数据项可将其设为热力图数据，其余选择会保留。</p>
@@ -150,6 +152,20 @@ export default function AnalyticsCardEditor({ card, sections, onUpdate }) {
             value={getDateAxisMode(card)}
             onChange={dateAxisMode => onUpdate({ dateAxisMode })}
           />
+        </Row>
+      )}
+
+      {supportsDateAxisMode && bindings.length >= 2 && (
+        <Row label="纵轴">
+          <SegmentedControl
+            ariaLabel="纵轴"
+            options={AXIS_MODES}
+            value={getAxisMode(card)}
+            onChange={axisMode => onUpdate({ axisMode })}
+          />
+          {getAxisMode(card) === 'normalized' && (
+            <p className="card-editor-hint">每项数据按自己的最大值缩放，只比较走势；鼠标悬停仍显示真实数值。</p>
+          )}
         </Row>
       )}
 

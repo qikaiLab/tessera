@@ -415,3 +415,7 @@ body.is-resizing {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+.page-loading {
+  height: 100%;
+}

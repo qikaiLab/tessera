@@ -74,18 +74,18 @@ describe('appearance theme CSS contract', () => {
   })
 
   it('uses dedicated cover-sized fullscreen writing assets for fixed styles', () => {
-    const linenAsset = path.resolve('src/renderer/src/assets/themes/linen-fullscreen-background.png')
-    const jadeAsset = path.resolve('src/renderer/src/assets/themes/jade-fullscreen-background.png')
+    const linenAsset = path.resolve('src/renderer/src/assets/themes/linen-fullscreen-background.webp')
+    const jadeAsset = path.resolve('src/renderer/src/assets/themes/jade-fullscreen-background.webp')
     expect(fs.existsSync(linenAsset)).toBe(true)
     expect(fs.existsSync(jadeAsset)).toBe(true)
-    expect(css).toContain("url('../assets/themes/linen-fullscreen-background.png') center / cover no-repeat")
-    expect(css).toContain("url('../assets/themes/jade-fullscreen-background.png') center / cover no-repeat")
+    expect(css).toContain("url('../assets/themes/linen-fullscreen-background.webp') center / cover no-repeat")
+    expect(css).toContain("url('../assets/themes/jade-fullscreen-background.webp') center / cover no-repeat")
   })
 
   it('defines a generated default background and adaptive light and dark glass recipes', () => {
-    const frostedAsset = path.resolve('src/renderer/src/assets/themes/frosted-glass-background.png')
+    const frostedAsset = path.resolve('src/renderer/src/assets/themes/frosted-glass-background.webp')
     expect(fs.existsSync(frostedAsset)).toBe(true)
-    expect(css).toContain("url('../assets/themes/frosted-glass-background.png')")
+    expect(css).toContain("url('../assets/themes/frosted-glass-background.webp')")
     expect(css).toContain("[data-interface-style='frosted-glass'][data-theme='dark']")
     expect(css).toContain("[data-interface-style='frosted-glass'][data-theme='light']")
     expect(css).toContain('--frosted-accent-h:')
@@ -188,8 +188,8 @@ describe('appearance theme CSS contract', () => {
   })
 
   it('keeps generated textures and user typography behind theme-level tokens', () => {
-    expect(css).toContain("url('../assets/themes/linen-paper-texture.png')")
-    expect(css).toContain("url('../assets/themes/jade-stone-texture.png')")
+    expect(css).toContain("url('../assets/themes/linen-paper-texture.webp')")
+    expect(css).toContain("url('../assets/themes/jade-stone-texture.webp')")
     expect(css).toContain("[data-interface-font='theme']")
     expect(css).toContain("[data-interface-weight='heavy']")
   })

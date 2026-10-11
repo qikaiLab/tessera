@@ -18,12 +18,15 @@ import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand
 import { createHeatmapScale, getHeatmapAlpha, HEATMAP_EMPTY_COLOR } from '../utils/heatmapScale'
 import {
   DATE_AXIS_CONTINUOUS,
+  AXIS_NORMALIZED,
   DATE_AXIS_RECORDED,
   LINE_STYLE_SMOOTH,
   LINE_STYLE_STRAIGHT,
+  getAxisMode,
   getDateAxisMode,
   getHeatmapDays,
-  getLineStyle
+  getLineStyle,
+  normalizeSeries
 } from '../utils/analyticsCard'
 import AnalyticsCardEditor from '../components/AnalyticsCardEditor'
 import './Analytics.css'
@@ -392,7 +395,7 @@ function buildChartData(card, sections, loadedData, datesWithData, palette) {
     })
   }
 
-  return dates.map(d => {
+  const series = dates.map(d => {
     const point = { date: d }
     bindings.forEach(b => {
       const sec = sections.find(s => s.id === b.sectionId)
@@ -401,6 +404,18 @@ function buildChartData(card, sections, loadedData, datesWithData, palette) {
     })
     return point
   })
+
+  const names = bindings
+    .map(b => sections.find(s => s.id === b.sectionId)?.name)
+    .filter(Boolean)
+  return isNormalizedChart(card, names.length) ? normalizeSeries(series, names) : series
+}
+
+// Normalizing only makes sense for line / bar charts that compare several series.
+function isNormalizedChart(card, seriesCount) {
+  return (card.type === 'line' || card.type === 'bar') &&
+    getAxisMode(card) === AXIS_NORMALIZED &&
+    seriesCount >= 2
 }
 
 // ─── Sortable Card Wrapper (Task 7) ──────────────────────────────────────────
@@ -546,6 +561,12 @@ const TooltipStyle = {
   labelFormatter: formatTooltipDate
 }
 
+// Normalized series are plotted as percentages; the tooltip still reports the real number.
+function normalizedTooltipFormatter(value, name, item) {
+  const raw = item?.payload?.__raw?.[name]
+  return raw === undefined ? [value, name] : [`${raw}（${value}%）`, name]
+}
+
 function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
   const keys = sections
     .filter(s => (card.bindings || []).some(b => b.sectionId === s.id))
@@ -555,7 +576,9 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
   // 1 binding => single left Y-axis
   // 2 bindings => dual Y-axis (left + right)
   // 3+ bindings => no Y-axis, only legend
-  const yMode = keys.length <= 1 ? 'single' : keys.length === 2 ? 'dual' : 'none'
+  const normalized = isNormalizedChart(card, keys.length)
+  const yMode = normalized ? 'normalized' : keys.length <= 1 ? 'single' : keys.length === 2 ? 'dual' : 'none'
+  const tooltipProps = normalized ? { ...TooltipStyle, formatter: normalizedTooltipFormatter } : TooltipStyle
 
   if (card.type === 'line') {
     const lineType = getLineStyle(card) === LINE_STYLE_STRAIGHT ? 'linear' : 'monotone'
@@ -574,13 +597,22 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
           {yMode === 'single' && (
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
           )}
+          {yMode === 'normalized' && (
+            <YAxis
+              yAxisId="left"
+              domain={[0, 100]}
+              tickFormatter={value => `${value}%`}
+              tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+              width={44}
+            />
+          )}
           {yMode === 'dual' && (
             <>
               <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[0])?.color || palette[0] }} width={40} />
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[1])?.color || palette[1] }} width={40} />
             </>
           )}
-          <Tooltip {...TooltipStyle} />
+          <Tooltip {...tooltipProps} />
           {(yMode === 'dual' || yMode === 'none' || keys.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
           {keys.map((k, i) => {
             const sec = sections.find(s => s.name === k)
@@ -594,7 +626,7 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4 }}
-                yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : yMode === 'single' ? 'left' : undefined}
+                yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : (yMode === 'single' || yMode === 'normalized') ? 'left' : undefined}
               />
             )
           })}
@@ -618,13 +650,22 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
           {yMode === 'single' && (
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={40} />
           )}
+          {yMode === 'normalized' && (
+            <YAxis
+              yAxisId="left"
+              domain={[0, 100]}
+              tickFormatter={value => `${value}%`}
+              tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+              width={44}
+            />
+          )}
           {yMode === 'dual' && (
             <>
               <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[0])?.color || palette[0] }} width={40} />
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: sections.find(s => s.name === keys[1])?.color || palette[1] }} width={40} />
             </>
           )}
-          <Tooltip {...TooltipStyle} />
+          <Tooltip {...tooltipProps} />
           {(yMode === 'dual' || yMode === 'none' || keys.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
           {keys.map((k, i) => {
             const sec = sections.find(s => s.name === k)
@@ -635,7 +676,7 @@ function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
                 dataKey={k}
                 fill={color}
                 radius={[3, 3, 0, 0]}
-                yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : yMode === 'single' ? 'left' : undefined}
+                yAxisId={yMode === 'dual' ? (i === 0 ? 'left' : 'right') : (yMode === 'single' || yMode === 'normalized') ? 'left' : undefined}
               />
             )
           })}

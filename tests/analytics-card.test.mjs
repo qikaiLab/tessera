@@ -4,6 +4,7 @@ import {
   getHeatmapDays,
   getMetricForSection,
   moveBindingToFront,
+  normalizeSeries,
   setBoundSections
 } from '../src/renderer/src/utils/analyticsCard.js'
 
@@ -91,5 +92,33 @@ describe('getHeatmapDays', () => {
     expect(getHeatmapDays({ dateRange: 'all' }, [], today).length).toBeGreaterThanOrEqual(365)
     expect(getHeatmapDays({ dateRange: 'all' }, ['not-a-date'], today).length).toBeGreaterThanOrEqual(365)
     expect(getHeatmapDays({ dateRange: 'all' }, ['2099-01-01'], today).length).toBeGreaterThanOrEqual(365)
+  })
+})
+
+describe('normalizeSeries', () => {
+  const data = [
+    { date: 'a', 跑步: 3000, 睡眠: 6, 心情: 2 },
+    { date: 'b', 跑步: 6000, 睡眠: 8, 心情: 4 },
+    { date: 'c', 跑步: 0, 睡眠: 4, 心情: 0 }
+  ]
+
+  it('scales each series to its own peak', () => {
+    const result = normalizeSeries(data, ['跑步', '睡眠', '心情'])
+    expect(result.map(point => point.跑步)).toEqual([50, 100, 0])
+    expect(result.map(point => point.睡眠)).toEqual([75, 100, 50])
+    expect(result.map(point => point.心情)).toEqual([50, 100, 0])
+  })
+
+  it('keeps the original numbers for tooltips and leaves the input untouched', () => {
+    const result = normalizeSeries(data, ['跑步', '睡眠'])
+    expect(result[1].__raw).toEqual({ 跑步: 6000, 睡眠: 8 })
+    expect(data[1].跑步).toBe(6000)
+    expect(result[0].date).toBe('a')
+  })
+
+  it('handles an all-zero series and missing values', () => {
+    const result = normalizeSeries([{ date: 'a', x: 0, y: 5 }, { date: 'b', y: 10 }], ['x', 'y'])
+    expect(result.map(point => point.x)).toEqual([0, 0])
+    expect(result.map(point => point.y)).toEqual([50, 100])
   })
 })

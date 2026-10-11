@@ -7,8 +7,11 @@ import { fileURLToPath } from 'node:url'
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 
 export async function launchApp(sandbox) {
+  // MOTOTRACE_E2E_EXECUTABLE points the suite at a packaged build (release/win-unpacked)
+  // instead of the built output, to verify what actually ships.
+  const executablePath = process.env.MOTOTRACE_E2E_EXECUTABLE
   const app = await electron.launch({
-    args: [projectRoot],
+    ...(executablePath ? { executablePath } : { args: [projectRoot] }),
     env: {
       ...process.env,
       ELECTRON_RENDERER_URL: '',

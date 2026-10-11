@@ -26,11 +26,16 @@
     "node": ">=22.12",
     "npm": ">=10"
   },
-  "dependencies": {
+  "overrides": {
+    "brace-expansion": "$brace-expansion"
+  },
+  "devDependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@eslint/js": "^9.39.5",
     "@floating-ui/dom": "^1.7.6",
+    "@playwright/test": "^1.64.0",
     "@tiptap/extension-character-count": "^3.31.4",
     "@tiptap/extension-link": "^3.31.4",
     "@tiptap/extension-placeholder": "^3.31.4",
@@ -41,21 +46,9 @@
     "@tiptap/react": "^3.31.4",
     "@tiptap/starter-kit": "^3.31.4",
     "@tiptap/suggestion": "^3.31.4",
-    "date-fns": "^3.6.0",
-    "jszip": "^3.10.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0",
-    "recharts": "^2.15.0"
-  },
-  "overrides": {
-    "brace-expansion": "$brace-expansion"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.5",
-    "@playwright/test": "^1.64.0",
     "@vitejs/plugin-react": "^5.2.0",
     "brace-expansion": "5.0.12",
+    "date-fns": "^3.6.0",
     "electron": "^43.1.1",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
@@ -64,6 +57,11 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.26",
     "globals": "^16.5.0",
+    "jszip": "^3.10.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "recharts": "^2.15.0",
     "vite": "^7.3.6",
     "vitest": "^4.1.10"
   },
@@ -87,6 +85,16 @@
       "createDesktopShortcut": false,
       "createStartMenuShortcut": false,
       "include": "build/installer.nsh"
-    }
+    },
+    "files": [
+      "out/**/*",
+      "logo.ico",
+      "package.json"
+    ],
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "compression": "maximum"
   }
 }

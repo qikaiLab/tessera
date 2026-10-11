@@ -84,3 +84,47 @@ test('notes stay visible when their index file is corrupt or missing', async ({ 
     await app.close()
   }
 })
+
+test('deleting days from the timeline says it can be undone and keeps a history copy', async ({ sandbox }) => {
+  await fs.mkdir(sandbox.dataDir, { recursive: true })
+  await fs.writeFile(path.join(sandbox.dataDir, 'sections.json'), JSON.stringify([
+    { id: 'diary', name: '日记', type: 'text', unit: '', resident: true, order: 0 }
+  ]))
+  const dayFile = path.join(sandbox.dataDir, '2025', '12', '31.json')
+  await fs.mkdir(path.dirname(dayFile), { recursive: true })
+  const content = JSON.stringify({
+    diary: {
+      value: JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: '年末的一天' }] }] }),
+      updatedAt: new Date().toISOString()
+    }
+  })
+  await fs.writeFile(dayFile, content)
+
+  const { app, window } = await launchApp(sandbox)
+  try {
+    await window.evaluate(() => window.api.config.set('onboardingDone', true))
+    await window.reload()
+    await window.waitForSelector('.sidebar')
+    await window.locator('.nav-item', { hasText: '时间线' }).click()
+    await window.getByRole('button', { name: /管理/ }).click()
+    await window.getByRole('button', { name: '全选' }).click()
+    await window.getByRole('button', { name: /批量删除/ }).click()
+
+    const dialog = window.locator('.modal')
+    await expect(dialog).toContainText('自动历史')
+    await expect(dialog).not.toContainText('无法撤销')
+    await dialog.getByRole('button', { name: '确定删除' }).click()
+    await expect(window.locator('.timeline-card')).toHaveCount(0)
+    await expect.poll(() => fs.stat(dayFile).then(() => true, () => false)).toBe(false)
+
+    // The content before deletion is recoverable from the automatic history.
+    const entries = await window.evaluate(() => window.api.backup.automaticList('2025/12/31.json'))
+    expect(entries.ok).toBe(true)
+    expect(entries.data.some(entry => entry.reason === 'delete')).toBe(true)
+    const deleted = entries.data.find(entry => entry.reason === 'delete')
+    const revision = await window.evaluate(id => window.api.backup.automaticRead(id), deleted.id)
+    expect(revision.data.content).toBe(content)
+  } finally {
+    await app.close()
+  }
+})

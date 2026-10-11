@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useMemo } from 'react'
 import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import RichTextView from './RichTextView'
 import { favoriteKey } from '../utils/favorites'
+import { useIncrementalList } from '../utils/useIncrementalList'
 import './TimelinePreview.css'
 
 const PAGE_SIZE = 12
@@ -94,27 +95,12 @@ function DayBlock({ card, sectionOrder, query, favoriteLookup, onToggleFavorite,
  * batches so a long history stays responsive.
  */
 export default function TimelinePreview({ cards, sections, query, favoriteLookup, onToggleFavorite, onOpenDay }) {
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
-  const sentinelRef = useRef(null)
-  const hasMore = visibleCount < cards.length
   const fontSize = useMemo(readEditorFontSize, [])
   const sectionOrder = useMemo(() => new Map(sections.map((section, index) => [section.id, index])), [sections])
 
   // A different result set starts again from the top batch.
   const signature = `${cards.length}:${cards[0]?.dateStr ?? ''}:${cards[cards.length - 1]?.dateStr ?? ''}`
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
-  }, [signature])
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current
-    if (!sentinel || typeof IntersectionObserver === 'undefined') return undefined
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some(entry => entry.isIntersecting)) setVisibleCount(count => count + PAGE_SIZE)
-    }, { rootMargin: '600px 0px' })
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [signature, hasMore])
+  const { visible, hasMore, remaining, sentinelRef, showMore } = useIncrementalList(cards, PAGE_SIZE, signature)
 
   const summary = useMemo(() => {
     let entries = 0
@@ -127,8 +113,6 @@ export default function TimelinePreview({ cards, sections, query, favoriteLookup
     }
     return { days: cards.length, entries, words }
   }, [cards])
-
-  const visible = cards.slice(0, visibleCount)
 
   return (
     <div className="timeline-preview">
@@ -149,8 +133,8 @@ export default function TimelinePreview({ cards, sections, query, favoriteLookup
       ))}
       {hasMore ? (
         <div ref={sentinelRef} className="preview-more">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setVisibleCount(count => count + PAGE_SIZE)}>
-            显示更多（还有 {cards.length - visibleCount} 天）
+          <button type="button" className="btn btn-ghost btn-sm" onClick={showMore}>
+            显示更多（还有 {remaining} 天）
           </button>
         </div>
       ) : (

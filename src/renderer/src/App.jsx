@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { Suspense, lazy, useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import TitleBar from './components/TitleBar'
@@ -9,17 +9,20 @@ import CrashRecovery from './components/CrashRecovery'
 import ContextMenu from './components/ContextMenu'
 import ErrorBoundary from './components/ErrorBoundary'
 import Today from './pages/Today'
-import Timeline from './pages/Timeline'
-import Calendar from './pages/Calendar'
-import Analytics from './pages/Analytics'
-import Notes from './pages/Notes'
-import Settings from './pages/Settings'
 import { isThemeToggleAvailable } from './theme/appearanceRegistry'
 import { APPEARANCE_MESSAGE_KEYS, appearanceText } from './theme/appearanceMessages'
 import { getZoomDeltaFromKeyboardEvent, getZoomDeltaFromWheelEvent } from './theme/interfacePreferences'
 import { editMenuItems, focusEditableTarget, getEditableSelectionState, showContextMenu } from './utils/contextMenu'
 import './styles/App.css'
 import './theme/appearanceSurfaces.css'
+
+// The record page is the landing page and loads eagerly; the heavier pages (charts, the
+// settings tree, ZIP handling) are split out so they only cost startup time when opened.
+const Timeline = lazy(() => import('./pages/Timeline'))
+const Calendar = lazy(() => import('./pages/Calendar'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const Notes = lazy(() => import('./pages/Notes'))
+const Settings = lazy(() => import('./pages/Settings'))
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const APP_SIDEBAR_MIN = 160
@@ -31,7 +34,9 @@ function PageBoundary({ children }) {
   const navigate = useNavigate()
   return (
     <ErrorBoundary resetKey={location.pathname} onHome={() => navigate('/today')}>
-      {children}
+      <Suspense fallback={<div className="page-loading" aria-busy="true" />}>
+        {children}
+      </Suspense>
     </ErrorBoundary>
   )
 }

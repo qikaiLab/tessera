@@ -3,6 +3,7 @@
 //
 //   npm run seed:dev                 -> ~/MotoTrace-dev/data
 //   npm run seed:dev -- <directory>  -> any other throwaway directory
+//   SEED_DAYS=1100 npm run seed:dev  -> a three-year history
 //
 // The target is overwritten, so the script only writes into an empty directory or one it
 // seeded before (marked by .mototrace-dev-seed), and never into the real default data.
@@ -11,7 +12,8 @@ import os from 'node:os'
 import path from 'node:path'
 
 const MARKER = '.mototrace-dev-seed'
-const DAYS = 150
+// SEED_DAYS lets you generate a long history to try the app with years of records.
+const DAYS = Number.parseInt(process.env.SEED_DAYS || '', 10) || 150
 const OUTLIER_DAY = 9
 
 const realDataDir = path.resolve(os.homedir(), 'MotoTrace', 'data')

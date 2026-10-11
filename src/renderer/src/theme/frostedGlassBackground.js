@@ -1,4 +1,4 @@
-import defaultFrostedBackground from '../assets/themes/frosted-glass-background.png'
+import defaultFrostedBackground from '../assets/themes/frosted-glass-background.webp'
 import {
   DEFAULT_FROSTED_PALETTE,
   deriveAdaptiveFrostedPalette

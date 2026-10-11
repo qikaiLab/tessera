@@ -330,3 +330,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.timeline-more {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-3) 0;
+}

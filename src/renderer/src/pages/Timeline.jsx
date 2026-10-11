@@ -9,8 +9,11 @@ import DateRangeMenu from '../components/DateRangeMenu'
 import TimelinePreview from '../components/TimelinePreview'
 import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
 import { richTextToPlainText } from '../utils/richText'
+import { useIncrementalList } from '../utils/useIncrementalList'
 import '../components/FilterChip.css'
 import './Timeline.css'
+
+const TIMELINE_PAGE_SIZE = 40
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -202,6 +205,10 @@ export default function Timeline() {
     }).filter(Boolean)
   }, [datesWithData, loadedDates, filterSections, sortDesc, query, dateFrom, dateTo, sections, onlyFavorites, favoriteLookup])
 
+  // Long histories render in batches so the DOM and memory stay small.
+  const listSignature = `${filteredCards.length}:${filteredCards[0]?.dateStr ?? ''}:${filteredCards[filteredCards.length - 1]?.dateStr ?? ''}`
+  const cardList = useIncrementalList(filteredCards, TIMELINE_PAGE_SIZE, listSignature)
+
   const handleCardClick = (dateStr) => {
     setSelectedDate(parseISO(dateStr))
     navigate('/today')
@@ -240,7 +247,7 @@ export default function Timeline() {
 
     let confirmed = false
     if (filterSections.length === 0) {
-      const confirmMsg = `确定要删除所选的这 ${count} 天的全部记录吗？\n该操作将永久物理删除文件，且无法撤销！`
+      const confirmMsg = `确定要删除所选的这 ${count} 天的全部记录吗？\n这些日期的记录文件会被移除；删除前的内容会存入自动历史，之后可在「设置 → 数据与备份 → 查看自动历史」中恢复。`
       confirmed = await confirm({
         message: confirmMsg,
         title: '确认删除',
@@ -248,7 +255,7 @@ export default function Timeline() {
         danger: true
       })
     } else {
-      const confirmMsg = `确定要清除所选这 ${count} 天的${clearedNames}版块数据吗？\n其他版块的内容将会被保留。`
+      const confirmMsg = `确定要清除所选这 ${count} 天的${clearedNames}版块数据吗？\n其他版块的内容将会被保留；清除前的内容会存入自动历史，可在「设置 → 数据与备份 → 查看自动历史」中恢复。`
       confirmed = await confirm({
         message: confirmMsg,
         title: '确认清除版块',
@@ -484,7 +491,7 @@ export default function Timeline() {
                 找到 {filteredCards.length} 条记录
               </div>
             )}
-            {filteredCards.map(card => (
+            {cardList.visible.map(card => (
               <TimelineCard
                 key={card.dateStr}
                 card={card}
@@ -499,6 +506,13 @@ export default function Timeline() {
                 onToggleSelect={() => handleToggleSelect(card.dateStr)}
               />
             ))}
+            {cardList.hasMore && (
+              <div ref={cardList.sentinelRef} className="timeline-more">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={cardList.showMore}>
+                  显示更多（还有 {cardList.remaining} 天）
+                </button>
+              </div>
+            )}
           </>
           )
         )}

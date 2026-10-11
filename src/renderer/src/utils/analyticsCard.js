@@ -30,6 +30,18 @@ export const LINE_STYLE_MODES = [
   { id: LINE_STYLE_STRAIGHT, label: '直线折线' }
 ]
 
+export const AXIS_RAW = 'raw'
+export const AXIS_NORMALIZED = 'normalized'
+
+export const AXIS_MODES = [
+  { id: AXIS_RAW, label: '原始数值' },
+  { id: AXIS_NORMALIZED, label: '归一化（0–100%）' }
+]
+
+export function getAxisMode(card) {
+  return card.axisMode === AXIS_NORMALIZED ? AXIS_NORMALIZED : AXIS_RAW
+}
+
 export function getDateAxisMode(card) {
   return card.dateAxisMode === DATE_AXIS_CONTINUOUS ? DATE_AXIS_CONTINUOUS : DATE_AXIS_RECORDED
 }
@@ -93,4 +105,24 @@ export function getHeatmapDays(card, datesWithData = [], today = new Date()) {
   const daysFromMonday = start.getDay() === 0 ? 6 : start.getDay() - 1
   const paddedStart = subDays(start, daysFromMonday)
   return eachDayOfInterval({ start: paddedStart, end: today }).map(day => format(day, 'yyyy-MM-dd'))
+}
+
+// Rescales every series to 0-100 % of its own peak so series with very different units
+// (metres next to hours) can share one axis. The original numbers stay on each point under
+// `__raw` so tooltips can still show them.
+export function normalizeSeries(data, keys) {
+  const peaks = new Map(keys.map(key => [
+    key,
+    data.reduce((peak, point) => Math.max(peak, Math.abs(Number(point[key]) || 0)), 0)
+  ]))
+  return data.map(point => {
+    const next = { ...point, __raw: {} }
+    for (const key of keys) {
+      const value = Number(point[key]) || 0
+      const peak = peaks.get(key)
+      next.__raw[key] = value
+      next[key] = peak > 0 ? Number(((value / peak) * 100).toFixed(2)) : 0
+    }
+    return next
+  })
 }
