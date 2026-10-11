@@ -5,6 +5,19 @@ import {
 } from './frostedGlassPalette'
 
 let latestApplication = 0
+let activeObjectUrl = null
+
+// Chromium drops custom property values over 2 MB, so a base64 data URL stored in
+// --frosted-background-image silently fails for photos larger than ~1.5 MB. A blob
+// URL stays tiny no matter how large the image is.
+async function createObjectUrlFromDataUrl(dataUrl) {
+  const response = await fetch(dataUrl)
+  return URL.createObjectURL(await response.blob())
+}
+
+function releaseObjectUrl(url) {
+  if (url) URL.revokeObjectURL(url)
+}
 
 function setPaletteProperties(root, palette) {
   root.style.setProperty('--frosted-accent-h', String(palette.hue))
@@ -35,15 +48,31 @@ async function extractPaletteFromImage(source) {
 
 export async function applyFrostedGlassBackground(root, customDataUrl = null) {
   const applicationId = ++latestApplication
-  const source = customDataUrl || defaultFrostedBackground
-  root.style.setProperty('--frosted-background-image', toCssImageUrl(source))
-  root.setAttribute('data-frosted-background', customDataUrl ? 'custom' : 'default')
-  setPaletteProperties(root, DEFAULT_FROSTED_PALETTE)
+  let objectUrl = null
 
-  if (!customDataUrl) return DEFAULT_FROSTED_PALETTE
+  if (customDataUrl) {
+    try {
+      objectUrl = await createObjectUrlFromDataUrl(customDataUrl)
+    } catch {
+      objectUrl = null
+    }
+    if (applicationId !== latestApplication) {
+      releaseObjectUrl(objectUrl)
+      return DEFAULT_FROSTED_PALETTE
+    }
+  }
+
+  const previousObjectUrl = activeObjectUrl
+  activeObjectUrl = objectUrl
+  root.style.setProperty('--frosted-background-image', toCssImageUrl(objectUrl || defaultFrostedBackground))
+  root.setAttribute('data-frosted-background', objectUrl ? 'custom' : 'default')
+  setPaletteProperties(root, DEFAULT_FROSTED_PALETTE)
+  releaseObjectUrl(previousObjectUrl)
+
+  if (!objectUrl) return DEFAULT_FROSTED_PALETTE
 
   try {
-    const palette = await extractPaletteFromImage(customDataUrl)
+    const palette = await extractPaletteFromImage(objectUrl)
     if (applicationId === latestApplication) setPaletteProperties(root, palette)
     return palette
   } catch {
