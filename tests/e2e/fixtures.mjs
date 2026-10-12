@@ -15,6 +15,8 @@ export async function launchApp(sandbox) {
     env: {
       ...process.env,
       ELECTRON_RENDERER_URL: '',
+      // Keep the test window off-screen and unfocused (MOTOTRACE_E2E_VISIBLE=1 to watch it).
+      MOTOTRACE_E2E_QUIET: process.env.MOTOTRACE_E2E_VISIBLE === '1' ? '' : '1',
       MOTOTRACE_USER_DATA_DIR: sandbox.userDataDir,
       MOTOTRACE_DATA_DIR: sandbox.dataDir
     }

@@ -169,8 +169,13 @@ function createWindow() {
   ensureDirSync(dataDir)
   ensureDirSync(path.join(dataDir, 'backups'))
 
+  // Automated runs set MOTOTRACE_E2E_QUIET so the test window opens far off-screen and never
+  // takes focus from whatever the developer is doing; the page itself still renders and runs.
+  const quietWindow = process.env.MOTOTRACE_E2E_QUIET === '1'
+
   mainWindow = new BrowserWindow({
     icon: path.join(__dirname, '../../logo.ico'),
+    ...(quietWindow ? { x: -12000, y: -12000 } : {}),
     width: 1280,
     height: 800,
     minWidth: 900,
@@ -182,13 +187,15 @@ function createWindow() {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      backgroundThrottling: !quietWindow
     },
     show: false
   })
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show()
+    if (quietWindow) mainWindow.showInactive()
+    else mainWindow.show()
   })
 
   if (isDev) {
