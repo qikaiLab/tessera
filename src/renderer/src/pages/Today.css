@@ -189,10 +189,6 @@
   transition: filter var(--transition-base);
 }
 
-.today-main-split.has-notes-drawer .today-record-pane {
-  filter: saturate(0.96);
-}
-
 /* Content */
 .today-content {
   flex: 1;
@@ -205,13 +201,14 @@
   pointer-events: none;
 }
 
-.today-content.is-date-leaving .sections-grid,
+/* The cards fade themselves; fading their container would cut off their glass backdrop. */
+.today-content.is-date-leaving .sections-grid > *,
 .today-content.is-date-leaving .today-add-section,
 .today-content.is-date-leaving .today-empty-day {
   animation: dateContentLeaveNext 140ms var(--ease-in) both;
 }
 
-.today-content.is-date-leaving.date-leaving-prev .sections-grid,
+.today-content.is-date-leaving.date-leaving-prev .sections-grid > *,
 .today-content.is-date-leaving.date-leaving-prev .today-add-section,
 .today-content.is-date-leaving.date-leaving-prev .today-empty-day {
   animation-name: dateContentLeavePrev;

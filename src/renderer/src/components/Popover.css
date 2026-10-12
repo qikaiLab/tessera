@@ -13,9 +13,9 @@
 
 /* Frosted glass: floating panels need to stay legible over busy content behind them. */
 :root[data-interface-style='frosted-glass'] .dropdown-menu:is(.popover-panel, .select-menu-popover) {
-  background: hsl(var(--frosted-accent-h) 30% 13% / 0.88);
+  background: hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 13% / 0.88);
 }
 
 :root[data-interface-style='frosted-glass'][data-theme='light'] .dropdown-menu:is(.popover-panel, .select-menu-popover) {
-  background: hsl(var(--frosted-accent-h) 30% 98% / 0.9);
+  background: hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 98% / 0.9);
 }

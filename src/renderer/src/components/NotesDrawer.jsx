@@ -179,7 +179,7 @@ function getDrawerVisibleNotes(notes, { mode, dateStr, query, selectedId }) {
     .sort(mode === 'latest' ? compareLatest : compareNotes)
 }
 
-export default function NotesDrawer({ dateStr, width, onResizeStart, closing = false, onAnimationEnd }) {
+export default function NotesDrawer({ dateStr, width, onResizeStart, closing = false, suspended = false, onAnimationEnd }) {
   const { showToast, confirm, registerPendingFlush, unregisterPendingFlush } = useApp()
   const [notes, setNotes] = useState([])
   const noteOperationsRef = useRef(null)
@@ -551,6 +551,8 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
   return (
     <aside
       className={`notes-drawer ${closing ? 'is-closing' : ''}`}
+      // While a card is fullscreen the drawer waits underneath it and cannot take focus.
+      inert={suspended ? '' : undefined}
       style={{ width, '--notes-drawer-width': `${width}px`, '--notes-drawer-offset': `-${width}px` }}
       onAnimationEnd={event => {
         if (event.target === event.currentTarget) onAnimationEnd?.()

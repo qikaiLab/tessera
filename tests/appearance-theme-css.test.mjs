@@ -111,7 +111,7 @@ describe('appearance theme CSS contract', () => {
         '--bg-glass'
       ]) {
         expect(rule, `${selector} ${variable}`).toContain(
-          `${variable}: hsl(var(--frosted-accent-h) var(--frosted-accent-s)`
+          `${variable}: hsl(var(--frosted-accent-h) var(--frosted-tint-s)`
         )
       }
       expect(rule).toContain('hsl(var(--frosted-accent-h)')
@@ -143,13 +143,13 @@ describe('appearance theme CSS contract', () => {
     const lightGlassRule = getRule("[data-interface-style='frosted-glass'][data-theme='light']")
 
     expect(darkGlassRule).toContain(
-      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 34% / 0.18)'
+      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 34% / 0.18)'
     )
     expect(lightGlassRule).toContain(
-      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 94% / 0.1)'
+      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.1)'
     )
     expect(lightGlassRule).not.toContain(
-      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100%'
+      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100%'
     )
   })
 

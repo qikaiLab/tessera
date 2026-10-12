@@ -90,12 +90,12 @@
 
 [data-interface-style='frosted-glass'] .sidebar {
   box-shadow:
-    inset -1px 0 hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.13),
-    10px 0 36px hsl(var(--frosted-accent-h) 46% 6% / 0.09);
+    inset -1px 0 hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.13),
+    10px 0 36px hsl(var(--frosted-accent-h) calc(46% * var(--frosted-tint-k)) 6% / 0.09);
 }
 
 [data-interface-style='frosted-glass'] .titlebar {
-  box-shadow: inset 0 -1px hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.12);
+  box-shadow: inset 0 -1px hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.12);
 }
 
 .app-body {
@@ -439,7 +439,7 @@ body.is-resizing {
   margin: var(--spacing-2) var(--spacing-3);
   padding: 0 var(--spacing-2);
   border-radius: var(--radius-full);
-  background: hsl(var(--frosted-accent-h) 40% 98% / 0.6);
+  background: hsl(var(--frosted-accent-h) calc(40% * var(--frosted-tint-k)) 98% / 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }

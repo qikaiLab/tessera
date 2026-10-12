@@ -56,3 +56,29 @@ test('a note goes fullscreen over the whole window', async ({ sandbox }) => {
     await app.close()
   }
 })
+
+test('fullscreen over an open notes drawer still covers the whole window', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.waitForTimeout(600)
+    await window.locator('.today-notes-toggle').first().click()
+    await expect(window.locator('.notes-drawer')).toBeVisible()
+    await window.waitForTimeout(500)
+
+    await window.locator('.fullscreen-btn').first().click()
+    const shell = window.locator('.tiptap-shell.tiptap-fullscreen')
+    await expect(shell).toBeVisible()
+    await expectCoversWindow(window, shell)
+    // The drawer waits underneath and cannot be tabbed into.
+    await expect(window.locator('.notes-drawer')).toHaveAttribute('inert', '')
+
+    // Leaving fullscreen brings the same layout back, drawer included.
+    await window.keyboard.press('Escape')
+    await expect(window.locator('.tiptap-shell.tiptap-fullscreen')).toHaveCount(0)
+    await expect(window.locator('.notes-drawer')).not.toHaveAttribute('inert', '')
+    await expect(window.locator('.notes-drawer')).toBeVisible()
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

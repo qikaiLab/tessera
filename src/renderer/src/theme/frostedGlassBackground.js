@@ -22,6 +22,10 @@ function releaseObjectUrl(url) {
 function setPaletteProperties(root, palette) {
   root.style.setProperty('--frosted-accent-h', String(palette.hue))
   root.style.setProperty('--frosted-accent-s', `${palette.saturation}%`)
+  root.style.setProperty('--frosted-tint-s', `${palette.tintSaturation}%`)
+  root.style.setProperty('--frosted-tint-k', String(Math.round(palette.tintSaturation / DEFAULT_FROSTED_PALETTE.tintSaturation * 1000) / 1000))
+  root.style.setProperty('--frosted-dark-scrim', String(palette.darkScrim))
+  root.style.setProperty('--frosted-light-scrim', String(palette.lightScrim))
 }
 
 function toCssImageUrl(source) {

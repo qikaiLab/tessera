@@ -564,7 +564,7 @@
 }
 
 [data-interface-style='frosted-glass'][data-theme='dark'] .tiptap-fullscreen .ProseMirror {
-  text-shadow: 0 1px 2px hsl(var(--frosted-accent-h) 48% 4% / 0.2);
+  text-shadow: 0 1px 2px hsl(var(--frosted-accent-h) calc(48% * var(--frosted-tint-k)) 4% / 0.2);
 }
 
 [data-interface-style='frosted-glass'][data-theme='light'] .tiptap-fullscreen .ProseMirror {

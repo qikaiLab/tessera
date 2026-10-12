@@ -187,3 +187,59 @@
   backdrop-filter: var(--glass-backdrop-recessed);
   -webkit-backdrop-filter: var(--glass-backdrop-recessed);
 }
+
+/*
+ * Frosted glass: motion that keeps the glass intact.
+ * A backdrop-filter only sees the real backdrop when none of its ancestors has opacity < 1,
+ * a filter or a mask. A page that fades in would therefore render all of its glass cards flat
+ * (no blur, no brightening) until the fade ends and then make them pop. So, in this style,
+ * everything that contains glass enters with a transform only; the cards fade themselves.
+ */
+@keyframes glassPageRise {
+  from { transform: translateY(10px); }
+  to { transform: none; }
+}
+
+@keyframes glassSlideInLeft {
+  from { transform: translateX(-10px); }
+  to { transform: none; }
+}
+
+:root[data-interface-style='frosted-glass'] .app-main > * {
+  animation-name: glassPageRise;
+}
+
+:root[data-interface-style='frosted-glass'] .notes-list-panel {
+  animation-name: glassSlideInLeft;
+}
+
+:root[data-interface-style='frosted-glass'] .settings-card {
+  animation-name: glassPageRise;
+}
+
+:root[data-interface-style='frosted-glass'] .notes-editor-panel {
+  animation: none;
+}
+
+/* The notes drawer holds glass too (search field, tabs), so it slides without fading. */
+@keyframes glassDrawerIn {
+  from { margin-right: var(--notes-drawer-offset); transform: translateX(28px); }
+  to { margin-right: 0; transform: none; }
+}
+
+@keyframes glassDrawerOut {
+  from { margin-right: 0; transform: none; }
+  to { margin-right: var(--notes-drawer-offset); transform: translateX(28px); }
+}
+
+:root[data-interface-style='frosted-glass'] .notes-drawer {
+  animation-name: glassDrawerIn;
+}
+
+:root[data-interface-style='frosted-glass'] .notes-drawer.is-closing {
+  animation-name: glassDrawerOut;
+}
+
+:root[data-interface-style='frosted-glass'] .notes-editor-loading {
+  animation: none;
+}

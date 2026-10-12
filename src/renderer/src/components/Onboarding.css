@@ -1,16 +1,23 @@
 .onboarding-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
+}
+
+.onboarding-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
   animation: overlayIn var(--transition-base) both;
 }
 
 .onboarding-modal {
+  position: relative;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -83,7 +90,7 @@
 }
 .onboarding-skip:hover { color: var(--text-secondary); }
 
-.presence.is-leaving > .onboarding-overlay {
+.presence.is-leaving > .onboarding-overlay::before {
   animation: overlayOut var(--exit-duration) var(--ease-in) both;
 }
 

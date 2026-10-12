@@ -1,16 +1,24 @@
 .shortcuts-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 3000;
+}
+
+/* See .modal-overlay::before: fade the dimming layer, never the ancestor of the glass dialog. */
+.shortcuts-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
   animation: overlayIn var(--transition-base, 0.2s) both;
 }
 
 .shortcuts-modal {
+  position: relative;
   background: var(--bg-surface, #1e1e1e);
   border: 1px solid var(--border, #2d2d2d);
   border-radius: var(--radius-xl, 16px);
@@ -205,20 +213,20 @@
 }
 
 :root[data-interface-style='frosted-glass'] .shortcuts-modal {
-  background: hsl(var(--frosted-accent-h) 30% 13% / 0.8);
+  background: hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 13% / 0.8);
   backdrop-filter: var(--glass-backdrop-elevated);
   -webkit-backdrop-filter: var(--glass-backdrop-elevated);
 }
 
 :root[data-interface-style='frosted-glass'][data-theme='light'] .shortcuts-modal {
-  background: hsl(var(--frosted-accent-h) 30% 97% / 0.82);
+  background: hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 97% / 0.82);
 }
 
 :root[data-interface-style='frosted-glass'] :is(.shortcuts-close, .shortcuts-hint, .shortcuts-key-or) {
   color: var(--text-secondary);
 }
 
-.presence.is-leaving > .shortcuts-overlay {
+.presence.is-leaving > .shortcuts-overlay::before {
   animation: overlayOut var(--exit-duration, 140ms) var(--ease-in) both;
 }
 

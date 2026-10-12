@@ -68,10 +68,19 @@ npm run check
 - 弹窗、下拉、菜单的退场用 `components/Presence.jsx`：它让被移除的子元素多停留一小会儿并带上 `.presence.is-leaving`（同时 `aria-hidden` 和 `inert`），样式写在 `global.css`。新增浮层时给它的根节点加 `.modal-overlay`、`.dropdown-menu` 等已有类，或照样补一条 `.presence.is-leaving > .你的类` 规则。
 - 标签条和分段控件的滑动高亮用 `utils/useSlidingThumb.js`：把返回的 ref 挂到容器上即可，样式见 `global.css` 的 `.has-thumb`。
 - 入场动画的填充模式用 `backwards`，不要用 `both`：`both` 会在动画结束后一直锁住 `transform: none`，让元素的 `:hover` 位移失效；对页面根元素等「全屏编辑器的祖先」更是致命，会让 `position: fixed` 的全屏层被圈在该元素内，不再铺满窗口（`tests/e2e/fullscreen-editor.spec.mjs` 守护）。
+- **雾化玻璃：玻璃元素（带 `backdrop-filter`）的任何祖先都不能带 `opacity < 1`、`filter` 或 `mask`，哪怕只是动画途中。** 否则浏览器只在该祖先内部取景，玻璃会在动画期间变成「平的」，动画一结束颜色突然跳变。含玻璃的容器（页面根、抽屉、设置卡片、弹窗遮罩）在该风格下只做位移动画，淡入淡出放在玻璃元素自身或遮罩的伪元素上；见 `theme/appearanceSurfaces.css` 与 `tests/e2e/frosted-glass-motion.spec.mjs`。
 - 高度会变化、距离不定的动画（卡片折叠）时长要随距离伸缩，见 `utils/collapseMotion.js`，并使用起步较柔的 `--ease-travel`；时长通过 `--collapse-ms` 在切换时按内容高度写入。
 - 滚动容器用 `scrollbar-gutter: stable` 预留滚动条位置，否则内容变高时滚动条中途出现会让图表、编辑器宽度抖动几个像素。
 - 减少动态效果由全局 `prefers-reduced-motion` 规则统一处理，新增动画不需要单独写。
 - 评估动效时不要只凭肉眼：用 `requestAnimationFrame` 逐帧采样元素的 `opacity`/`transform` 和帧间隔（长帧即卡顿），并用 `tests/e2e/motion.spec.mjs` 守住行为（快速切日不空白、弹窗退场后卸载、侧栏与标签高亮跟随选中项）。
+
+### 雾化玻璃的壁纸取色
+
+`theme/frostedGlassPalette.js` 从用户导入的壁纸得到：主色相、整体鲜艳度、整体亮度，分别用于强调色与玻璃底色。关键原则：
+
+- 玻璃底色的饱和度（`--frosted-tint-s` / `--frosted-tint-k`）随壁纸的鲜艳度连续变化，灰度、雨天、夜景等没有主色调的图片几乎不染色；不要再给饱和度设下限。强调色（`--accent` 等）用 `--frosted-accent-s`，其余玻璃底色一律用 tint 变量（`tests/frosted-glass-palette.test.mjs` 守护）。
+- 过亮的壁纸在深色主题下叠一层压暗（`--frosted-dark-scrim`），过暗的壁纸在浅色主题下叠一层提亮（`--frosted-light-scrim`），保证文字可读。
+- 调整算法时，用几类典型图片（灰色雨窗、雪景、霓虹、夜景、米色纸、森林）对照输出，而不是只看一张。
 
 ## 6. 测试策略
 
@@ -100,6 +109,8 @@ npx playwright test   # 已有最新构建时直接运行
 - `MOTOTRACE_DATA_DIR`：覆盖记录数据目录。
 
 两个变量必须同时设置且为绝对路径，否则主进程启动即报错，避免隔离不完整而回落到真实数据目录。测试夹具为每个用例创建临时目录并在结束后删除。手工做实机验证时也应使用这两个变量。
+
+测试窗口默认「静默」运行：夹具设置 `MOTOTRACE_E2E_QUIET=1`，主进程把窗口放在屏幕外 (-12000, -12000) 并用 `showInactive()` 显示，页面照常渲染、动画照常运行，但不会抢走开发者当前的焦点。想亲眼看测试时设 `MOTOTRACE_E2E_VISIBLE=1`。手写的临时探测脚本同样应带上 `MOTOTRACE_E2E_QUIET=1`。
 
 ### 开发进程与已安装版本隔离
 

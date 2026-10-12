@@ -650,6 +650,7 @@ export default function Today() {
             width={notesDrawerWidth}
             onResizeStart={startNotesDrawerResize}
             closing={!notesDrawerOpen}
+            suspended={Boolean(fullScreenSectionId)}
             onAnimationEnd={handleNotesDrawerAnimationEnd}
           />
         )}

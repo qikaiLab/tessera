@@ -21,6 +21,12 @@
   --frosted-background-image: url('../assets/themes/frosted-glass-background.webp');
   --frosted-accent-h: 212;
   --frosted-accent-s: 64%;
+  /* Glass tint strength (0-64%) and its 0-1 multiple; scaled down for photos with little colour. */
+  --frosted-tint-s: 64%;
+  --frosted-tint-k: 1;
+  /* Extra dimming / lightening for very bright / very dark photos, so text stays readable. */
+  --frosted-dark-scrim: 0;
+  --frosted-light-scrim: 0;
   --accent-contrast: #fff;
   --font-weight-offset: 0;
   --font-weight-body-style: 400;
@@ -583,45 +589,47 @@
 
 [data-interface-style='frosted-glass'][data-theme='dark'] {
   color-scheme: dark;
-  --frosted-background-fallback: hsl(var(--frosted-accent-h) 30% 12%);
+  --frosted-background-fallback: hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 12%);
   --frosted-shell-overlay:
-    radial-gradient(circle at 16% -8%, hsl(var(--frosted-accent-h) var(--frosted-accent-s) 88% / 0.08), transparent 42%),
+    linear-gradient(hsl(var(--frosted-accent-h) calc(20% * var(--frosted-tint-k)) 5% / var(--frosted-dark-scrim)), hsl(var(--frosted-accent-h) calc(20% * var(--frosted-tint-k)) 5% / var(--frosted-dark-scrim))),
+    radial-gradient(circle at 16% -8%, hsl(var(--frosted-accent-h) var(--frosted-tint-s) 88% / 0.08), transparent 42%),
     linear-gradient(
       180deg,
-      hsl(var(--frosted-accent-h) 34% 14% / 0.1),
-      hsl(var(--frosted-accent-h) 42% 8% / 0.2)
+      hsl(var(--frosted-accent-h) calc(34% * var(--frosted-tint-k)) 14% / 0.1),
+      hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 8% / 0.2)
     );
   --frosted-fullscreen-overlay:
+    linear-gradient(hsl(var(--frosted-accent-h) calc(20% * var(--frosted-tint-k)) 5% / var(--frosted-dark-scrim)), hsl(var(--frosted-accent-h) calc(20% * var(--frosted-tint-k)) 5% / var(--frosted-dark-scrim))),
     radial-gradient(
       ellipse at 50% 42%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 16% / 0.1),
-      hsl(var(--frosted-accent-h) 40% 7% / 0.25) 76%
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 16% / 0.1),
+      hsl(var(--frosted-accent-h) calc(40% * var(--frosted-tint-k)) 7% / 0.25) 76%
     ),
     linear-gradient(
-      hsl(var(--frosted-accent-h) 32% 13% / 0.08),
-      hsl(var(--frosted-accent-h) 42% 7% / 0.18)
+      hsl(var(--frosted-accent-h) calc(32% * var(--frosted-tint-k)) 13% / 0.08),
+      hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 7% / 0.18)
     );
   --glass-backdrop-ambient: blur(18px) saturate(126%) brightness(1.06);
   --glass-backdrop-elevated: blur(30px) saturate(144%) brightness(1.08);
   --glass-backdrop-recessed: blur(14px) saturate(116%) brightness(1.03);
   --theme-backdrop-image:
-    radial-gradient(circle at 12% 6%, hsl(var(--frosted-accent-h) var(--frosted-accent-s) 78% / 0.075), transparent 36%),
+    radial-gradient(circle at 12% 6%, hsl(var(--frosted-accent-h) var(--frosted-tint-s) 78% / 0.075), transparent 36%),
     linear-gradient(
       135deg,
-      hsl(var(--frosted-accent-h) 42% 18% / 0.11),
+      hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 18% / 0.11),
       transparent 48%,
-      hsl(var(--frosted-accent-h) 48% 8% / 0.16)
+      hsl(var(--frosted-accent-h) calc(48% * var(--frosted-tint-k)) 8% / 0.16)
     );
-  --bg-app: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 9% / 0.14);
-  --bg-sidebar: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 12% / 0.28);
-  --bg-surface: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 15% / 0.34);
-  --bg-surface-2: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 19% / 0.38);
-  --bg-surface-3: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 26% / 0.46);
-  --bg-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 92% / 0.12);
-  --bg-input: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 10% / 0.28);
-  --bg-glass: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 14% / 0.4);
-  --border: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 92% / 0.17);
-  --border-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 94% / 0.31);
+  --bg-app: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 9% / 0.14);
+  --bg-sidebar: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 12% / 0.28);
+  --bg-surface: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 15% / 0.34);
+  --bg-surface-2: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 19% / 0.38);
+  --bg-surface-3: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 26% / 0.46);
+  --bg-hover: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 92% / 0.12);
+  --bg-input: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 10% / 0.28);
+  --bg-glass: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 14% / 0.4);
+  --border: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 92% / 0.17);
+  --border-hover: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.31);
   --border-focus: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 72% / 0.72);
   --text-primary: #f6f6f6;
   --text-secondary: #d1d1d1;
@@ -641,63 +649,63 @@
   --error-light: rgba(230, 89, 89, 0.17);
   --info: #9fc3e8;
   --info-light: rgba(126, 168, 211, 0.17);
-  --shadow-sm: 0 2px 9px hsl(var(--frosted-accent-h) 48% 4% / 0.17);
-  --shadow-md: 0 8px 26px hsl(var(--frosted-accent-h) 52% 4% / 0.2);
-  --shadow-lg: 0 18px 46px hsl(var(--frosted-accent-h) 56% 3% / 0.24);
-  --shadow-xl: 0 28px 72px hsl(var(--frosted-accent-h) 60% 3% / 0.3);
+  --shadow-sm: 0 2px 9px hsl(var(--frosted-accent-h) calc(48% * var(--frosted-tint-k)) 4% / 0.17);
+  --shadow-md: 0 8px 26px hsl(var(--frosted-accent-h) calc(52% * var(--frosted-tint-k)) 4% / 0.2);
+  --shadow-lg: 0 18px 46px hsl(var(--frosted-accent-h) calc(56% * var(--frosted-tint-k)) 3% / 0.24);
+  --shadow-xl: 0 28px 72px hsl(var(--frosted-accent-h) calc(60% * var(--frosted-tint-k)) 3% / 0.3);
   --scrollbar-thumb: rgba(255, 255, 255, 0.2);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.34);
   --surface-material-image:
     radial-gradient(
       circle at 16% -18%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.2),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.2),
       transparent 40%
     ),
     linear-gradient(
       138deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.1),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.1),
       transparent 38%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 44% / 0.055) 72%,
-      hsl(var(--frosted-accent-h) 44% 7% / 0.08)
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 44% / 0.055) 72%,
+      hsl(var(--frosted-accent-h) calc(44% * var(--frosted-tint-k)) 7% / 0.08)
     );
   --surface-material-subtle-image:
     linear-gradient(
       142deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.085),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.085),
       transparent 46%,
-      hsl(var(--frosted-accent-h) 42% 8% / 0.065)
+      hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 8% / 0.065)
     );
   --input-material-image:
     linear-gradient(
       180deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.07),
-      hsl(var(--frosted-accent-h) 44% 8% / 0.09)
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.07),
+      hsl(var(--frosted-accent-h) calc(44% * var(--frosted-tint-k)) 8% / 0.09)
     );
   --material-surface-shadow:
-    0 16px 38px hsl(var(--frosted-accent-h) 54% 4% / 0.17),
-    0 3px 10px hsl(var(--frosted-accent-h) 50% 4% / 0.1);
+    0 16px 38px hsl(var(--frosted-accent-h) calc(54% * var(--frosted-tint-k)) 4% / 0.17),
+    0 3px 10px hsl(var(--frosted-accent-h) calc(50% * var(--frosted-tint-k)) 4% / 0.1);
   --material-inset-shadow:
-    inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.28),
-    inset 1px 0 hsl(var(--frosted-accent-h) var(--frosted-accent-s) 94% / 0.08),
-    inset 0 -1px hsl(var(--frosted-accent-h) 42% 5% / 0.13);
-  --notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 34% / 0.18);
+    inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.28),
+    inset 1px 0 hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.08),
+    inset 0 -1px hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 5% / 0.13);
+  --notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 34% / 0.18);
   --notes-list-material-image:
     radial-gradient(
       circle at 14% -8%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.13),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.13),
       transparent 44%
     ),
     linear-gradient(
       90deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.035),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.035),
       transparent 62%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.055)
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.055)
     ),
     var(--surface-material-subtle-image);
-  --notes-list-divider: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.2);
+  --notes-list-divider: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.2);
   --notes-list-edge-shadow:
-    inset -1px 0 hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.12),
-    10px 0 34px hsl(var(--frosted-accent-h) 48% 5% / 0.08);
+    inset -1px 0 hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.12),
+    10px 0 34px hsl(var(--frosted-accent-h) calc(48% * var(--frosted-tint-k)) 5% / 0.08);
   --tag-resident-text: var(--accent);
   --tag-resident-bg: var(--accent-light);
   --tag-resident-border: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 70% / 0.28);
@@ -706,71 +714,73 @@
   --tag-activated-border: rgba(123, 219, 173, 0.28);
   --editor-fullscreen-background: var(--frosted-background-fallback);
   --selection-bg: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 70% / 0.3);
-  --floating-toolbar-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 14% / 0.66);
+  --floating-toolbar-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 14% / 0.66);
   --floating-toolbar-background-image: var(--surface-material-subtle-image);
-  --floating-toolbar-border: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 94% / 0.24);
+  --floating-toolbar-border: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.24);
   --floating-toolbar-hover-background: var(--bg-hover);
   --floating-toolbar-active-background: var(--accent-light-hover);
-  --floating-toolbar-separator: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 94% / 0.17);
+  --floating-toolbar-separator: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.17);
   --floating-toolbar-shadow: var(--shadow-lg);
-  --floating-toolbar-inset-shadow: inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.22);
-  --chart-tooltip-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 13% / 0.76);
-  --chart-tooltip-border: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 94% / 0.22);
+  --floating-toolbar-inset-shadow: inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.22);
+  --chart-tooltip-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 13% / 0.76);
+  --chart-tooltip-border: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.22);
   --chart-tooltip-shadow: var(--shadow-lg);
-  --context-menu-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 13% / 0.74);
+  --context-menu-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 13% / 0.74);
   --context-menu-background-image: var(--surface-material-subtle-image);
   --context-menu-background-size: auto;
-  --context-menu-border: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 94% / 0.22);
+  --context-menu-border: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.22);
   --context-menu-shortcut-text: var(--text-tertiary);
   --context-menu-hover-background: var(--bg-hover);
   --context-menu-disabled-text: var(--text-muted);
   --context-menu-separator: var(--border);
   --context-menu-danger-background: var(--error-light);
   --context-menu-shadow: var(--shadow-xl);
-  --context-menu-inset-shadow: inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.22);
+  --context-menu-inset-shadow: inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.22);
 }
 
 [data-interface-style='frosted-glass'][data-theme='light'] {
   color-scheme: light;
-  --frosted-background-fallback: hsl(var(--frosted-accent-h) 36% 82%);
+  --frosted-background-fallback: hsl(var(--frosted-accent-h) calc(36% * var(--frosted-tint-k)) 82%);
   --frosted-shell-overlay:
-    radial-gradient(circle at 16% -8%, hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.11), transparent 42%),
+    linear-gradient(hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 99% / var(--frosted-light-scrim)), hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 99% / var(--frosted-light-scrim))),
+    radial-gradient(circle at 16% -8%, hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.11), transparent 42%),
     linear-gradient(
       180deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.025),
-      hsl(var(--frosted-accent-h) 44% 96% / 0.075)
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.025),
+      hsl(var(--frosted-accent-h) calc(44% * var(--frosted-tint-k)) 96% / 0.075)
     );
   --frosted-fullscreen-overlay:
+    linear-gradient(hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 99% / var(--frosted-light-scrim)), hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 99% / var(--frosted-light-scrim))),
     radial-gradient(
       ellipse at 50% 42%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.14),
-      hsl(var(--frosted-accent-h) 42% 96% / 0.07) 76%
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.14),
+      hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 96% / 0.07) 76%
     ),
     linear-gradient(
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.02),
-      hsl(var(--frosted-accent-h) 42% 96% / 0.05)
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.02),
+      hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 96% / 0.05)
     );
   --glass-backdrop-ambient: blur(18px) saturate(126%) brightness(1.025);
   --glass-backdrop-elevated: blur(28px) saturate(142%) brightness(1.04);
   --glass-backdrop-recessed: blur(14px) saturate(116%) brightness(1.015);
   --theme-backdrop-image:
-    radial-gradient(circle at 12% 6%, hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.16), transparent 36%),
+    radial-gradient(circle at 12% 6%, hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.16), transparent 36%),
     linear-gradient(
       135deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.09),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.09),
       transparent 48%,
-      hsl(var(--frosted-accent-h) 48% 88% / 0.07)
+      hsl(var(--frosted-accent-h) calc(48% * var(--frosted-tint-k)) 88% / 0.07)
     );
-  --bg-app: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.055);
-  --bg-sidebar: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.15);
-  --bg-surface: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.2);
-  --bg-surface-2: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.26);
-  --bg-surface-3: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 99% / 0.34);
-  --bg-hover: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.2);
-  --bg-input: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 99% / 0.24);
-  --bg-glass: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 99% / 0.3);
-  --border: hsl(var(--frosted-accent-h) 38% 16% / 0.16);
-  --border-hover: hsl(var(--frosted-accent-h) 42% 12% / 0.29);
+  --bg-app: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.055);
+  --bg-sidebar: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.15);
+  --bg-surface: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.2);
+  --bg-surface-2: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.26);
+  --bg-surface-3: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.34);
+  --bg-hover: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.2);
+  --bg-input: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.24);
+  --bg-glass: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.3);
+  --border: hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 16% / 0.16);
+  --border-hover: hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 12% / 0.29);
   --border-focus: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 38% / 0.66);
   --text-primary: #161616;
   --text-secondary: #3a3a3a;
@@ -799,59 +809,59 @@
   --surface-material-image:
     radial-gradient(
       circle at 16% -18%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.55),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.55),
       transparent 40%
     ),
     linear-gradient(
       138deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.3),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.3),
       transparent 38%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 82% / 0.08) 72%,
-      hsl(var(--frosted-accent-h) 40% 32% / 0.035)
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 82% / 0.08) 72%,
+      hsl(var(--frosted-accent-h) calc(40% * var(--frosted-tint-k)) 32% / 0.035)
     );
   --surface-material-subtle-image:
     linear-gradient(
       142deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.28),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.28),
       transparent 46%,
-      hsl(var(--frosted-accent-h) 38% 30% / 0.025)
+      hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 30% / 0.025)
     );
   --input-material-image:
     linear-gradient(
       180deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.3),
-      hsl(var(--frosted-accent-h) 38% 38% / 0.025)
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.3),
+      hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 38% / 0.025)
     );
   --material-surface-shadow:
-    0 16px 38px hsl(var(--frosted-accent-h) 45% 18% / 0.11),
-    0 3px 10px hsl(var(--frosted-accent-h) 42% 18% / 0.055);
+    0 16px 38px hsl(var(--frosted-accent-h) calc(45% * var(--frosted-tint-k)) 18% / 0.11),
+    0 3px 10px hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 18% / 0.055);
   --material-inset-shadow:
-    inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.72),
-    inset 1px 0 hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.22),
-    inset 0 -1px hsl(var(--frosted-accent-h) 34% 36% / 0.08);
-  --notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 94% / 0.1);
+    inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.72),
+    inset 1px 0 hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.22),
+    inset 0 -1px hsl(var(--frosted-accent-h) calc(34% * var(--frosted-tint-k)) 36% / 0.08);
+  --notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.1);
   --notes-list-material-image:
     radial-gradient(
       circle at 14% -8%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.2),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.2),
       transparent 44%
     ),
     linear-gradient(
       90deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.05),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.05),
       transparent 62%,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 92% / 0.08)
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 92% / 0.08)
     ),
     linear-gradient(
       142deg,
-      hsl(var(--frosted-accent-h) var(--frosted-accent-s) 96% / 0.12),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.12),
       transparent 46%,
-      hsl(var(--frosted-accent-h) 38% 30% / 0.025)
+      hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 30% / 0.025)
     );
-  --notes-list-divider: hsl(var(--frosted-accent-h) 38% 16% / 0.2);
+  --notes-list-divider: hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 16% / 0.2);
   --notes-list-edge-shadow:
-    inset -1px 0 hsl(var(--frosted-accent-h) var(--frosted-accent-s) 98% / 0.3),
-    10px 0 34px hsl(var(--frosted-accent-h) 42% 18% / 0.07);
+    inset -1px 0 hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.3),
+    10px 0 34px hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 18% / 0.07);
   --tag-resident-text: var(--accent);
   --tag-resident-bg: var(--accent-light);
   --tag-resident-border: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 38% / 0.24);
@@ -860,28 +870,28 @@
   --tag-activated-border: rgba(40, 122, 85, 0.22);
   --editor-fullscreen-background: var(--frosted-background-fallback);
   --selection-bg: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 40% / 0.22);
-  --floating-toolbar-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 99% / 0.68);
+  --floating-toolbar-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.68);
   --floating-toolbar-background-image: var(--surface-material-subtle-image);
-  --floating-toolbar-border: hsl(var(--frosted-accent-h) 38% 16% / 0.21);
+  --floating-toolbar-border: hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 16% / 0.21);
   --floating-toolbar-hover-background: var(--bg-hover);
   --floating-toolbar-active-background: var(--accent-light-hover);
-  --floating-toolbar-separator: hsl(var(--frosted-accent-h) 38% 16% / 0.15);
+  --floating-toolbar-separator: hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 16% / 0.15);
   --floating-toolbar-shadow: var(--shadow-lg);
-  --floating-toolbar-inset-shadow: inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.88);
-  --chart-tooltip-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 99% / 0.76);
-  --chart-tooltip-border: hsl(var(--frosted-accent-h) 38% 16% / 0.2);
+  --floating-toolbar-inset-shadow: inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.88);
+  --chart-tooltip-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.76);
+  --chart-tooltip-border: hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 16% / 0.2);
   --chart-tooltip-shadow: var(--shadow-lg);
-  --context-menu-background: hsl(var(--frosted-accent-h) var(--frosted-accent-s) 99% / 0.78);
+  --context-menu-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.78);
   --context-menu-background-image: var(--surface-material-subtle-image);
   --context-menu-background-size: auto;
-  --context-menu-border: hsl(var(--frosted-accent-h) 38% 16% / 0.2);
+  --context-menu-border: hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 16% / 0.2);
   --context-menu-shortcut-text: var(--text-tertiary);
   --context-menu-hover-background: var(--bg-hover);
   --context-menu-disabled-text: var(--text-muted);
   --context-menu-separator: var(--border);
   --context-menu-danger-background: var(--error-light);
   --context-menu-shadow: var(--shadow-xl);
-  --context-menu-inset-shadow: inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-accent-s) 100% / 0.88);
+  --context-menu-inset-shadow: inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.88);
 }
 
 /* User typography preferences stay independent from interface style palettes. */
@@ -1223,16 +1233,29 @@ body {
 }
 
 /* ─── Modal Overlay ──────────────────────────────────────────────────────── */
+/* The dimming layer is a pseudo-element so that fading it never puts an opacity on an ancestor
+ * of the dialog: that would cut off the dialog's own backdrop-filter and make the glass pop
+ * when the fade ends. */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+}
+
+.modal-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   animation: overlayIn var(--transition-base) both;
+}
+
+.modal-overlay > .modal {
+  position: relative;
 }
 
 .modal {
@@ -1255,7 +1278,7 @@ body {
   pointer-events: none;
 }
 
-.presence.is-leaving > .modal-overlay {
+.presence.is-leaving > .modal-overlay::before {
   animation: overlayOut var(--exit-duration) var(--ease-in) both;
 }
 
