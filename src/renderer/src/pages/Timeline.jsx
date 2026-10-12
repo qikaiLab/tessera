@@ -11,6 +11,7 @@ import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
 import { richTextToPlainText } from '../utils/richText'
 import { useIncrementalList } from '../utils/useIncrementalList'
 import { useSlidingThumb } from '../utils/useSlidingThumb'
+import { useScrollReveal } from '../utils/useScrollReveal'
 import '../components/FilterChip.css'
 import './Timeline.css'
 
@@ -81,6 +82,7 @@ function getSnippet(text, query, maxLen = 120) {
 
 export default function Timeline() {
   const viewSwitchThumbRef = useSlidingThumb()
+  const revealCard = useScrollReveal()
   const navigate = useNavigate()
   const { sections, datesWithData, readDayData, writeDayData, setSelectedDate, showToast, refreshDates, confirm, favorites, toggleFavorite } = useApp()
   const [query, setQuery] = useState('')
@@ -493,10 +495,10 @@ export default function Timeline() {
                 找到 {filteredCards.length} 条记录
               </div>
             )}
-            {cardList.visible.map((card, index) => (
+            {cardList.visible.map(card => (
               <TimelineCard
                 key={card.dateStr}
-                motionIndex={index}
+                revealRef={revealCard}
                 card={card}
                 query={query}
                 onClick={() => handleCardClick(card.dateStr)}
@@ -524,7 +526,7 @@ export default function Timeline() {
   )
 }
 
-function TimelineCard({ card, motionIndex, query, onClick, filterSections, showSnippets, favoriteLookup, onToggleFavorite, isManageMode, isSelected, onToggleSelect }) {
+function TimelineCard({ card, revealRef, query, onClick, filterSections, showSnippets, favoriteLookup, onToggleFavorite, isManageMode, isSelected, onToggleSelect }) {
   const { dateStr, totalWords, recordedSections, sectionResults } = card
   // A one-line taste of the day's first text entry, so the list is more than a row of tags.
   const leadEntry = sectionResults.find(result => result.sec.type !== 'number' && result.text.trim())
@@ -547,9 +549,10 @@ function TimelineCard({ card, motionIndex, query, onClick, filterSections, showS
 
   return (
     <div
-      className={`timeline-card animate-fade-in ${isManageMode ? 'manage-mode-card' : ''} ${isSelected ? 'selected' : ''}`}
-      // The first screenful arrives in a short cascade; later batches simply appear.
-      style={motionIndex < 8 ? { animationDelay: `${motionIndex * 30}ms` } : undefined}
+      className={`timeline-card ${isManageMode ? 'manage-mode-card' : ''} ${isSelected ? 'selected' : ''}`}
+      // Cards play their entrance as they scroll into view (see useScrollReveal).
+      data-reveal="pending"
+      ref={revealRef}
       onClick={handleCardClick}
     >
       {isManageMode && (

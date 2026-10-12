@@ -136,6 +136,7 @@ body.is-resizing .notes-drawer-resize::after {
 }
 
 .notes-drawer-tabs {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 3px;
@@ -156,6 +157,22 @@ body.is-resizing .notes-drawer-resize::after {
   font-size: var(--text-sm);
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* The highlight glides between tabs (see useSlidingThumb). */
+.notes-drawer-tabs.has-thumb::before {
+  border-radius: calc(var(--radius-md) - 3px);
+  background: var(--bg-surface-2);
+  box-shadow: var(--shadow-sm);
+}
+
+.notes-drawer-tabs.has-thumb > button {
+  position: relative;
+}
+
+.notes-drawer-tabs.has-thumb > button.active {
+  background: transparent;
+  box-shadow: none;
 }
 
 .notes-drawer-tabs button:hover,
@@ -325,7 +342,6 @@ body.is-resizing .notes-drawer-resize::after {
 .notes-drawer-card.editing {
   gap: var(--spacing-2);
   cursor: default;
-  animation: fadeIn var(--transition-base) both;
 }
 
 .notes-drawer-card:hover {
@@ -398,4 +414,14 @@ body.is-resizing .notes-drawer-resize::after {
     margin-right: var(--notes-drawer-offset);
     transform: translateX(28px);
   }
+}
+
+/* Notes enter one after another, whenever the list is (re)built: opening the drawer, switching
+ * between linked / pinned / latest. Each card fades itself; the wrappers never carry opacity. */
+.notes-drawer-item .notes-drawer-card {
+  animation: revealIn 360ms var(--ease-out) var(--enter-delay, 0ms) backwards;
+}
+
+.notes-drawer-item .notes-drawer-card.editing {
+  animation-delay: 0ms;
 }

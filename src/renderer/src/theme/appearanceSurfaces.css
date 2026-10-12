@@ -243,3 +243,10 @@
 :root[data-interface-style='frosted-glass'] .notes-editor-loading {
   animation: none;
 }
+
+/* The fullscreen veil and header fade in and out. The exit button sits on an already blurred
+ * background, so its own backdrop blur adds nothing and would be cut off mid-fade. */
+:root[data-interface-style='frosted-glass'] .tiptap-fullscreen .fullscreen-exit-btn {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}

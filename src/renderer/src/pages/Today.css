@@ -202,13 +202,13 @@
 }
 
 /* The cards fade themselves; fading their container would cut off their glass backdrop. */
-.today-content.is-date-leaving .sections-grid > *,
+.today-content.is-date-leaving .sections-grid .section-card,
 .today-content.is-date-leaving .today-add-section,
 .today-content.is-date-leaving .today-empty-day {
   animation: dateContentLeaveNext 140ms var(--ease-in) both;
 }
 
-.today-content.is-date-leaving.date-leaving-prev .sections-grid > *,
+.today-content.is-date-leaving.date-leaving-prev .sections-grid .section-card,
 .today-content.is-date-leaving.date-leaving-prev .today-add-section,
 .today-content.is-date-leaving.date-leaving-prev .today-empty-day {
   animation-name: dateContentLeavePrev;
@@ -762,4 +762,37 @@
 
 .favorite-btn:active {
   transform: scale(0.88);
+}
+
+/* A section added from the "add record" row grows into its slot: the cards below slide down
+ * with it instead of jumping, and the card itself eases in. The slot never carries opacity or
+ * a filter (that would flatten the card's glass); only its row height and margins move. */
+.section-slot.is-adding {
+  --slot-mt: calc(var(--spacing-4) * -1);
+  --slot-mb: calc(var(--spacing-4) * -1);
+  display: grid;
+  animation: slotGrow 460ms var(--ease-travel) both;
+}
+
+.section-slot.is-adding:first-child {
+  --slot-mt: 0px;
+}
+
+.section-slot.is-adding:last-child {
+  --slot-mb: 0px;
+}
+
+.section-slot.is-adding > .section-card {
+  min-height: 0;
+  animation: addCardIn 440ms var(--ease-out) 70ms backwards;
+}
+
+@keyframes slotGrow {
+  from { grid-template-rows: 0fr; margin-top: var(--slot-mt); margin-bottom: var(--slot-mb); }
+  to { grid-template-rows: 1fr; margin-top: 0; margin-bottom: 0; }
+}
+
+@keyframes addCardIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.985); }
+  to { opacity: 1; transform: none; }
 }

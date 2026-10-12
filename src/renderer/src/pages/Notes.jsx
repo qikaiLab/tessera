@@ -7,6 +7,8 @@ import { useApp } from '../context/AppContext'
 import { separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
 import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
 import { createNoteOperationBarrier } from '../utils/noteOperations'
+import { useDelayedFlag } from '../utils/useDelayedFlag'
+import { useFullscreenPresence } from '../utils/useFullscreenPresence'
 import './Notes.css'
 
 const NOTES_INDEX_PATH = 'notes/index.json'
@@ -201,8 +203,11 @@ export default function Notes() {
   })
   const [saveStatus, setSaveStatus] = useState(SAVE_IDLE)
   const [loading, setLoading] = useState(true)
+  // Only a slow load earns a skeleton; otherwise the page goes straight to its content.
+  const showSkeleton = useDelayedFlag(loading, 240)
   const [charCount, setCharCount] = useState(0)
   const [fullScreenNoteId, setFullScreenNoteId] = useState(null)
+  const noteFullscreen = useFullscreenPresence(Boolean(fullScreenNoteId))
   const [dateLinkPanelOpen, setDateLinkPanelOpen] = useState(false)
   const [dateLinkDraft, setDateLinkDraft] = useState(() => dateLinkToDraft(null))
   const [notesListWidth, setNotesListWidth] = useState(() => {
@@ -702,7 +707,7 @@ export default function Notes() {
         <div className="notes-list-header">
           <div className="notes-heading">
             <h1 className="notes-title">便签</h1>
-            <span className="notes-count">{filteredNotes.length} 条</span>
+            {!loading && <span className="notes-count">{filteredNotes.length} 条</span>}
           </div>
           <button className="btn btn-primary btn-icon notes-new-btn" onClick={createNote} title="新建便签">
             +
@@ -806,7 +811,7 @@ export default function Notes() {
 
         <div className="notes-list" onContextMenu={handleNotesListBlankContextMenu}>
           {loading ? (
-            <div className="notes-list-loading">
+            showSkeleton && <div className="notes-list-loading">
               <div className="skeleton" />
               <div className="skeleton" />
               <div className="skeleton" />
@@ -816,9 +821,10 @@ export default function Notes() {
               <span>{showArchived ? '暂无归档便签' : '暂无便签'}</span>
             </div>
           ) : (
-            filteredNotes.map(note => (
+            filteredNotes.map((note, index) => (
               <button
                 key={note.id}
+                style={{ '--enter-delay': `${Math.min(index, 8) * 36}ms` }}
                 className={`notes-list-item ${selectedId === note.id ? 'active' : ''}`}
                 onClick={() => selectNote(note)}
                 onContextMenu={(event) => handleNoteListContextMenu(event, note)}
@@ -848,9 +854,9 @@ export default function Notes() {
         title="拖动调整便签列表宽度"
       />
 
-      <main className={`notes-editor-panel ${fullScreenNoteId ? 'notes-fullscreen-active-parent' : ''}`}>
+      <main className={`notes-editor-panel ${noteFullscreen.show ? 'notes-fullscreen-active-parent' : ''}`}>
         {loading ? (
-          <div className="notes-editor-loading">
+          showSkeleton && <div className="notes-editor-loading">
             <div className="notes-editor-loading-header">
               <div className="skeleton notes-title-skeleton" />
               <div className="skeleton notes-actions-skeleton" />
@@ -990,7 +996,8 @@ export default function Notes() {
                 value={currentNote.content || emptyDoc()}
                 onChange={(content) => updateCurrentNote({ content })}
                 placeholder="写下长期计划、灵感、素材或任何不属于某一天的内容..."
-                isFullScreen={fullScreenNoteId === currentNote.id}
+                isFullScreen={noteFullscreen.show}
+                fullScreenLeaving={noteFullscreen.leaving}
                 onToggleFullScreen={() => setFullScreenNoteId(prev => prev === currentNote.id ? null : currentNote.id)}
                 onSave={flushPending}
                 fontSize={activeFontSize}

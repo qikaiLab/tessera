@@ -87,3 +87,34 @@ test('glass stays intact with the notes drawer, day switches and dialogs', async
     await app.close()
   }
 })
+
+test('glass stays intact in the calendar, in fullscreen and while notes load', async ({ sandbox }) => {
+  const { app, window, problems } = await openFrosted(sandbox)
+  try {
+    await window.locator('.nav-item', { hasText: '日历' }).click()
+    await expect(window.locator('.cal-slide')).toBeVisible()
+    await window.waitForTimeout(700)
+    for (const action of [
+      () => window.getByLabel('下一页').click(),
+      () => window.getByLabel('上一页').click(),
+      () => window.locator('.tabs .tab').nth(1).click(),
+      () => window.locator('.tabs .tab').nth(2).click()
+    ]) {
+      await window.evaluate(() => { window.__glass = window.__watchGlass(650) })
+      await action()
+      expect(await window.evaluate(() => window.__glass), 'calendar motion').toEqual([])
+    }
+
+    await window.locator('.nav-item', { hasText: '记录' }).click()
+    await window.waitForTimeout(800)
+    await window.evaluate(() => { window.__glass = window.__watchGlass(700) })
+    await window.locator('.fullscreen-btn').first().click()
+    expect(await window.evaluate(() => window.__glass), 'entering fullscreen').toEqual([])
+    await window.evaluate(() => { window.__glass = window.__watchGlass(600) })
+    await window.keyboard.press('Escape')
+    expect(await window.evaluate(() => window.__glass), 'leaving fullscreen').toEqual([])
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

@@ -484,9 +484,15 @@
   border-radius: 0;
   display: flex;
   flex-direction: column;
-  animation: none;
   transition: none;
   -webkit-app-region: no-drag;
+  /* The veil comes first; the header and the writing column follow it (see below). */
+  animation: fsVeilIn 240ms var(--ease-out) backwards;
+}
+
+.tiptap-fullscreen.is-leaving {
+  pointer-events: none;
+  animation: fsVeilOut 230ms var(--ease-in) both;
 }
 
 .tiptap-fullscreen {
@@ -528,6 +534,36 @@
   to   { opacity: 1; }
 }
 
+@keyframes fsVeilIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fsVeilOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fsRise {
+  from { opacity: 0; transform: translateY(22px) scale(0.992); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fsSink {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(14px) scale(0.994); }
+}
+
+@keyframes fsDrop {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fsLift {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
 @keyframes fullscreenContentIn {
   from {
     opacity: 0;
@@ -550,7 +586,11 @@
   /* Smooth scrollbar in context */
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
-  animation: fullscreenContentIn 180ms ease-out both;
+  animation: fsRise 440ms var(--ease-out) 80ms backwards;
+}
+
+.tiptap-fullscreen.is-leaving .tiptap-editor-wrapper {
+  animation: fsSink 210ms var(--ease-in) both;
 }
 
 [data-interface-style='frosted-glass'] .tiptap-fullscreen .tiptap-editor-wrapper {
@@ -603,7 +643,11 @@
   flex-shrink: 0;
   overflow: hidden;
   z-index: 10;
-  animation: fullscreenContentIn 160ms ease-out both;
+  animation: fsDrop 360ms var(--ease-out) 50ms backwards;
+}
+
+.tiptap-fullscreen.is-leaving .tiptap-fullscreen-header {
+  animation: fsLift 170ms var(--ease-in) both;
 }
 
 [data-interface-style='frosted-glass'] .tiptap-fullscreen-header {

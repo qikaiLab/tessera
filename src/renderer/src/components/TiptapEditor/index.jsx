@@ -208,6 +208,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     onChange,            // (jsonValue) => void
     placeholder = '开始记录...',
     isFullScreen = false,
+    fullScreenLeaving = false,   // fullscreen was just switched off; the exit animation is playing
     onToggleFullScreen,
     onSave,
     fontSize = 14,
@@ -364,7 +365,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
 
   // Keyboard shortcuts while fullscreen: Esc exits; Ctrl/Cmd+Shift+Enter toggles.
   useEffect(() => {
-    if (!isFullScreen) return
+    if (!isFullScreen || fullScreenLeaving) return
     const handleKey = (e) => {
       if (e.key === 'Escape' || (!e.defaultPrevented && isFullscreenEditorShortcut(e))) {
         e.preventDefault()
@@ -380,7 +381,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
         toggleTimeoutRef.current = null
       }
     }
-  }, [isFullScreen, handleToggleFullScreen])
+  }, [isFullScreen, fullScreenLeaving, handleToggleFullScreen])
 
   const handleEditorClick = useCallback((event) => {
     const linkEl = event.target?.closest?.('a[href]')
@@ -478,7 +479,7 @@ const TiptapEditor = forwardRef(function TiptapEditor(
   }, [isFullScreen])
 
   return (
-    <div className={`tiptap-shell ${isFullScreen ? 'tiptap-fullscreen' : ''}`}>
+    <div className={`tiptap-shell ${isFullScreen ? 'tiptap-fullscreen' : ''} ${isFullScreen && fullScreenLeaving ? 'is-leaving' : ''}`}>
       {isFullScreen && <div className="tiptap-fullscreen-drag-handle" />}
 
       {/* Bubble Menu */}

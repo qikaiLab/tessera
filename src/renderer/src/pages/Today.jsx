@@ -19,6 +19,7 @@ import {
 import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
 import { getSectionPreview } from '../utils/sectionPreview'
 import { collapseDurationMs } from '../utils/collapseMotion'
+import { useFullscreenPresence } from '../utils/useFullscreenPresence'
 import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
 import './Today.css'
 
@@ -39,6 +40,10 @@ const NOTES_DRAWER_DEFAULT = 430
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const NUMBER_DEFAULT_MODE_CARRY = 'carry'
+// Matches the slotGrow animation in Today.css.
+const ADD_SECTION_MS = 460
+// Time constant of the follow-scroll easing: smaller is snappier.
+const SCROLL_FOLLOW_MS = 120
 
 const getNumberDefaultMode = (section) => {
   return section?.numberDefaultMode === NUMBER_DEFAULT_MODE_CARRY ? NUMBER_DEFAULT_MODE_CARRY : 'manual'
@@ -88,6 +93,9 @@ export default function Today() {
   // Task 2: track sections manually added by user this session (so empty text
   // sections don't immediately disappear after clicking "+")
   const [manuallyAdded, setManuallyAdded] = useState(new Set())
+  // The section that was just added from the "add record" row: it grows into place, the page
+  // follows it, and it takes focus.
+  const [addedSectionId, setAddedSectionId] = useState(null)
   const saveTimerRef = useRef(null)
   const pendingDataRef = useRef(null)
   const hasLoadedOnceRef = useRef(false)
@@ -161,6 +169,7 @@ export default function Today() {
     setSaveStatus(STATUS.IDLE)
     setFullScreenSectionId(null) // Exit full screen on date change
     setManuallyAdded(new Set())  // Task 2: clear manual additions on date change
+    setAddedSectionId(null)
     setNumberDefaults({})
 
     if (!hasLoadedOnce) {
@@ -478,6 +487,60 @@ export default function Today() {
     }
   }
 
+  // The new card is ready to type into: put the caret in it without scrolling again.
+  const focusAddedSection = useCallback((sectionId) => {
+    const slot = contentRef.current?.querySelector(`[data-section-slot="${CSS.escape(sectionId)}"]`)
+    slot?.querySelector('.ProseMirror, input, textarea')?.focus({ preventScroll: true })
+  }, [])
+
+  // Glides the page to the new card and keeps it in view while it grows. Every frame eases the
+  // scroll position a fraction of the way to where the card should be (its centre, or its top
+  // for a tall card), so the motion is smooth, adapts as the card changes size, and stops the
+  // moment the user takes over with the wheel or keyboard.
+  useEffect(() => {
+    if (!addedSectionId) return undefined
+    const container = contentRef.current
+    const slot = container?.querySelector(`[data-section-slot="${CSS.escape(addedSectionId)}"]`)
+    if (!container || !slot) return undefined
+
+    let frame = 0
+    let cancelled = false
+    const started = performance.now()
+    let previous = started
+    const finish = () => setAddedSectionId(current => (current === addedSectionId ? null : current))
+    const cancel = () => { cancelled = true; finish() }
+    container.addEventListener('wheel', cancel, { passive: true, once: true })
+    container.addEventListener('touchstart', cancel, { passive: true, once: true })
+    window.addEventListener('keydown', cancel, { once: true })
+
+    const step = (now) => {
+      if (cancelled) return
+      const elapsed = now - started
+      const box = slot.getBoundingClientRect()
+      const view = container.getBoundingClientRect()
+      const toCentre = box.top + box.height / 2 - (view.top + view.height / 2)
+      const toTop = box.top - (view.top + 24)
+      const distance = Math.min(toCentre, toTop)
+      container.scrollTop += distance * (1 - Math.exp(-Math.min(48, now - previous) / SCROLL_FOLLOW_MS))
+      previous = now
+      if (elapsed < ADD_SECTION_MS + 120 || (Math.abs(distance) > 1.5 && elapsed < ADD_SECTION_MS + 1200)) {
+        frame = requestAnimationFrame(step)
+      } else {
+        finish()
+      }
+    }
+    frame = requestAnimationFrame(step)
+    // Safety net: a hidden window never runs animation frames.
+    const safety = setTimeout(finish, ADD_SECTION_MS + 1800)
+    return () => {
+      cancelAnimationFrame(frame)
+      clearTimeout(safety)
+      container.removeEventListener('wheel', cancel)
+      container.removeEventListener('touchstart', cancel)
+      window.removeEventListener('keydown', cancel)
+    }
+  }, [addedSectionId])
+
   const toggleCardCollapsed = (sectionId) => {
     const key = `${dateStr}:${sectionId}`
     setCollapsedCards(prev => {
@@ -587,8 +650,15 @@ export default function Today() {
             ) : (
               <div key={`sections-${dateStr}`} className="sections-grid">
                 {visibleSections.map((sec, i) => (
-                  <SectionCard
+                  <div
                     key={sec.id}
+                    data-section-slot={sec.id}
+                    className={`section-slot ${addedSectionId === sec.id ? 'is-adding' : ''}`}
+                    onAnimationEnd={event => {
+                      if (event.target === event.currentTarget && addedSectionId === sec.id) focusAddedSection(sec.id)
+                    }}
+                  >
+                  <SectionCard
                     section={sec}
                     value={getSectionDisplayValue(sec)}
                     onChange={(val) => handleChange(sec.id, val)}
@@ -605,6 +675,7 @@ export default function Today() {
                     onToggleFullScreen={() => setFullScreenSectionId(prev => prev === sec.id ? null : sec.id)}
                     onSave={handleManualSave}
                   />
+                  </div>
                 ))}
               </div>
             )}
@@ -621,6 +692,7 @@ export default function Today() {
                       onClick={() => {
                         // Task 2: register as manually added so it stays visible
                         setManuallyAdded(prev => new Set([...prev, sec.id]))
+                        setAddedSectionId(sec.id)
                         if (sec.type === 'number') {
                           handleChange(sec.id, getSectionDisplayValue(sec))
                         }
@@ -683,7 +755,7 @@ function SectionCard({
   showToast,
   animationDelay,
   dateTransitionDir,
-  isFullScreen,
+  isFullScreen: fullScreenRequested,
   favorite,
   onToggleFavorite,
   collapsed,
@@ -692,6 +764,8 @@ function SectionCard({
   onToggleFullScreen
 }) {
   const cardRef = useRef(null)
+  // Fullscreen lingers briefly after it is switched off so its exit animation can play.
+  const { show: isFullScreen, leaving: fullScreenLeaving } = useFullscreenPresence(fullScreenRequested)
   const [charCount, setCharCount] = useState(0)
   const [fontSize, setFontSize] = useState(() => {
     return parseInt(localStorage.getItem('mototrace_font_size') || '14', 10)
@@ -828,6 +902,7 @@ function SectionCard({
           onChange={onChange}
           placeholder={`记录你的${section.name}...`}
           isFullScreen={isFullScreen}
+          fullScreenLeaving={fullScreenLeaving}
           onToggleFullScreen={onToggleFullScreen}
           onSave={onSave}
           fontSize={fontSize}

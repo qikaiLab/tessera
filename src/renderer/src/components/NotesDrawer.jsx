@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TiptapEditor from './TiptapEditor'
 import { createNoteOperationBarrier } from '../utils/noteOperations'
 import SaveStatusBadge from './SaveStatusBadge'
+import Collapsible from './Collapsible'
+import { useSlidingThumb } from '../utils/useSlidingThumb'
 import { useApp } from '../context/AppContext'
 import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../utils/contextMenu'
 import './NotesDrawer.css'
@@ -182,6 +184,7 @@ function getDrawerVisibleNotes(notes, { mode, dateStr, query, selectedId }) {
 export default function NotesDrawer({ dateStr, width, onResizeStart, closing = false, suspended = false, onAnimationEnd }) {
   const { showToast, confirm, registerPendingFlush, unregisterPendingFlush } = useApp()
   const [notes, setNotes] = useState([])
+  const modeThumbRef = useSlidingThumb()
   const noteOperationsRef = useRef(null)
   if (!noteOperationsRef.current) noteOperationsRef.current = createNoteOperationBarrier()
   const [selectedId, setSelectedId] = useState(null)
@@ -362,7 +365,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
     setCurrentNote(note)
     setSaveStatus(SAVE_IDLE)
     writeDrawerState(viewDateStr, { mode, selectedId: note.id })
-    setTimeout(() => titleInputRef.current?.focus(), 40)
+    setTimeout(() => titleInputRef.current?.focus(), 110)
   }, [flushPending, mode, notes, query, viewDateStr, viewOrder.length])
 
   const closeEditor = useCallback(async () => {
@@ -423,7 +426,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
     setViewOrder(getDrawerVisibleNotes(nextNotes, { mode, dateStr: viewDateStr, query, selectedId: note.id }).map(item => item.id))
     writeDrawerState(viewDateStr, { mode, selectedId: note.id })
     const ok = await persistNoteNow(note, nextNotes)
-    if (ok) setTimeout(() => titleInputRef.current?.focus(), 40)
+    if (ok) setTimeout(() => titleInputRef.current?.focus(), 110)
   }, [flushPending, mode, notes, persistNoteNow, query, viewDateStr])
 
   const duplicateNoteById = useCallback(async (noteId) => {
@@ -461,7 +464,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
     const ok = await persistNoteNow(duplicate, nextNotes)
     if (ok) {
       showToast('已新建便签副本', 'success', 1200)
-      setTimeout(() => titleInputRef.current?.focus(), 40)
+      setTimeout(() => titleInputRef.current?.focus(), 110)
     }
   }, [flushPending, mode, notes, persistNoteNow, query, showToast, viewDateStr])
 
@@ -573,7 +576,7 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
         {query && <button className="notes-drawer-clear" onClick={() => setQuery('')} title="清空搜索">×</button>}
       </div>
 
-      <div className="notes-drawer-tabs">
+      <div className="notes-drawer-tabs" ref={modeThumbRef}>
         <button className={mode === 'linked' ? 'active' : ''} onClick={() => handleModeChange('linked')}>关联</button>
         <button className={mode === 'pinned' ? 'active' : ''} onClick={() => handleModeChange('pinned')}>置顶</button>
         <button className={mode === 'latest' ? 'active' : ''} onClick={() => handleModeChange('latest')}>最新</button>
@@ -591,62 +594,71 @@ export default function NotesDrawer({ dateStr, width, onResizeStart, closing = f
         ) : filteredNotes.length === 0 ? (
           <div className="notes-drawer-empty">暂无便签</div>
         ) : (
-          filteredNotes.map(note => (
-            selectedId === note.id && currentNote?.id === note.id ? (
-              <article
-                key={note.id}
-                className="notes-drawer-card active editing"
-                onContextMenu={(event) => handleNoteContextMenu(event, note)}
-              >
-                <div className="notes-drawer-edit-header">
-                  <input
-                    ref={titleInputRef}
-                    className="notes-drawer-title-input selectable"
-                    value={currentNote.title}
-                    onChange={e => updateCurrentNote({ title: e.target.value })}
-                    placeholder="无标题便签"
-                  />
-                  <button className="notes-drawer-close-edit" onClick={closeEditor} title="收起编辑">
-                    收起
-                  </button>
+          <React.Fragment key={mode}>
+            {filteredNotes.map((note, index) => {
+              const isEditing = selectedId === note.id && currentNote?.id === note.id
+              return (
+                <div key={note.id} className="notes-drawer-item" style={{ '--enter-delay': `${Math.min(index, 6) * 40}ms` }}>
+                  {/* The compact card and the editing card trade places: one folds shut as the other opens. */}
+                  <Collapsible open={!isEditing}>
+                    <button
+                      className="notes-drawer-card"
+                      onClick={() => selectNote(note)}
+                      onContextMenu={(event) => handleNoteContextMenu(event, note)}
+                      title="点击编辑便签"
+                    >
+                      <span className="notes-drawer-card-title">{note.title?.trim() || '无标题便签'}</span>
+                      <span className="notes-drawer-card-text">{extractText(note.content) || '空白便签'}</span>
+                      <span className="notes-drawer-card-time">{formatTime(note.updatedAt)}</span>
+                    </button>
+                  </Collapsible>
+                  <Collapsible open={isEditing}>
+                    {isEditing ? (
+                      <article
+                        className="notes-drawer-card active editing"
+                        onContextMenu={(event) => handleNoteContextMenu(event, note)}
+                      >
+                        <div className="notes-drawer-edit-header">
+                          <input
+                            ref={titleInputRef}
+                            className="notes-drawer-title-input selectable"
+                            value={currentNote.title}
+                            onChange={e => updateCurrentNote({ title: e.target.value })}
+                            placeholder="无标题便签"
+                          />
+                          <button className="notes-drawer-close-edit" onClick={closeEditor} title="收起编辑">
+                            收起
+                          </button>
+                        </div>
+                        <div className="notes-drawer-edit-subbar">
+                          <div className="notes-drawer-editor-meta">
+                            <span>{formatTime(currentNote.updatedAt)}</span>
+                            <SaveStatusBadge status={saveStatus} compact />
+                          </div>
+                          <div className="notes-drawer-font">
+                            <button onClick={() => updateFontSize(activeFontSize - 1)} title="缩小字体">A-</button>
+                            <span>{activeFontSize}</span>
+                            <button onClick={() => updateFontSize(activeFontSize + 1)} title="放大字体">A+</button>
+                          </div>
+                        </div>
+                        <div className="notes-drawer-editor-body">
+                          <TiptapEditor
+                            key={currentNote.id}
+                            value={currentNote.content || emptyDoc()}
+                            onChange={(content) => updateCurrentNote({ content })}
+                            placeholder="写下长期计划、灵感或临时素材..."
+                            onSave={flushPending}
+                            fontSize={activeFontSize}
+                            onFontSizeChange={updateFontSize}
+                          />
+                        </div>
+                      </article>
+                    ) : null}
+                  </Collapsible>
                 </div>
-                <div className="notes-drawer-edit-subbar">
-                  <div className="notes-drawer-editor-meta">
-                    <span>{formatTime(currentNote.updatedAt)}</span>
-                    <SaveStatusBadge status={saveStatus} compact />
-                  </div>
-                  <div className="notes-drawer-font">
-                    <button onClick={() => updateFontSize(activeFontSize - 1)} title="缩小字体">A-</button>
-                    <span>{activeFontSize}</span>
-                    <button onClick={() => updateFontSize(activeFontSize + 1)} title="放大字体">A+</button>
-                  </div>
-                </div>
-                <div className="notes-drawer-editor-body">
-                  <TiptapEditor
-                    key={currentNote.id}
-                    value={currentNote.content || emptyDoc()}
-                    onChange={(content) => updateCurrentNote({ content })}
-                    placeholder="写下长期计划、灵感或临时素材..."
-                    onSave={flushPending}
-                    fontSize={activeFontSize}
-                    onFontSizeChange={updateFontSize}
-                  />
-                </div>
-              </article>
-            ) : (
-              <button
-                key={note.id}
-                className="notes-drawer-card"
-                onClick={() => selectNote(note)}
-                onContextMenu={(event) => handleNoteContextMenu(event, note)}
-                title="点击编辑便签"
-              >
-                <span className="notes-drawer-card-title">{note.title?.trim() || '无标题便签'}</span>
-                <span className="notes-drawer-card-text">{extractText(note.content) || '空白便签'}</span>
-                <span className="notes-drawer-card-time">{formatTime(note.updatedAt)}</span>
-              </button>
-            )
-          ))
+              )
+            })}
+          </React.Fragment>
         )}
       </div>
     </aside>

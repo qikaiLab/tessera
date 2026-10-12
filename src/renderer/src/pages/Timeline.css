@@ -336,3 +336,18 @@
   justify-content: center;
   padding: var(--spacing-3) 0;
 }
+
+/* Cards wait invisible until they scroll into view, then rise in (see useScrollReveal). */
+.timeline-card[data-reveal='pending'] {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.timeline-card[data-reveal='in'] {
+  animation: revealIn 420ms var(--ease-out) var(--reveal-delay, 0ms) backwards;
+}
+
+@keyframes revealIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}

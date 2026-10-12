@@ -1,0 +1,37 @@
+/* Height comes from the grid row; duration is set per toggle from the content height. */
+.collapsible {
+  --collapse-ms: 300ms;
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--collapse-ms) var(--ease-travel),
+    visibility 0s linear var(--collapse-ms);
+}
+
+.collapsible.is-open {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition:
+    grid-template-rows var(--collapse-ms) var(--ease-travel),
+    visibility 0s;
+}
+
+.collapsible-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The content fades and drifts itself (not the wrapper: see Collapsible.jsx). */
+.collapsible > .collapsible-inner > * {
+  transition:
+    opacity calc(var(--collapse-ms) * 0.6) var(--ease-out),
+    transform calc(var(--collapse-ms) * 0.8) var(--ease-travel),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.collapsible:not(.is-open) > .collapsible-inner > * {
+  opacity: 0;
+  transform: translateY(-8px);
+}

@@ -71,6 +71,12 @@ npm run check
 - **雾化玻璃：玻璃元素（带 `backdrop-filter`）的任何祖先都不能带 `opacity < 1`、`filter` 或 `mask`，哪怕只是动画途中。** 否则浏览器只在该祖先内部取景，玻璃会在动画期间变成「平的」，动画一结束颜色突然跳变。含玻璃的容器（页面根、抽屉、设置卡片、弹窗遮罩）在该风格下只做位移动画，淡入淡出放在玻璃元素自身或遮罩的伪元素上；见 `theme/appearanceSurfaces.css` 与 `tests/e2e/frosted-glass-motion.spec.mjs`。
 - 高度会变化、距离不定的动画（卡片折叠）时长要随距离伸缩，见 `utils/collapseMotion.js`，并使用起步较柔的 `--ease-travel`；时长通过 `--collapse-ms` 在切换时按内容高度写入。
 - 滚动容器用 `scrollbar-gutter: stable` 预留滚动条位置，否则内容变高时滚动条中途出现会让图表、编辑器宽度抖动几个像素。
+- 通用动效件（优先复用，不要各写各的）：
+  - `components/Collapsible.jsx`：高度展开/收起，时长随内容高度伸缩，收起期间保留内容；自身不带透明度，淡入淡出写在 `.collapsible-inner > *` 上。
+  - `utils/useFullscreenPresence.js`：全屏层退出时多停留一段时间以播放退场；使用它的页面要同时把「全屏祖先」样式（`fullscreen-active-parent` 等）保持到退场结束，否则全屏层会被动画中的祖先圈住。
+  - `utils/useScrollReveal.js`：列表项滚动进入视野时才播放入场并错峰；用 `data-reveal` 属性而不是 class，避免 React 重渲染把状态冲掉。
+  - `utils/useDelayedFlag.js`：加载骨架屏只在加载确实变慢（约 240 ms）后才显示，快速加载直接出内容，不闪占位。
+- 「添加记录」的新板块放在 `.section-slot` 里，用行高 `0fr → 1fr` 生长，下方卡片随之平滑下移；页面用逐帧指数缓动跟随到新板块（用户滚轮/键盘介入即停止），动画结束后聚焦输入。
 - 减少动态效果由全局 `prefers-reduced-motion` 规则统一处理，新增动画不需要单独写。
 - 评估动效时不要只凭肉眼：用 `requestAnimationFrame` 逐帧采样元素的 `opacity`/`transform` 和帧间隔（长帧即卡顿），并用 `tests/e2e/motion.spec.mjs` 守住行为（快速切日不空白、弹窗退场后卸载、侧栏与标签高亮跟随选中项）。
 

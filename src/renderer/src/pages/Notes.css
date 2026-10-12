@@ -272,6 +272,11 @@ body.is-resizing .notes-resize-handle::after {
     transform var(--transition-fast);
 }
 
+.notes-list-item {
+  /* Each note eases in on its own (glass-safe: the item fades, never its container). */
+  animation: revealIn 380ms var(--ease-out) var(--enter-delay, 0ms) backwards;
+}
+
 .notes-list-item:hover {
   background: var(--bg-hover);
   transform: translateX(1px);
@@ -801,4 +806,14 @@ body.is-resizing .notes-resize-handle::after {
   margin: 0 var(--spacing-1);
   background: var(--border);
   flex-shrink: 0;
+}
+
+/* Header, meta line and editor fade in once the note has loaded. */
+.notes-editor-header,
+.notes-editor-meta {
+  animation: contentIn 260ms var(--ease-out) backwards;
+}
+
+.notes-editor-meta {
+  animation-delay: 60ms;
 }

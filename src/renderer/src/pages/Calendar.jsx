@@ -19,13 +19,27 @@ export default function Calendar() {
   const tabsThumbRef = useSlidingThumb()
   const navigate = useNavigate()
   const { datesWithData, selectedDate, setSelectedDate, countdowns, saveCountdowns, confirm } = useApp()
-  const [view, setView] = useState('month')
+  const [view, setViewState] = useState('month')
   const [cursor, setCursor] = useState(new Date())
+  // Which way the calendar just moved ('next' | 'prev' | 'view'), so the new page can arrive from there.
+  const [motion, setMotion] = useState('none')
   const [showCountdownModal, setShowCountdownModal] = useState(false)
 
   const datesSet = useMemo(() => new Set(datesWithData), [datesWithData])
 
+  const setView = (next) => {
+    if (next === view) return
+    setMotion('view')
+    setViewState(next)
+  }
+
+  const goToToday = () => {
+    setMotion(new Date() >= cursor ? 'next' : 'prev')
+    setCursor(new Date())
+  }
+
   const navigate_ = (dir) => {
+    setMotion(dir > 0 ? 'next' : 'prev')
     setCursor(prev => {
       if (view === 'month') return dir > 0 ? addMonths(prev, 1) : subMonths(prev, 1)
       if (view === 'week') return dir > 0 ? addWeeks(prev, 1) : subWeeks(prev, 1)
@@ -81,18 +95,22 @@ export default function Calendar() {
       {/* Calendar Nav */}
       <div className="cal-nav">
         <button className="cal-nav-arrow" onClick={() => navigate_(-1)} aria-label="上一页">‹</button>
-        <button className="cal-today-btn btn btn-primary btn-sm" onClick={() => setCursor(new Date())}>
+        <button className="cal-today-btn btn btn-primary btn-sm" onClick={goToToday}>
           今日
         </button>
-        <span className="cal-header-title">{headerTitle()}</span>
+        <span key={headerTitle()} className={`cal-header-title cal-title-${motion}`}>{headerTitle()}</span>
         <button className="cal-nav-arrow" onClick={() => navigate_(1)} aria-label="下一页">›</button>
       </div>
 
       {/* Calendar Grid */}
       <div className="cal-content">
-        {view === 'month' && <MonthView cursor={cursor} getDayStatus={getDayStatus} onDayClick={handleDayClick} />}
-        {view === 'week' && <WeekView cursor={cursor} getDayStatus={getDayStatus} onDayClick={handleDayClick} />}
-        {view === 'year' && <YearView cursor={cursor} getDayStatus={getDayStatus} onDayClick={handleDayClick} />}
+        {/* A new key per view and period replays the arrival: the page slides in from the side it
+         * moved from, and its cells follow one after another (each cell fades itself). */}
+        <div key={`${view}:${periodKey(view, cursor)}`} className={`cal-slide cal-slide-${motion}`}>
+          {view === 'month' && <MonthView cursor={cursor} getDayStatus={getDayStatus} onDayClick={handleDayClick} />}
+          {view === 'week' && <WeekView cursor={cursor} getDayStatus={getDayStatus} onDayClick={handleDayClick} />}
+          {view === 'year' && <YearView cursor={cursor} getDayStatus={getDayStatus} onDayClick={handleDayClick} />}
+        </div>
       </div>
 
       {/* Countdown Legend */}
@@ -128,6 +146,16 @@ export default function Calendar() {
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 
+// Identifies the period on screen, so only a real change of month / week / year replays the entrance.
+function periodKey(view, cursor) {
+  if (view === 'month') return format(cursor, 'yyyy-MM')
+  if (view === 'week') return format(startOfWeek(cursor, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  return format(cursor, 'yyyy')
+}
+
+// Entrance delay of a cell: a soft diagonal sweep from the top left.
+const cellDelay = (row, column) => ({ '--cell-delay': `${row * 34 + column * 12}ms` })
+
 function MonthView({ cursor, getDayStatus, onDayClick }) {
   const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 })
   const end = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 })
@@ -146,6 +174,7 @@ function MonthView({ cursor, getDayStatus, onDayClick }) {
             <button
               key={i}
               className={`cal-day ${inMonth(day) ? '' : 'other-month'} ${today ? 'today' : ''} ${selected ? 'selected' : ''} ${hasData ? 'has-data' : ''}`}
+              style={cellDelay(Math.floor(i / 7), i % 7)}
               onClick={() => onDayClick(day)}
             >
               <span className="cal-day-num">{format(day, 'd')}</span>
@@ -181,6 +210,7 @@ function WeekView({ cursor, getDayStatus, onDayClick }) {
             <button
               key={i}
               className={`cal-day week-day ${today ? 'today' : ''} ${selected ? 'selected' : ''} ${hasData ? 'has-data' : ''}`}
+              style={cellDelay(0, i * 2)}
               onClick={() => onDayClick(day)}
             >
               <span className="cal-weekday-label">{WEEKDAYS[i]}</span>
@@ -208,14 +238,14 @@ function YearView({ cursor, getDayStatus, onDayClick }) {
 
   return (
     <div className="year-view">
-      {months.map(month => {
+      {months.map((month, monthIndex) => {
         const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 })
         const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 })
         const days = eachDayOfInterval({ start, end })
         const inMonth = (d) => isSameMonth(d, month)
 
         return (
-          <div key={month.toISOString()} className="year-month">
+          <div key={month.toISOString()} className="year-month" style={cellDelay(Math.floor(monthIndex / 4), monthIndex % 4 * 2)}>
             <div className="year-month-title">{format(month, 'MM月')}</div>
             <div className="year-grid">
               {WEEKDAYS.map(d => <span key={d} className="year-weekday">{d}</span>)}
