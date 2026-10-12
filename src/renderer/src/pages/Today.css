@@ -621,13 +621,20 @@
 }
 
 /* The editor stays mounted while collapsed so its state and word count are kept. The body
- * glides shut by animating its single grid row from 1fr to 0fr. */
+ * glides shut by animating its single grid row from 1fr to 0fr. `--collapse-ms` is set from
+ * the content height when the card is toggled (see SectionCard), so long entries take longer
+ * rather than flying across the screen. Expanding: the container leads and the text follows a
+ * beat later; collapsing: the text leaves first. */
+.section-card {
+  --collapse-ms: 300ms;
+}
+
 .section-card .text-editor-body {
   display: grid;
   grid-template-rows: 1fr;
   transition:
-    grid-template-rows 300ms var(--ease-out),
-    opacity 200ms var(--ease-out),
+    grid-template-rows var(--collapse-ms) var(--ease-travel),
+    opacity calc(var(--collapse-ms) * 0.7) var(--ease-out) calc(var(--collapse-ms) * 0.12),
     visibility 0s;
 }
 
@@ -636,15 +643,24 @@
   overflow: hidden;
 }
 
+.section-card:not(.fullscreen-active-parent) .text-editor-body .tiptap-editor-wrapper {
+  transition: transform calc(var(--collapse-ms) * 0.8) var(--ease-travel) calc(var(--collapse-ms) * 0.1);
+}
+
 .section-card.is-collapsed .text-editor-body {
   grid-template-rows: 0fr;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition:
-    grid-template-rows 280ms var(--ease-out),
-    opacity 160ms var(--ease-out),
-    visibility 0s linear 280ms;
+    grid-template-rows var(--collapse-ms) var(--ease-travel),
+    opacity calc(var(--collapse-ms) * 0.45) var(--ease-out),
+    visibility 0s linear var(--collapse-ms);
+}
+
+.section-card.is-collapsed .text-editor-body .tiptap-editor-wrapper {
+  transform: translateY(-10px);
+  transition: transform calc(var(--collapse-ms) * 0.8) var(--ease-travel);
 }
 
 .section-card-header::after {

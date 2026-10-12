@@ -102,3 +102,47 @@ test('tab strips slide a highlight to the selected tab', async ({ sandbox }) => 
     await app.close()
   }
 })
+
+test('folding a record card takes longer for long text and survives quick clicks', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.waitForTimeout(600)
+    const card = window.locator('.sections-grid .section-card').first()
+    const toggle = card.locator('.section-collapse-btn')
+    const duration = async () => Number.parseFloat(await card.evaluate(el => el.style.getPropertyValue('--collapse-ms')))
+
+    await toggle.click()
+    await expect(card).toHaveClass(/is-collapsed/)
+    const shortMs = await duration()
+    await toggle.click()
+    await expect(card).not.toHaveClass(/is-collapsed/)
+
+    await card.locator('.ProseMirror').click()
+    for (let line = 0; line < 40; line += 1) {
+      await window.keyboard.type(`一行较长的内容 ${line}`)
+      await window.keyboard.press('Enter')
+    }
+    await toggle.click()
+    await expect(card).toHaveClass(/is-collapsed/)
+    const longMs = await duration()
+    expect(longMs).toBeGreaterThan(shortMs + 150)
+    expect(longMs).toBeLessThanOrEqual(620)
+    expect(shortMs).toBeGreaterThanOrEqual(240)
+
+    // Clicking again mid-flight reverses cleanly and ends fully open and readable.
+    await window.waitForTimeout(100)
+    await toggle.click()
+    await window.waitForTimeout(80)
+    await toggle.click()
+    await window.waitForTimeout(80)
+    await toggle.click()
+    await expect(card).not.toHaveClass(/is-collapsed/)
+    await expect(card.locator('.ProseMirror')).toBeVisible()
+    const body = card.locator('.text-editor-body')
+    await expect.poll(() => body.evaluate(el => Math.round(el.getBoundingClientRect().height))).toBeGreaterThan(300)
+    await expect(body).toHaveCSS('opacity', '1')
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

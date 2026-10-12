@@ -18,6 +18,7 @@ import {
 } from '../utils/contextMenu'
 import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
 import { getSectionPreview } from '../utils/sectionPreview'
+import { collapseDurationMs } from '../utils/collapseMotion'
 import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
 import './Today.css'
 
@@ -689,6 +690,7 @@ function SectionCard({
   onSave,
   onToggleFullScreen
 }) {
+  const cardRef = useRef(null)
   const [charCount, setCharCount] = useState(0)
   const [fontSize, setFontSize] = useState(() => {
     return parseInt(localStorage.getItem('mototrace_font_size') || '14', 10)
@@ -697,6 +699,15 @@ function SectionCard({
   const handleFontSizeChange = (size) => {
     setFontSize(size)
     localStorage.setItem('mototrace_font_size', String(size))
+  }
+
+  // Folding takes longer the more text has to travel. The editor keeps its natural height in
+  // scrollHeight even while folded, so the same duration applies in both directions and a
+  // click in mid-flight simply reverses the transition.
+  const handleToggleCollapsed = () => {
+    const shell = cardRef.current?.querySelector('.text-editor-body > .tiptap-shell')
+    cardRef.current?.style.setProperty('--collapse-ms', `${collapseDurationMs(shell?.scrollHeight)}ms`)
+    onToggleCollapsed()
   }
 
   // Parse persisted JSON string back to object for Tiptap
@@ -747,6 +758,7 @@ function SectionCard({
 
   return (
     <div
+      ref={cardRef}
       className={`section-card date-card-${dateTransitionDir} ${isFullScreen ? 'fullscreen-active-parent' : ''} ${collapsed && !isFullScreen ? 'is-collapsed' : ''}`}
       style={{ animationDelay: `${animationDelay}ms` }}
       onContextMenu={onContextMenu}
@@ -757,7 +769,7 @@ function SectionCard({
             <button
               type="button"
               className="section-collapse-btn"
-              onClick={onToggleCollapsed}
+              onClick={handleToggleCollapsed}
               aria-expanded={!collapsed}
               aria-label={collapsed ? `展开${section.name}` : `收起${section.name}`}
               title={collapsed ? '展开' : '收起'}
@@ -770,7 +782,7 @@ function SectionCard({
             {section.resident ? '常驻' : '激发'}
           </span>
           {collapsed && !isFullScreen && (
-            <button type="button" className="section-collapsed-preview" onClick={onToggleCollapsed}>
+            <button type="button" className="section-collapsed-preview" onClick={handleToggleCollapsed}>
               {getSectionPreview(value) || '（空）'}
             </button>
           )}

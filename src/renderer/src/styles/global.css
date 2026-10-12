@@ -131,6 +131,9 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.5, 0, 0.75, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* For things that travel a long, variable distance (a card folding): a gentle start and a
+   * long tail, so a tall block does not leap most of the way in the first few frames. */
+  --ease-travel: cubic-bezier(0.4, 0.1, 0.2, 1);
   --transition-fast: 140ms var(--ease-out);
   --transition-base: 220ms var(--ease-out);
   --transition-slow: 380ms var(--ease-out);
@@ -1419,6 +1422,13 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: var(--spacing-6);
+}
+
+/* Keep the scrollbar's strip reserved. Otherwise content that grows past the viewport (an
+ * editor panel opening, a card unfolding) makes the scrollbar appear mid-animation, which
+ * narrows everything by a few pixels and makes charts and text reflow with a visible twitch. */
+:is(.page-content, .today-content, .timeline-list, .settings-scroll) {
+  scrollbar-gutter: stable;
 }
 
 /* ─── Section Card ───────────────────────────────────────────────────────── */

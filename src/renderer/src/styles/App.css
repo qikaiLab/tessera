@@ -155,7 +155,10 @@
 .app-main > * {
   position: relative;
   z-index: 1;
-  animation: pageIn 260ms var(--ease-out) both;
+  /* `backwards`, not `both`: a transform animation that keeps filling forwards makes this
+   * element the containing block of every `position: fixed` descendant, which squeezed the
+   * fullscreen editors into the page area instead of the whole window. */
+  animation: pageIn 260ms var(--ease-out) backwards;
 }
 
 .app-main > .notes-fullscreen-active-parent {

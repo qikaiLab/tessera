@@ -56,3 +56,44 @@ test('keeps chart data when the chart type changes and animates the editor', asy
     await app.close()
   }
 })
+
+test('opening the chart settings does not change the chart width', async ({ sandbox }) => {
+  const { app, window, problems } = await openAnalytics(sandbox)
+  try {
+    await window.getByRole('button', { name: /新建图表/ }).first().click()
+    const card = window.locator('.analytics-card')
+    await expect(card).toHaveClass(/editing/)
+    await card.getByTitle('配置').click() // close the panel a new chart opens with
+    await expect(card).not.toHaveClass(/editing/)
+    await window.waitForTimeout(500)
+
+    // Size the scroll area so the page just fits: opening the panel then pushes it past the
+    // viewport, which is when a scrollbar used to appear mid-animation and narrow the chart.
+    await window.evaluate(() => {
+      const scroller = document.querySelector('.analytics-content')
+      const grid = document.querySelector('.analytics-grid')
+      const contentHeight = grid.getBoundingClientRect().bottom - scroller.getBoundingClientRect().top + scroller.scrollTop
+      const style = document.createElement('style')
+      style.textContent = `.analytics-page .analytics-content { flex: none; height: ${Math.ceil(contentHeight) + 40}px; }`
+      document.head.appendChild(style)
+    })
+    await expect(window.locator('.analytics-content')).toHaveCSS('scrollbar-gutter', 'stable')
+
+    const widths = await window.evaluate(() => new Promise(resolve => {
+      const card = document.querySelector('.analytics-card')
+      const seen = []
+      const start = performance.now()
+      const frame = now => {
+        seen.push(card.getBoundingClientRect().width)
+        if (now - start < 700) requestAnimationFrame(frame); else resolve(seen)
+      }
+      requestAnimationFrame(frame)
+      card.querySelector('button[title="配置"]').click()
+    }))
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(0.5)
+    await expect(card).toHaveClass(/editing/)
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
