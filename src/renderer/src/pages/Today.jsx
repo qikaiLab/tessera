@@ -653,7 +653,7 @@ export default function Today() {
                   <div
                     key={sec.id}
                     data-section-slot={sec.id}
-                    className={`section-slot ${addedSectionId === sec.id ? 'is-adding' : ''}`}
+                    className={`section-slot ${addedSectionId === sec.id ? 'is-adding' : ''} ${manuallyAdded.has(sec.id) ? 'was-added' : ''}`}
                     onAnimationEnd={event => {
                       if (event.target === event.currentTarget && addedSectionId === sec.id) focusAddedSection(sec.id)
                     }}

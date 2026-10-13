@@ -784,6 +784,12 @@
 
 .section-slot.is-adding > .section-card {
   min-height: 0;
+}
+
+/* The entrance stays attached to the card after the grow has finished (`was-added` outlives
+ * `is-adding`): swapping it back to the card's ordinary entrance animation at that point would
+ * make the browser play that one from the start, i.e. the card would flash and enter twice. */
+.section-slot.was-added > .section-card {
   animation: addCardIn 440ms var(--ease-out) 70ms backwards;
 }
 

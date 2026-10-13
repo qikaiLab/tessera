@@ -470,3 +470,46 @@ test('the card never flashes dark after fullscreen closes', async ({ sandbox }) 
     await app.close()
   }
 })
+
+test('an added record enters once and stays put afterwards', async ({ sandbox }) => {
+  await fs.mkdir(sandbox.dataDir, { recursive: true })
+  await fs.writeFile(path.join(sandbox.dataDir, 'sections.json'), JSON.stringify([
+    { id: 'diary', name: '日记', type: 'text', unit: '', resident: true, order: 0 },
+    { id: 'extra', name: '额外记录', type: 'text', unit: '', resident: false, order: 1 },
+    { id: 'count', name: '计数', type: 'number', unit: '次', resident: false, order: 2 }
+  ]))
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.waitForTimeout(700)
+    for (const [id, name] of [['extra', '额外记录'], ['count', '计数']]) {
+      await window.evaluate((sectionId) => {
+        window.__enter = new Promise(resolve => {
+          const start = performance.now()
+          let sawAdding = false
+          let replays = 0
+          const frame = now => {
+            const slot = document.querySelector(`[data-section-slot="${sectionId}"]`)
+            const card = slot && slot.querySelector(':scope > .section-card')
+            if (card) {
+              const adding = slot.classList.contains('is-adding')
+              if (adding) sawAdding = true
+              const style = getComputedStyle(card)
+              // After the grow is over the card must simply be there: fully opaque, unmoved.
+              if (sawAdding && !adding && (Number(style.opacity) < 1 || style.transform !== 'none')) replays += 1
+            }
+            if (now - start < 1800) requestAnimationFrame(frame)
+            else resolve({ sawAdding, replays })
+          }
+          requestAnimationFrame(frame)
+        })
+      }, id)
+      await window.getByRole('button', { name: `+ ${name}` }).click()
+      const result = await window.evaluate(() => window.__enter)
+      expect(result.sawAdding).toBe(true)
+      expect(result.replays, `${name} replayed its entrance`).toBe(0)
+    }
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
