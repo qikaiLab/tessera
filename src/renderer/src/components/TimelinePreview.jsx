@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import RichTextView from './RichTextView'
@@ -90,6 +90,39 @@ function DayBlock({ card, sectionOrder, query, favoriteLookup, onToggleFavorite,
   )
 }
 
+// A day's header is "stuck" once its card has scrolled up past the top of the list: it is then
+// pinned to the toolbar edge and drops its rounded top corners so it joins the toolbar cleanly.
+// The attribute is set straight on the DOM (no re-render per scroll event).
+function useStuckHeaders(rootRef, dependency) {
+  useEffect(() => {
+    const root = rootRef.current
+    const scroller = root?.closest('.timeline-list')
+    if (!root || !scroller) return undefined
+
+    let frame = 0
+    const update = () => {
+      frame = 0
+      const top = scroller.getBoundingClientRect().top
+      for (const day of root.querySelectorAll('.preview-day')) {
+        const header = day.firstElementChild
+        if (!header) continue
+        const stuck = day.getBoundingClientRect().top < top - 0.5
+        if (stuck) header.setAttribute('data-stuck', 'true')
+        else header.removeAttribute('data-stuck')
+      }
+    }
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
+    update()
+    scroller.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      cancelAnimationFrame(frame)
+      scroller.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+    }
+  }, [rootRef, dependency])
+}
+
 /**
  * Read-only review of the days that match the timeline filters. Days are rendered in
  * batches so a long history stays responsive.
@@ -97,10 +130,13 @@ function DayBlock({ card, sectionOrder, query, favoriteLookup, onToggleFavorite,
 export default function TimelinePreview({ cards, sections, query, favoriteLookup, onToggleFavorite, onOpenDay }) {
   const fontSize = useMemo(readEditorFontSize, [])
   const sectionOrder = useMemo(() => new Map(sections.map((section, index) => [section.id, index])), [sections])
+  const rootRef = useRef(null)
 
   // A different result set starts again from the top batch.
   const signature = `${cards.length}:${cards[0]?.dateStr ?? ''}:${cards[cards.length - 1]?.dateStr ?? ''}`
   const { visible, hasMore, remaining, sentinelRef, showMore } = useIncrementalList(cards, PAGE_SIZE, signature)
+
+  useStuckHeaders(rootRef, visible.length)
 
   const summary = useMemo(() => {
     let entries = 0
@@ -115,7 +151,7 @@ export default function TimelinePreview({ cards, sections, query, favoriteLookup
   }, [cards])
 
   return (
-    <div className="timeline-preview">
+    <div ref={rootRef} className="timeline-preview">
       <p className="preview-summary">
         共 <strong>{summary.days}</strong> 天 · <strong>{summary.entries}</strong> 条内容 · <strong>{summary.words}</strong> 字
       </p>

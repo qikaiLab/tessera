@@ -79,6 +79,7 @@ npm run check
 - 全屏编辑器进出时，页面本身不能有任何「瞬变」（`tests/e2e/motion-polish.spec.mjs` 逐帧守护）：全屏祖先上的入场动画用 `animation-duration: 0s` 等方式让它失效，**不要写 `animation: none`**，否则全屏结束、动画名重新出现时入场动画会整段重播（卡片从透明淡入）；记录卡片的头部保持原样（只加 `inert`），正文用 `min-height` 占住编辑器离开文档流前的高度，下方的卡片才不会上下跳；标题栏的底色、描边、毛玻璃和纹理随全屏层同步渐变（`body.editor-fullscreen-leaving` 让退场时的渐变跟随遮罩的节奏），不要让它们在进出全屏的瞬间突变；卡片自身的 `backdrop-filter` 在全屏期间必须为 `none`，退场结束后再缓动恢复。编辑器外壳 `.tiptap-shell` 不能给 `background-color` 加过渡，否则全屏层的不透明底色会在退出后慢慢褪去，卡片闪黑。全屏的「退出」按钮固定在右上角、紧贴窗口三个按钮左侧（`--window-controls-width`），放在头部之外；头部右侧按 `--fs-controls-reserve` 与行宽自动避让，任何窗口宽度下都不重叠（`motion-polish.spec.mjs` 守护）。
 - 会横向滑动或有位移的内容放在滚动容器里时，容器要 `overflow-x: hidden`（日历），带位移的子元素外层加 `overflow: clip`，否则动画途中滚动条会闪一下。被 `.collapsible-inner` 等裁剪的卡片不要用悬停位移（`translate`），边框会被裁掉一边。
 - 「添加记录」的新板块放在 `.section-slot` 里（入场动画挂在 `.was-added` 上而不是 `.is-adding`：动画名一旦切回卡片的常规入场，浏览器会把它从头播放，看起来就是入场了两次），用行高 `0fr → 1fr` 生长，下方卡片随之平滑下移；页面用逐帧指数缓动跟随到新板块（用户滚轮/键盘介入即停止），动画结束后聚焦输入。
+- `position: sticky` 的吸顶位置是滚动容器的**内容区**上沿，容器上方有 padding 就会在吸顶元素上方留出一条缝、让下面滚动的内容露出来：吸顶元素所在的滚动容器不要有上内边距（时间线预览模式为此把 padding 移进 `.timeline-preview`）。吸顶状态用脚本在 DOM 上设 `data-stuck`（不触发重渲染）来去掉圆角。
 - 减少动态效果由全局 `prefers-reduced-motion` 规则统一处理，新增动画不需要单独写。
 - 评估动效时不要只凭肉眼：用 `requestAnimationFrame` 逐帧采样元素的 `opacity`/`transform` 和帧间隔（长帧即卡顿），并用 `tests/e2e/motion.spec.mjs` 守住行为（快速切日不空白、弹窗退场后卸载、侧栏与标签高亮跟随选中项）。
 
