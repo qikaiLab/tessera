@@ -55,13 +55,14 @@ describe('editor and analytics theme CSS contract', () => {
     expect(surfacesCss).toContain('backdrop-filter: var(--glass-backdrop-ambient)')
   })
 
-  it('keeps every fullscreen editor control in one non-overlapping row', () => {
+  it('keeps the exit button beside the window controls and the header clear of them', () => {
+    // The button lives outside the header (whose entrance animation would trap a fixed child).
     expect(editorComponent).toMatch(/tiptap-fullscreen-header-actions[\s\S]*fullscreen-exit-btn/)
-    expect(editorCss).toContain('padding: 6px 104px 8px 20px')
-    expect(editorCss).toContain('position: static')
+    expect(editorComponent).toContain("'--fs-column-max': currentMaxWidth")
+    expect(editorCss).toMatch(/\.tiptap-fullscreen \.fullscreen-exit-btn\s*\{[^}]*position:\s*fixed;[^}]*right:\s*calc\(var\(--window-controls-width\) \+ 16px\)/)
+    expect(editorCss).toContain('var(--fs-controls-reserve)')
     expect(editorCss).toContain('white-space: nowrap')
     expect(editorCss).toContain('@media (max-width: 1024px)')
-    expect(editorCss).toContain('padding: 6px 104px 8px 16px')
     expect(editorCss).not.toContain('padding: 48px 20px 8px')
   })
 

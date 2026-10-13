@@ -371,3 +371,102 @@ test('a hovered drawer note keeps its whole border', async ({ sandbox }) => {
     await app.close()
   }
 })
+
+test('the fullscreen exit button sits left of the window controls and never overlaps anything', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.waitForTimeout(600)
+    await window.locator('.fullscreen-btn').first().click()
+    await expect(window.locator('.tiptap-shell.tiptap-fullscreen')).toBeVisible()
+    await window.waitForTimeout(600)
+
+    const measure = () => window.evaluate(() => {
+      const rect = selector => {
+        const el = document.querySelector(selector)
+        if (!el) return null
+        const box = el.getBoundingClientRect()
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom }
+      }
+      const overlaps = (a, b) => a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+      const exit = rect('.fullscreen-exit-btn')
+      const controls = [...document.querySelectorAll('.titlebar-btn')].map(el => {
+        const box = el.getBoundingClientRect()
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom }
+      })
+      const header = ['.tiptap-char-count', '.tiptap-width-toggle', '.tiptap-font-controls'].map(rect)
+      return {
+        width: window.innerWidth,
+        exit,
+        leftOfControls: controls.every(box => exit.right <= box.left),
+        sameRow: controls.every(box => Math.abs(box.top + box.bottom - exit.top - exit.bottom) < 6),
+        controlsOverlap: controls.some(box => overlaps(exit, box)),
+        headerOverlap: header.some(box => overlaps(exit, box)),
+        inside: exit.left >= 0 && exit.right <= window.innerWidth
+      }
+    })
+
+    for (const width of [520, 760, 900, 1100, 1500]) {
+      await app.evaluate(({ BrowserWindow }, size) => {
+        const win = BrowserWindow.getAllWindows()[0]
+        // The app's own minimum is 900; the layout should hold for any size, so lift it here.
+        win.setMinimumSize(320, 300)
+        win.setSize(size, 760)
+      }, width)
+      await window.waitForTimeout(400)
+      // Both column widths: the standard one is narrower than the window, the wide one may fill it.
+      for (const label of ['↔ 宽屏', '→← 标准']) {
+        const result = await measure()
+        expect(result.leftOfControls, `exit left of controls @${width}`).toBe(true)
+        expect(result.sameRow, `exit aligned with controls @${width}`).toBe(true)
+        expect(result.controlsOverlap, `exit/controls overlap @${width}`).toBe(false)
+        expect(result.headerOverlap, `exit/header overlap @${width}`).toBe(false)
+        expect(result.inside).toBe(true)
+        await window.getByRole('button', { name: label }).click().catch(() => {})
+        await window.waitForTimeout(150)
+      }
+    }
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
+test('the card never flashes dark after fullscreen closes', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.evaluate(async () => {
+      await window.api.config.set('interfaceStyle', 'frosted-glass')
+      await window.api.config.set('theme', 'dark')
+    })
+    await window.reload()
+    await window.waitForSelector('.sidebar')
+    await window.waitForTimeout(600)
+    await window.locator('.fullscreen-btn').first().click()
+    await expect(window.locator('.tiptap-shell.tiptap-fullscreen')).toBeVisible()
+    await window.waitForTimeout(500)
+    await window.evaluate(() => {
+      window.__flash = new Promise(resolve => {
+        const start = performance.now()
+        let worst = 0
+        const frame = now => {
+          // Once the fullscreen layer is gone the editor shell is part of the card again and
+          // must be see-through; it used to fade out slowly from the layer's opaque background.
+          const shell = document.querySelector('.sections-grid .tiptap-shell:not(.tiptap-fullscreen)')
+          if (shell) {
+            const match = getComputedStyle(shell).backgroundColor.match(/rgba?\(([^)]+)\)/)
+            const parts = match ? match[1].split(',').map(Number) : [0, 0, 0, 0]
+            worst = Math.max(worst, parts.length > 3 ? parts[3] : 1)
+          }
+          if (now - start < 900) requestAnimationFrame(frame)
+          else resolve(worst)
+        }
+        requestAnimationFrame(frame)
+      })
+    })
+    await window.keyboard.press('Escape')
+    expect(await window.evaluate(() => window.__flash)).toBe(0)
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

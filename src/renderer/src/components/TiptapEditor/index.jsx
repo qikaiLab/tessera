@@ -496,7 +496,10 @@ const TiptapEditor = forwardRef(function TiptapEditor(
 
       {/* Fullscreen Header (instead of floating close button + bottom footer) */}
       {isFullScreen && (
-        <div className="tiptap-fullscreen-header" style={{ maxWidth: currentMaxWidth }}>
+        <div
+          className="tiptap-fullscreen-header"
+          style={{ maxWidth: currentMaxWidth, '--fs-column-max': currentMaxWidth }}
+        >
           <span className="tiptap-char-count">{charCount} 字</span>
           <div className="tiptap-fullscreen-header-actions">
             <button
@@ -523,19 +526,22 @@ const TiptapEditor = forwardRef(function TiptapEditor(
                 A+
               </button>
             </span>
-            {onToggleFullScreen && (
-              <button
-                className="fullscreen-exit-btn"
-                type="button"
-                onClick={handleToggleFullScreen}
-                title="退出全屏 (Esc)"
-                aria-label="退出全屏编辑"
-              >
-                ✕ 退出全屏
-              </button>
-            )}
           </div>
         </div>
+      )}
+
+      {/* Outside the header on purpose: the header's own entrance animation would otherwise
+          become the containing block of this fixed button. */}
+      {isFullScreen && onToggleFullScreen && (
+        <button
+          className="fullscreen-exit-btn"
+          type="button"
+          onClick={handleToggleFullScreen}
+          title="退出全屏 (Esc)"
+          aria-label="退出全屏编辑"
+        >
+          ✕ 退出全屏
+        </button>
       )}
 
       {/* Editor Area */}

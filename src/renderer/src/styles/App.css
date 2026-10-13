@@ -188,6 +188,13 @@
   -webkit-app-region: no-drag;
 }
 
+/* Width of the three window buttons (3 x 28px + 2 gaps) and the room the fullscreen editor
+ * keeps free in that corner for them and its exit button. */
+:root {
+  --window-controls-width: 88px;
+  --fs-controls-reserve: 224px;
+}
+
 body.editor-fullscreen-active .titlebar-controls {
   position: fixed;
   top: 6px;

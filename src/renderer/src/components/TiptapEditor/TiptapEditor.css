@@ -3,7 +3,9 @@
   display: flex;
   flex-direction: column;
   background: transparent;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s;
+  /* No background transition: the fullscreen layer's opaque background would otherwise fade
+   * out over the card for 200 ms after fullscreen ends, flashing it dark. */
+  transition: border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s;
   min-height: 0;
   height: 100%;
 }
@@ -635,7 +637,10 @@
   justify-content: space-between;
   gap: var(--spacing-3);
   min-height: 42px;
-  padding: 6px 104px 8px 20px;
+  /* Keep clear of the fixed exit button and window controls in the top right corner: only as
+   * much as the column does not already leave free on its right (--fs-column-max is set from
+   * the chosen column width). */
+  padding: 6px max(20px, calc(var(--fs-controls-reserve) - (100% - min(100%, var(--fs-column-max, 100%))) / 2)) 8px 20px;
   /* max-width is set dynamically via style prop */
   width: 100%;
   margin: 0 auto;
@@ -695,10 +700,18 @@
   white-space: nowrap;
 }
 
-/* Exit stays in the header flow so editor controls can never overlap it. */
+/* Exit sits in the top right corner, just left of the window controls, and the header keeps
+ * clear of that corner (see padding above), so the two can never overlap. */
 .tiptap-fullscreen .fullscreen-exit-btn {
-  position: static;
+  position: fixed;
+  top: 6px;
+  right: calc(var(--window-controls-width) + 16px);
+  z-index: 1060;
+  box-sizing: border-box;
+  height: 28px;
   flex: 0 0 auto;
+  white-space: nowrap;
+  animation: fsDrop 360ms var(--ease-out) 50ms backwards;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -715,6 +728,10 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   -webkit-app-region: no-drag;
+}
+
+.tiptap-fullscreen.is-leaving .fullscreen-exit-btn {
+  animation: fsLift 170ms var(--ease-in) both;
 }
 
 .tiptap-fullscreen .fullscreen-exit-btn:hover {
@@ -756,7 +773,7 @@
 @media (max-width: 1024px) {
   .tiptap-fullscreen-header {
     gap: 8px;
-    padding: 6px 104px 8px 16px;
+    padding-left: 16px;
   }
 
   .tiptap-fullscreen-header-actions {
