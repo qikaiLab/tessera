@@ -760,11 +760,11 @@
       hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.02),
       hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 96% / 0.05)
     );
-  --glass-backdrop-ambient: blur(18px) saturate(126%) brightness(1.025);
-  --glass-backdrop-elevated: blur(28px) saturate(142%) brightness(1.04);
+  --glass-backdrop-ambient: blur(18px) saturate(126%) brightness(1.01);
+  --glass-backdrop-elevated: blur(28px) saturate(136%) brightness(1.005);
   --glass-backdrop-recessed: blur(14px) saturate(116%) brightness(1.015);
   --theme-backdrop-image:
-    radial-gradient(circle at 12% 6%, hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.16), transparent 36%),
+    radial-gradient(circle at 12% 6%, hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.1), transparent 36%),
     linear-gradient(
       135deg,
       hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.09),
@@ -773,9 +773,9 @@
     );
   --bg-app: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.055);
   --bg-sidebar: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.15);
-  --bg-surface: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.2);
-  --bg-surface-2: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.26);
-  --bg-surface-3: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.34);
+  --bg-surface: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.15);
+  --bg-surface-2: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 96% / 0.2);
+  --bg-surface-3: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 97% / 0.27);
   --bg-hover: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.2);
   --bg-input: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.24);
   --bg-glass: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.3);
@@ -809,12 +809,12 @@
   --surface-material-image:
     radial-gradient(
       circle at 16% -18%,
-      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.55),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.22),
       transparent 40%
     ),
     linear-gradient(
       138deg,
-      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.3),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.09),
       transparent 38%,
       hsl(var(--frosted-accent-h) var(--frosted-tint-s) 82% / 0.08) 72%,
       hsl(var(--frosted-accent-h) calc(40% * var(--frosted-tint-k)) 32% / 0.035)
@@ -822,28 +822,28 @@
   --surface-material-subtle-image:
     linear-gradient(
       142deg,
-      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.28),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.17),
       transparent 46%,
       hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 30% / 0.025)
     );
   --input-material-image:
     linear-gradient(
       180deg,
-      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.3),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 99% / 0.18),
       hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 38% / 0.025)
     );
   --material-surface-shadow:
     0 16px 38px hsl(var(--frosted-accent-h) calc(45% * var(--frosted-tint-k)) 18% / 0.11),
     0 3px 10px hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 18% / 0.055);
   --material-inset-shadow:
-    inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.72),
-    inset 1px 0 hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.22),
+    inset 0 1px hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.5),
+    inset 1px 0 hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100% / 0.2),
     inset 0 -1px hsl(var(--frosted-accent-h) calc(34% * var(--frosted-tint-k)) 36% / 0.08);
-  --notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.1);
+  --notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.07);
   --notes-list-material-image:
     radial-gradient(
       circle at 14% -8%,
-      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.2),
+      hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.12),
       transparent 44%
     ),
     linear-gradient(
@@ -860,7 +860,7 @@
     );
   --notes-list-divider: hsl(var(--frosted-accent-h) calc(38% * var(--frosted-tint-k)) 16% / 0.2);
   --notes-list-edge-shadow:
-    inset -1px 0 hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.3),
+    inset -1px 0 hsl(var(--frosted-accent-h) var(--frosted-tint-s) 98% / 0.22),
     10px 0 34px hsl(var(--frosted-accent-h) calc(42% * var(--frosted-tint-k)) 18% / 0.07);
   --tag-resident-text: var(--accent);
   --tag-resident-bg: var(--accent-light);
@@ -1471,7 +1471,11 @@ body {
 
 /* Break the containing block when an inner element goes fullscreen */
 .section-card.fullscreen-active-parent {
-  animation: none !important;
+  /* The entrance animation is neutralised, not removed: dropping the animation name would
+   * make it start over (card fading in from nothing) the moment fullscreen ends. */
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-fill-mode: none !important;
   transform: none !important;
   filter: none !important;
   perspective: none !important;

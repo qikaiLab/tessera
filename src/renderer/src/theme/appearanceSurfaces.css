@@ -188,6 +188,15 @@
   -webkit-backdrop-filter: var(--glass-backdrop-recessed);
 }
 
+/* A record card gives up its glass while one of its editors is fullscreen (a backdrop-filter
+ * would trap the fullscreen layer inside the card). The glass eases back in when fullscreen
+ * ends instead of popping on after the exit animation. */
+:root[data-interface-style='frosted-glass'] .section-card:not(.fullscreen-active-parent) {
+  transition:
+    border-color var(--transition-base),
+    backdrop-filter 240ms var(--ease-out);
+}
+
 /*
  * Frosted glass: motion that keeps the glass intact.
  * A backdrop-filter only sees the real backdrop when none of its ancestors has opacity < 1,

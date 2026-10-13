@@ -146,7 +146,7 @@ describe('appearance theme CSS contract', () => {
       '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 34% / 0.18)'
     )
     expect(lightGlassRule).toContain(
-      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.1)'
+      '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 94% / 0.07)'
     )
     expect(lightGlassRule).not.toContain(
       '--notes-list-background: hsl(var(--frosted-accent-h) var(--frosted-tint-s) 100%'
@@ -172,11 +172,12 @@ describe('appearance theme CSS contract', () => {
     expect(appCss).toMatch(
       /body\.editor-fullscreen-active \.titlebar\s*\{[^}]*z-index:\s*1300 !important;/s
     )
+    // The titlebar surface fades out with the overlay (and back in while it leaves).
     expect(appCss).toMatch(
-      /body\.editor-fullscreen-active \.titlebar\s*\{[^}]*backdrop-filter:\s*none;/s
+      /body\.editor-fullscreen-active:not\(\.editor-fullscreen-leaving\) \.titlebar\s*\{[^}]*backdrop-filter:\s*none;/s
     )
     expect(appCss).toMatch(
-      /body\.editor-fullscreen-active \.titlebar::before,[^}]*opacity:\s*0;/s
+      /body\.editor-fullscreen-active:not\(\.editor-fullscreen-leaving\) \.titlebar::before,[^}]*opacity:\s*0;/s
     )
   })
 

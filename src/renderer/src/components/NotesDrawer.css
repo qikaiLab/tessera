@@ -330,7 +330,7 @@ body.is-resizing .notes-drawer-resize::after {
   text-align: left;
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .notes-drawer-card:hover,
@@ -342,14 +342,6 @@ body.is-resizing .notes-drawer-resize::after {
 .notes-drawer-card.editing {
   gap: var(--spacing-2);
   cursor: default;
-}
-
-.notes-drawer-card:hover {
-  transform: translateX(-1px);
-}
-
-.notes-drawer-card.editing:hover {
-  transform: none;
 }
 
 .notes-drawer-card-title {

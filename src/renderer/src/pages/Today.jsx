@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { format, parseISO, addDays, subDays, isToday, isValid } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
@@ -764,8 +764,28 @@ function SectionCard({
   onToggleFullScreen
 }) {
   const cardRef = useRef(null)
+  const bodyRef = useRef(null)
   // Fullscreen lingers briefly after it is switched off so its exit animation can play.
   const { show: isFullScreen, leaving: fullScreenLeaving } = useFullscreenPresence(fullScreenRequested)
+
+  // The editor leaves the card's flow while it is fullscreen. Remember how tall the body was
+  // and hold that space, so the cards below stay put and nothing jumps when fullscreen ends.
+  const bodyHeightRef = useRef(0)
+  useEffect(() => {
+    const body = bodyRef.current
+    if (!body || isFullScreen) return undefined
+    bodyHeightRef.current = body.offsetHeight
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(() => { bodyHeightRef.current = body.offsetHeight })
+    observer.observe(body)
+    return () => observer.disconnect()
+  }, [isFullScreen])
+  useLayoutEffect(() => {
+    const body = bodyRef.current
+    if (!body || !isFullScreen) return undefined
+    body.style.minHeight = `${bodyHeightRef.current}px`
+    return () => { body.style.minHeight = '' }
+  }, [isFullScreen])
   const [charCount, setCharCount] = useState(0)
   const [fontSize, setFontSize] = useState(() => {
     return parseInt(localStorage.getItem('mototrace_font_size') || '14', 10)
@@ -838,20 +858,20 @@ function SectionCard({
       style={{ animationDelay: `${animationDelay}ms` }}
       onContextMenu={onContextMenu}
     >
-      <div className="section-card-header">
+      {/* The header keeps its normal shape under the fullscreen layer (only made inert), so the
+          card does not change size or content when fullscreen starts or ends. */}
+      <div className="section-card-header" inert={isFullScreen ? '' : undefined}>
         <div className="section-card-header-left">
-          {!isFullScreen && (
-            <button
-              type="button"
-              className="section-collapse-btn"
-              onClick={handleToggleCollapsed}
-              aria-expanded={!collapsed}
-              aria-label={collapsed ? `展开${section.name}` : `收起${section.name}`}
-              title={collapsed ? '展开' : '收起'}
-            >
-              <span className="section-collapse-chevron" aria-hidden="true">▾</span>
-            </button>
-          )}
+          <button
+            type="button"
+            className="section-collapse-btn"
+            onClick={handleToggleCollapsed}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? `展开${section.name}` : `收起${section.name}`}
+            title={collapsed ? '展开' : '收起'}
+          >
+            <span className="section-collapse-chevron" aria-hidden="true">▾</span>
+          </button>
           <span className="section-card-title">{section.name}</span>
           <span className={`section-type-badge ${section.resident ? 'resident' : 'activated'}`}>
             {section.resident ? '常驻' : '激发'}
@@ -862,41 +882,39 @@ function SectionCard({
             </button>
           )}
         </div>
-        {!isFullScreen && (
-          <div className="section-card-header-right">
-            <FavoriteButton favorite={favorite} onToggle={onToggleFavorite} name={section.name} />
-            <span className="char-count-badge">{charCount} 字</span>
-            <div className="card-font-controls">
-              <button
-                className="btn btn-ghost btn-xs font-ctrl-btn"
-                onClick={() => handleFontSizeChange(Math.max(12, fontSize - 1))}
-                title="缩小字体"
-              >
-                A−
-              </button>
-              <span className="font-ctrl-label">{fontSize}</span>
-              <button
-                className="btn btn-ghost btn-xs font-ctrl-btn"
-                onClick={() => handleFontSizeChange(Math.min(24, fontSize + 1))}
-                title="放大字体"
-              >
-                A+
-              </button>
-            </div>
-            {onToggleFullScreen && (
-              <button
-                className="btn btn-ghost btn-xs btn-icon fullscreen-btn"
-                onClick={onToggleFullScreen}
-                title={`全屏写作 (${FULLSCREEN_EDITOR_SHORTCUT_LABEL})`}
-                aria-label={`进入全屏写作，快捷键 ${FULLSCREEN_EDITOR_SHORTCUT_LABEL}`}
-              >
-                ⛶
-              </button>
-            )}
+        <div className="section-card-header-right">
+          <FavoriteButton favorite={favorite} onToggle={onToggleFavorite} name={section.name} />
+          <span className="char-count-badge">{charCount} 字</span>
+          <div className="card-font-controls">
+            <button
+              className="btn btn-ghost btn-xs font-ctrl-btn"
+              onClick={() => handleFontSizeChange(Math.max(12, fontSize - 1))}
+              title="缩小字体"
+            >
+              A−
+            </button>
+            <span className="font-ctrl-label">{fontSize}</span>
+            <button
+              className="btn btn-ghost btn-xs font-ctrl-btn"
+              onClick={() => handleFontSizeChange(Math.min(24, fontSize + 1))}
+              title="放大字体"
+            >
+              A+
+            </button>
           </div>
-        )}
+          {onToggleFullScreen && (
+            <button
+              className="btn btn-ghost btn-xs btn-icon fullscreen-btn"
+              onClick={onToggleFullScreen}
+              title={`全屏写作 (${FULLSCREEN_EDITOR_SHORTCUT_LABEL})`}
+              aria-label={`进入全屏写作，快捷键 ${FULLSCREEN_EDITOR_SHORTCUT_LABEL}`}
+            >
+              ⛶
+            </button>
+          )}
+        </div>
       </div>
-      <div className="section-card-body text-editor-body">
+      <div ref={bodyRef} className="section-card-body text-editor-body">
         <TiptapEditor
           value={parsedValue}
           onChange={onChange}

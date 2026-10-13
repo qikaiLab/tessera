@@ -55,6 +55,8 @@
 .cal-content {
   flex: 1;
   overflow-y: auto;
+  /* The month slides sideways: that must never flash a horizontal scrollbar. */
+  overflow-x: hidden;
   padding: var(--spacing-5) var(--spacing-6);
 }
 
@@ -311,6 +313,13 @@
 .cal-slide-next { animation: calSlideNext 380ms var(--ease-out) backwards; }
 .cal-slide-prev { animation: calSlidePrev 380ms var(--ease-out) backwards; }
 .cal-slide-view { animation: calZoom 360ms var(--ease-out) backwards; }
+
+/* Cells rise a few pixels as they arrive; keep that from stretching the scroll area and
+ * flashing a vertical scrollbar. */
+.cal-slide {
+  overflow: clip;
+  overflow-clip-margin: 12px;
+}
 
 .cal-slide .cal-day,
 .cal-slide .year-month {

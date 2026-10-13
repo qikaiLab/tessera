@@ -398,7 +398,10 @@ body.is-resizing .notes-resize-handle::after {
 }
 
 .notes-fullscreen-active-parent {
-  animation: none !important;
+  /* Neutralised rather than removed, so leaving fullscreen does not replay the entrance. */
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-fill-mode: none !important;
   transform: none !important;
   filter: none !important;
   perspective: none !important;

@@ -243,3 +243,127 @@ test('the calendar slides between months and views and sweeps its cells in', asy
     await app.close()
   }
 })
+
+test('leaving fullscreen keeps the record page steady and the titlebar fading, never snapping', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.waitForTimeout(600)
+    const card = '.sections-grid .section-card:not(.number-card)'
+    await window.evaluate(() => {
+      window.__watch = (ms) => new Promise(resolve => {
+        const rows = []
+        const start = performance.now()
+        const frame = now => {
+          const el = document.querySelector('.sections-grid .section-card:not(.number-card)')
+          const add = document.querySelector('.today-add-section')
+          const alpha = value => {
+            const match = value.match(/rgba?\(([^)]+)\)/)
+            if (!match) return 0
+            const parts = match[1].split(',').map(Number)
+            return parts.length > 3 ? parts[3] : 1
+          }
+          rows.push({
+            height: Math.round(el.getBoundingClientRect().height),
+            addTop: Math.round(add.getBoundingClientRect().top),
+            opacity: Number(getComputedStyle(el).opacity),
+            titlebar: alpha(getComputedStyle(document.querySelector('.titlebar')).backgroundColor)
+          })
+          if (now - start < ms) requestAnimationFrame(frame)
+          else resolve(rows)
+        }
+        requestAnimationFrame(frame)
+      })
+    })
+    const before = await window.evaluate((selector) => ({
+      height: Math.round(document.querySelector(selector).getBoundingClientRect().height),
+      addTop: Math.round(document.querySelector('.today-add-section').getBoundingClientRect().top)
+    }), card)
+    const biggestStep = (rows, key) => Math.max(0, ...rows.slice(1).map((row, index) => Math.abs(row[key] - rows[index][key])))
+
+    // Going in: the card holds its size and the titlebar surface fades out.
+    await window.evaluate(() => { window.__enter = window.__watch(700) })
+    await window.locator('.fullscreen-btn').first().click()
+    const entering = await window.evaluate(() => window.__enter)
+    expect(entering.every(row => row.height === before.height && row.addTop === before.addTop)).toBe(true)
+    expect(biggestStep(entering, 'titlebar')).toBeLessThan(0.6)
+
+    // Coming out: nothing below moves, the card never fades back in from nothing, the
+    // titlebar surface returns gradually.
+    await window.evaluate(() => { window.__leave = window.__watch(900) })
+    await window.keyboard.press('Escape')
+    const leaving = await window.evaluate(() => window.__leave)
+    expect(leaving.every(row => row.height === before.height && row.addTop === before.addTop)).toBe(true)
+    expect(leaving.every(row => row.opacity === 1)).toBe(true)
+    expect(biggestStep(leaving, 'titlebar')).toBeLessThan(0.6)
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
+test('calendar month changes never flash a scrollbar', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.locator('.nav-item', { hasText: '日历' }).click()
+    await expect(window.locator('.cal-slide')).toBeVisible()
+    await window.waitForTimeout(700)
+    await window.evaluate(() => {
+      window.__overflow = (ms) => new Promise(resolve => {
+        const scroller = document.querySelector('.cal-content')
+        const start = performance.now()
+        // Scrollbars take room from the box: a horizontal one shows as offsetHeight - clientHeight.
+        const result = { wider: 0, taller: 0, barWidth: scroller.offsetWidth - scroller.clientWidth }
+        const frame = now => {
+          if (scroller.offsetHeight - scroller.clientHeight > 0) result.wider += 1
+          if (scroller.offsetWidth - scroller.clientWidth !== result.barWidth) result.taller += 1
+          if (now - start < ms) requestAnimationFrame(frame)
+          else resolve(result)
+        }
+        requestAnimationFrame(frame)
+      })
+    })
+    for (const action of ['下一页', '下一页', '上一页']) {
+      await window.evaluate(() => { window.__run = window.__overflow(700) })
+      await window.getByLabel(action).click()
+      const result = await window.evaluate(() => window.__run)
+      expect(result.wider).toBe(0)
+      expect(result.taller).toBe(0)
+      await window.waitForTimeout(100)
+    }
+    for (const tab of [1, 2, 0]) {
+      await window.evaluate(() => { window.__run = window.__overflow(700) })
+      await window.locator('.tabs .tab').nth(tab).click()
+      const result = await window.evaluate(() => window.__run)
+      expect(result.wider).toBe(0)
+      await window.waitForTimeout(100)
+    }
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
+test('a hovered drawer note keeps its whole border', async ({ sandbox }) => {
+  await seedNotes(sandbox, 2)
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.waitForTimeout(600)
+    await window.locator('.today-notes-toggle').first().click()
+    await window.locator('.notes-drawer-tabs').getByRole('button', { name: '最新' }).click()
+    const card = window.locator('.notes-drawer-item .notes-drawer-card').first()
+    await expect(card).toBeVisible()
+    await window.waitForTimeout(800)
+    await card.hover()
+    await window.waitForTimeout(400)
+    // The folding wrapper clips whatever sticks out of it, so the card must stay inside.
+    const inside = await card.evaluate((el) => {
+      const box = el.getBoundingClientRect()
+      const clip = el.closest('.collapsible-inner').getBoundingClientRect()
+      return box.left >= clip.left && box.right <= clip.right && box.top >= clip.top && box.bottom <= clip.bottom
+    })
+    expect(inside).toBe(true)
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

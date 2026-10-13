@@ -478,6 +478,15 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     }
   }, [isFullScreen])
 
+  // While the overlay fades out the titlebar already starts to get its surface back.
+  useEffect(() => {
+    if (!isFullScreen || !fullScreenLeaving) return
+    document.body.classList.add('editor-fullscreen-leaving')
+    return () => {
+      document.body.classList.remove('editor-fullscreen-leaving')
+    }
+  }, [isFullScreen, fullScreenLeaving])
+
   return (
     <div className={`tiptap-shell ${isFullScreen ? 'tiptap-fullscreen' : ''} ${isFullScreen && fullScreenLeaving ? 'is-leaving' : ''}`}>
       {isFullScreen && <div className="tiptap-fullscreen-drag-handle" />}
