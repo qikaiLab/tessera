@@ -146,3 +146,50 @@ test('folding a record card takes longer for long text and survives quick clicks
     await app.close()
   }
 })
+
+test('the shortcut list opened from the guide adds no second dimming layer', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    // How many full-window layers currently dim the page behind the dialogs.
+    const dimmingLayers = () => window.evaluate(() => [...document.querySelectorAll('.onboarding-overlay, .shortcuts-overlay')]
+      .filter(el => !el.closest('.presence.is-leaving'))
+      .filter(el => {
+        const before = getComputedStyle(el, '::before')
+        const own = getComputedStyle(el)
+        const visible = value => {
+          const match = value.match(/rgba?\(([^)]+)\)/)
+          if (!match) return false
+          const parts = match[1].split(',').map(Number)
+          return (parts.length > 3 ? parts[3] : 1) > 0
+        }
+        return visible(before.backgroundColor) || visible(own.backgroundColor)
+      }).length)
+
+    await window.getByTitle('使用说明').click()
+    await expect(window.locator('.onboarding-overlay')).toBeVisible()
+    expect(await dimmingLayers()).toBe(1)
+
+    // The shortcut list is offered on the third step of the guide.
+    await window.locator('.onboarding-dot').nth(2).click()
+    await window.getByRole('button', { name: /查看完整快捷键清单/ }).click()
+    await expect(window.locator('.shortcuts-overlay')).toBeVisible()
+    await window.waitForTimeout(400)
+    expect(await dimmingLayers()).toBe(1)
+
+    // Closing the list leaves the guide dimmed exactly as before.
+    await window.keyboard.press('Escape')
+    await expect(window.locator('.shortcuts-overlay')).toHaveCount(0)
+    expect(await dimmingLayers()).toBe(1)
+
+    // Opened on its own, the list dims the page itself.
+    await window.getByRole('button', { name: '跳过' }).click()
+    await expect(window.locator('.onboarding-overlay')).toHaveCount(0)
+    await window.keyboard.press('Control+/')
+    await expect(window.locator('.shortcuts-overlay')).toBeVisible()
+    await window.waitForTimeout(400)
+    expect(await dimmingLayers()).toBe(1)
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

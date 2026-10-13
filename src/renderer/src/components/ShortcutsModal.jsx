@@ -46,7 +46,9 @@ const categories = [
   }
 ]
 
-export default function ShortcutsModal({ onClose }) {
+// `stacked`: another dialog (the guide) is already dimming the window; this one only adds its
+// pane on top, so the two dimming layers never multiply into near-black.
+export default function ShortcutsModal({ onClose, stacked = false }) {
   const [activeTab, setActiveTab] = useState('edit')
   const isMac = window.navigator.platform.toUpperCase().indexOf('MAC') >= 0
 
@@ -73,7 +75,7 @@ export default function ShortcutsModal({ onClose }) {
   const activeCategory = categories.find(c => c.id === activeTab)
 
   return (
-    <div className="shortcuts-overlay" onClick={onClose}>
+    <div className={`shortcuts-overlay${stacked ? ' is-stacked' : ''}`} onClick={onClose}>
       <div className="shortcuts-modal" onClick={e => e.stopPropagation()}>
         <div className="shortcuts-header">
           <div className="shortcuts-header-title">
