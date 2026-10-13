@@ -467,7 +467,7 @@ export default function Timeline() {
       )}
 
       {/* List */}
-      <div className={`timeline-list${isPreview ? ' is-preview' : ''}`}>
+      <div className="timeline-list">
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
             <div className="loading-spinner" style={{ margin: '0 auto', width: 24, height: 24, borderWidth: 2, borderColor: 'var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />

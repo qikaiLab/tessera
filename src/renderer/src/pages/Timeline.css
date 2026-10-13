@@ -62,11 +62,6 @@
   gap: var(--spacing-2);
 }
 
-.timeline-list.is-preview {
-  /* See .timeline-preview: the sticky day headers must reach the toolbar edge. */
-  padding-top: 0;
-}
-
 .search-result-count {
   font-size: var(--text-sm);
   color: var(--text-secondary);

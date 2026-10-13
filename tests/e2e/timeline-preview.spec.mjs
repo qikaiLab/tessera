@@ -115,16 +115,21 @@ test('opens a previewed day in the record page and filters several sections at o
   }
 })
 
-test('a pinned day header meets the toolbar exactly, square-cornered and dense in frosted glass', async ({ sandbox }) => {
+test('a long day is folded to about six lines and opens with its button', async ({ sandbox }) => {
   await fs.mkdir(sandbox.dataDir, { recursive: true })
   await fs.writeFile(path.join(sandbox.dataDir, 'sections.json'), JSON.stringify([
     { id: 'diary', name: '日记', type: 'text', unit: '', resident: true, order: 0 }
   ]))
-  for (const daysAgo of [1, 2, 3]) {
+  const days = [
+    [1, Array.from({ length: 30 }, (_, index) => `第 ${index} 段：内容`)],
+    [2, ['只有一小段', '和第二小段']],
+    // "About six": seven lines still show in full.
+    [3, Array.from({ length: 7 }, (_, index) => `七行里的第 ${index} 行`)]
+  ]
+  for (const [daysAgo, paragraphs] of days) {
     const { file } = dayInfo(daysAgo)
     const target = path.join(sandbox.dataDir, ...file)
     await fs.mkdir(path.dirname(target), { recursive: true })
-    const paragraphs = Array.from({ length: 40 }, (_, index) => `第 ${index} 段：${'内容'.repeat(20)}`)
     await fs.writeFile(target, JSON.stringify({ diary: { value: doc(...paragraphs), updatedAt: new Date().toISOString() } }))
   }
   const launched = await launchApp(sandbox)
@@ -137,53 +142,67 @@ test('a pinned day header meets the toolbar exactly, square-cornered and dense i
     await window.getByRole('radio', { name: /预览/ }).click()
     await expect(window.locator('.preview-day')).toHaveCount(3)
 
-    const measure = () => window.evaluate(() => {
-      const list = document.querySelector('.timeline-list').getBoundingClientRect()
-      const toolbar = document.querySelector('.timeline-toolbar').getBoundingClientRect()
-      const headers = [...document.querySelectorAll('.preview-day-header')]
-      const pinned = headers.find(header => header.getAttribute('data-stuck') === 'true')
-      const style = element => getComputedStyle(element)
-      const alpha = value => {
-        const match = value.match(/rgba?\(([^)]+)\)/)
-        const parts = match ? match[1].split(',').map(Number) : [0, 0, 0, 0]
-        return parts.length > 3 ? parts[3] : 1
-      }
+    const long = window.locator('.preview-day').nth(0)
+    const short = window.locator('.preview-day').nth(1)
+    const body = long.locator('.preview-day-body')
+    const toggle = long.locator('.preview-day-toggle')
+    const geometry = () => body.evaluate((element) => {
+      const bottom = element.getBoundingClientRect().bottom
+      const lines = [...element.querySelectorAll('.rich-view p')]
       return {
-        gapToToolbar: Math.abs(list.top - toolbar.bottom),
-        first: { radius: style(headers[0]).borderTopLeftRadius, stuck: headers[0].getAttribute('data-stuck') },
-        pinned: pinned ? {
-          offset: Math.abs(pinned.getBoundingClientRect().top - list.top),
-          radius: style(pinned).borderTopLeftRadius,
-          alpha: alpha(style(pinned).backgroundColor)
-        } : null
+        height: Math.round(element.getBoundingClientRect().height),
+        natural: element.firstElementChild.scrollHeight,
+        // Lines (one paragraph each here) that sit fully inside the card, and the first one cut off.
+        visibleLines: lines.filter(line => line.getBoundingClientRect().bottom <= bottom + 0.5).length,
+        inline: element.style.height
       }
     })
 
-    for (const interfaceStyle of ['default', 'frosted-glass']) {
-      await window.evaluate(async (name) => {
-        await window.api.config.set('interfaceStyle', name)
-        await window.api.config.set('theme', 'dark')
-      }, interfaceStyle)
-      await window.reload()
-      await window.waitForSelector('.sidebar')
-      await window.locator('.nav-item', { hasText: '时间线' }).click()
-      await window.getByRole('radio', { name: /预览/ }).click()
-      await expect(window.locator('.preview-day')).toHaveCount(3)
-      await window.waitForTimeout(500)
+    // Folded: six lines (plus the section title above them), with a way to open it.
+    await expect(toggle).toBeVisible()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    const folded = await geometry()
+    expect(folded.visibleLines).toBe(6)
+    expect(folded.natural).toBeGreaterThan(folded.height + 100)
+    await expect(body).toHaveClass(/is-clamped/)
 
-      // At rest the first header is still part of its rounded card.
-      const resting = await measure()
-      expect(resting.first.stuck).toBeNull()
-      expect(Number.parseFloat(resting.first.radius)).toBeGreaterThan(0)
+    // A short day has no fold and no button.
+    await expect(short.locator('.preview-day-toggle')).toHaveCount(0)
+    await expect(short.locator('.preview-day-body')).not.toHaveClass(/is-clamped/)
+    await expect(window.locator('.preview-day').nth(2).locator('.preview-day-toggle')).toHaveCount(0)
 
-      // Scrolled into the first day: its header is pinned flush under the toolbar, corners square.
-      await window.locator('.timeline-list').evaluate(element => { element.scrollTop = 400 })
-      await expect.poll(async () => (await measure()).pinned !== null).toBe(true)
-      const stuck = await measure()
-      expect(stuck.pinned.offset, `${interfaceStyle}: header flush with the list edge`).toBeLessThan(0.6)
-      expect(Number.parseFloat(stuck.pinned.radius)).toBe(0)
-      if (interfaceStyle === 'frosted-glass') expect(stuck.pinned.alpha).toBeGreaterThan(0.85)
-    }
+    // Opening grows it to the full content, then hands the height back to the layout.
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect.poll(async () => (await geometry()).inline, { timeout: 3000 }).toBe('')
+    const open = await geometry()
+    expect(Math.abs(open.height - open.natural)).toBeLessThanOrEqual(2)
+    await expect(body).not.toHaveClass(/is-clamped/)
+
+    // Folding again returns to exactly six lines.
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect.poll(async () => (await geometry()).height, { timeout: 3000 }).toBe(folded.height)
+
+    // Searching opens the days with matches so the highlighted text is not hidden.
+    await window.getByPlaceholder('搜索记录内容...').fill('第 29 段')
+    await expect(window.locator('.preview-day')).toHaveCount(1)
+    await expect(window.locator('.preview-day mark')).toHaveText('第 29 段')
+    await expect(window.locator('.preview-day-toggle')).toHaveAttribute('aria-expanded', 'true')
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
+test('the day header is part of its card, not pinned', async ({ sandbox }) => {
+  const { app, window, problems } = await openTimeline(sandbox)
+  try {
+    await window.getByRole('radio', { name: /预览/ }).click()
+    await expect(window.locator('.preview-day')).toHaveCount(3)
+    const header = window.locator('.preview-day-header').first()
+    await expect(header).toHaveCSS('position', 'static')
+    await expect(header).not.toHaveAttribute('data-stuck', /.*/)
     expect(problems).toEqual([])
   } finally {
     await app.close()

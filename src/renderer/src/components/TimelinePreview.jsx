@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import RichTextView from './RichTextView'
@@ -32,6 +32,131 @@ function FavoriteStar({ active, onToggle, label }) {
   )
 }
 
+// A day shows about this many lines of its text; more is folded away until asked for.
+const CLAMP_LINES = 6
+// Fewer extra lines than this are not worth a fold: "about six lines" includes a seventh.
+const CLAMP_MIN_LINES = 8
+// Breathing room below the last visible line, inside the fade.
+const CLAMP_SLACK = 14
+
+// The vertical extent of every visual line of text under `root`, top to bottom, measured from
+// the top of `root` (paragraph spacing, lists and wrapped lines are all just lines).
+function measureTextLines(root) {
+  const base = root.getBoundingClientRect().top
+  const rects = []
+  const range = document.createRange()
+  for (const rich of root.querySelectorAll('.rich-view')) {
+    const walker = document.createTreeWalker(rich, NodeFilter.SHOW_TEXT)
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.nodeValue.trim()) continue
+      range.selectNodeContents(node)
+      for (const rect of range.getClientRects()) {
+        if (rect.height > 0) rects.push({ top: rect.top - base, bottom: rect.bottom - base })
+      }
+    }
+  }
+  rects.sort((a, b) => a.top - b.top)
+  const lines = []
+  for (const rect of rects) {
+    const last = lines[lines.length - 1]
+    // A rect that mostly sits inside the previous line belongs to it (bold runs, links, code).
+    if (last && rect.top < last.bottom - (rect.bottom - rect.top) * 0.5) {
+      last.bottom = Math.max(last.bottom, rect.bottom)
+    } else {
+      lines.push({ ...rect })
+    }
+  }
+  return lines
+}
+
+function ClampedBody({ children, startOpen, label }) {
+  const bodyRef = useRef(null)
+  const innerRef = useRef(null)
+  const [overflowing, setOverflowing] = useState(false)
+  const [expanded, setExpanded] = useState(startOpen)
+  const expandedRef = useRef(startOpen)
+  const settleTimerRef = useRef(null)
+
+  // Height of the folded state (the bottom of the sixth line of text), and the natural height.
+  const measure = useCallback(() => {
+    const inner = innerRef.current
+    if (!inner) return null
+    const natural = inner.scrollHeight
+    const lines = measureTextLines(inner)
+    if (lines.length < CLAMP_MIN_LINES) return { overflowing: false, clamp: 0, natural }
+    const clamp = Math.round(lines[CLAMP_LINES - 1].bottom + CLAMP_SLACK)
+    return { overflowing: natural > clamp + CLAMP_SLACK, clamp, natural }
+  }, [])
+
+  const apply = useCallback(() => {
+    const body = bodyRef.current
+    const result = measure()
+    if (!body || !result) return
+    setOverflowing(result.overflowing)
+    if (!result.overflowing) {
+      body.style.height = ''
+    } else if (!expandedRef.current) {
+      body.style.height = `${result.clamp}px`
+    }
+  }, [measure])
+
+  useLayoutEffect(() => {
+    apply()
+    const inner = innerRef.current
+    if (!inner || typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(apply)
+    observer.observe(inner)
+    return () => observer.disconnect()
+  }, [apply])
+
+  useEffect(() => () => clearTimeout(settleTimerRef.current), [])
+
+  const toggle = useCallback(() => {
+    const body = bodyRef.current
+    const result = measure()
+    if (!body || !result) return
+    clearTimeout(settleTimerRef.current)
+    const next = !expandedRef.current
+    expandedRef.current = next
+    setExpanded(next)
+    // Start from the height the card has right now, then move to the other one.
+    body.style.height = `${body.getBoundingClientRect().height}px`
+    void body.offsetHeight
+    if (next) {
+      body.style.height = `${result.natural}px`
+      // Back to `auto` once open (also when no transition runs, e.g. reduced motion).
+      settleTimerRef.current = setTimeout(() => { body.style.height = '' }, 420)
+    } else {
+      body.style.height = `${result.clamp}px`
+    }
+  }, [measure])
+
+  // Searching opens the days it finds text in, so the highlighted matches are not folded away.
+  useEffect(() => {
+    if (startOpen && overflowing && !expandedRef.current) toggle()
+  }, [startOpen, overflowing, toggle])
+
+  return (
+    <>
+      <div ref={bodyRef} className={`preview-day-body${overflowing && !expanded ? ' is-clamped' : ''}`}>
+        <div ref={innerRef}>{children}</div>
+      </div>
+      {overflowing && (
+        <button
+          type="button"
+          className="preview-day-toggle"
+          aria-expanded={expanded}
+          aria-label={`${expanded ? '收起' : '展开'}${label}的全部内容`}
+          onClick={toggle}
+        >
+          {expanded ? '收起' : '展开全部'}
+          <span className="preview-day-toggle-chevron" aria-hidden="true">▾</span>
+        </button>
+      )}
+    </>
+  )
+}
+
 function DayBlock({ card, sectionOrder, query, favoriteLookup, onToggleFavorite, onOpenDay, fontSize }) {
   const date = parseISO(card.dateStr)
   const ordered = [...card.sectionResults].sort(
@@ -53,74 +178,43 @@ function DayBlock({ card, sectionOrder, query, favoriteLookup, onToggleFavorite,
         </button>
       </header>
 
-      {numbers.length > 0 && (
-        <div className="preview-numbers">
-          {numbers.map(({ sec, rawValue }) => (
-            <span key={sec.id} className="preview-number">
+      <ClampedBody startOpen={Boolean(query)} label={format(date, 'MM月dd日')}>
+        {numbers.length > 0 && (
+          <div className="preview-numbers">
+            {numbers.map(({ sec, rawValue }) => (
+              <span key={sec.id} className="preview-number">
+                {sec.color && <span className="preview-dot" style={{ background: sec.color }} />}
+                <span className="preview-number-name">{sec.name}</span>
+                <strong className="preview-number-value">{rawValue}</strong>
+                {sec.unit && <span className="preview-number-unit">{sec.unit}</span>}
+                <FavoriteStar
+                  active={favoriteLookup.has(favoriteKey(card.dateStr, sec.id))}
+                  label={sec.name}
+                  onToggle={() => onToggleFavorite(card.dateStr, sec.id)}
+                />
+              </span>
+            ))}
+          </div>
+        )}
+
+        {texts.map(({ sec, rawValue, wordCount }) => (
+          <article key={sec.id} className="preview-entry">
+            <div className="preview-entry-header">
               {sec.color && <span className="preview-dot" style={{ background: sec.color }} />}
-              <span className="preview-number-name">{sec.name}</span>
-              <strong className="preview-number-value">{rawValue}</strong>
-              {sec.unit && <span className="preview-number-unit">{sec.unit}</span>}
+              <span className="preview-entry-name">{sec.name}</span>
+              <span className="preview-entry-words">{wordCount} 字</span>
               <FavoriteStar
                 active={favoriteLookup.has(favoriteKey(card.dateStr, sec.id))}
                 label={sec.name}
                 onToggle={() => onToggleFavorite(card.dateStr, sec.id)}
               />
-            </span>
-          ))}
-        </div>
-      )}
-
-      {texts.map(({ sec, rawValue, wordCount }) => (
-        <article key={sec.id} className="preview-entry">
-          <div className="preview-entry-header">
-            {sec.color && <span className="preview-dot" style={{ background: sec.color }} />}
-            <span className="preview-entry-name">{sec.name}</span>
-            <span className="preview-entry-words">{wordCount} 字</span>
-            <FavoriteStar
-              active={favoriteLookup.has(favoriteKey(card.dateStr, sec.id))}
-              label={sec.name}
-              onToggle={() => onToggleFavorite(card.dateStr, sec.id)}
-            />
-          </div>
-          <RichTextView value={rawValue} highlight={query} fontSize={fontSize} />
-        </article>
-      ))}
+            </div>
+            <RichTextView value={rawValue} highlight={query} fontSize={fontSize} />
+          </article>
+        ))}
+      </ClampedBody>
     </section>
   )
-}
-
-// A day's header is "stuck" once its card has scrolled up past the top of the list: it is then
-// pinned to the toolbar edge and drops its rounded top corners so it joins the toolbar cleanly.
-// The attribute is set straight on the DOM (no re-render per scroll event).
-function useStuckHeaders(rootRef, dependency) {
-  useEffect(() => {
-    const root = rootRef.current
-    const scroller = root?.closest('.timeline-list')
-    if (!root || !scroller) return undefined
-
-    let frame = 0
-    const update = () => {
-      frame = 0
-      const top = scroller.getBoundingClientRect().top
-      for (const day of root.querySelectorAll('.preview-day')) {
-        const header = day.firstElementChild
-        if (!header) continue
-        const stuck = day.getBoundingClientRect().top < top - 0.5
-        if (stuck) header.setAttribute('data-stuck', 'true')
-        else header.removeAttribute('data-stuck')
-      }
-    }
-    const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
-    update()
-    scroller.addEventListener('scroll', schedule, { passive: true })
-    window.addEventListener('resize', schedule)
-    return () => {
-      cancelAnimationFrame(frame)
-      scroller.removeEventListener('scroll', schedule)
-      window.removeEventListener('resize', schedule)
-    }
-  }, [rootRef, dependency])
 }
 
 /**
@@ -130,13 +224,10 @@ function useStuckHeaders(rootRef, dependency) {
 export default function TimelinePreview({ cards, sections, query, favoriteLookup, onToggleFavorite, onOpenDay }) {
   const fontSize = useMemo(readEditorFontSize, [])
   const sectionOrder = useMemo(() => new Map(sections.map((section, index) => [section.id, index])), [sections])
-  const rootRef = useRef(null)
 
   // A different result set starts again from the top batch.
   const signature = `${cards.length}:${cards[0]?.dateStr ?? ''}:${cards[cards.length - 1]?.dateStr ?? ''}`
   const { visible, hasMore, remaining, sentinelRef, showMore } = useIncrementalList(cards, PAGE_SIZE, signature)
-
-  useStuckHeaders(rootRef, visible.length)
 
   const summary = useMemo(() => {
     let entries = 0
@@ -151,7 +242,7 @@ export default function TimelinePreview({ cards, sections, query, favoriteLookup
   }, [cards])
 
   return (
-    <div ref={rootRef} className="timeline-preview">
+    <div className="timeline-preview">
       <p className="preview-summary">
         共 <strong>{summary.days}</strong> 天 · <strong>{summary.entries}</strong> 条内容 · <strong>{summary.words}</strong> 字
       </p>

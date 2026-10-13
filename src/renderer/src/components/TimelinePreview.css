@@ -5,10 +5,6 @@
   width: 100%;
   max-width: 820px;
   margin: 0 auto;
-  /* The top spacing lives here, not in the scroll container: a sticky header pins itself to the
-   * container's padding edge, so any padding above it would leave a strip where the text
-   * scrolling underneath shows between the toolbar and the header. */
-  padding-top: var(--spacing-3);
   padding-bottom: var(--spacing-8, 32px);
 }
 
@@ -26,13 +22,9 @@
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  /* No overflow clipping: the date header sticks to the scroll container. */
 }
 
 .preview-day-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -41,26 +33,62 @@
   background: var(--bg-surface);
   border-bottom: 1px dashed var(--border);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
-/* Pinned to the toolbar: square top corners, so it meets the toolbar's edge without a notch. */
-.preview-day-header[data-stuck='true'] {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+/* A day shows about six lines of its text. Longer days are folded to that height (with a soft
+ * fade at the bottom) and open with the button underneath. The height is animated by script
+ * (see ClampedBody), the fade by this registered property. */
+@property --clamp-fade {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
 }
 
-/* Frosted glass: a see-through header lets the lines scrolling underneath show through the
- * title, so give it a denser, properly frosted pane. */
-:root[data-interface-style='frosted-glass'] .preview-day-header {
-  background: hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 14% / 0.93);
-  backdrop-filter: var(--glass-backdrop-elevated);
-  -webkit-backdrop-filter: var(--glass-backdrop-elevated);
+.preview-day-body {
+  overflow: hidden;
+  --clamp-fade: 0px;
+  transition:
+    height 340ms var(--ease-travel),
+    --clamp-fade 340ms var(--ease-out);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--clamp-fade)), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--clamp-fade)), transparent);
 }
 
-:root[data-interface-style='frosted-glass'][data-theme='light'] .preview-day-header {
-  background: hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 95% / 0.94);
+.preview-day-body.is-clamped {
+  --clamp-fade: 1.5em;
+}
+
+.preview-day-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-4);
+  border: none;
+  border-top: 1px dashed var(--border);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.preview-day-toggle:hover,
+.preview-day-toggle:focus-visible {
+  color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.preview-day-toggle-chevron {
+  display: inline-block;
+  transition: transform 340ms var(--ease-travel);
+}
+
+.preview-day-toggle[aria-expanded='true'] .preview-day-toggle-chevron {
+  transform: rotate(180deg);
 }
 
 .preview-day-title {
