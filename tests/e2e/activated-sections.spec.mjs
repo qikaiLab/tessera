@@ -71,20 +71,32 @@ test('an empty activated section closes from its tag, and the cards below glide'
   ])
   const { app, window, problems } = await openApp(sandbox)
   try {
+    // A short window makes the page follow the new card by scrolling, as it does on a small
+    // screen: positions are therefore measured in the page's own coordinates, not the viewport's.
+    await app.evaluate(({ BrowserWindow }) => {
+      const win = BrowserWindow.getAllWindows()[0]
+      win.setMinimumSize(600, 300)
+      win.setSize(1000, 520)
+    })
+    await window.waitForTimeout(500)
     await window.evaluate(() => {
+      window.__pageTop = (element) => {
+        const scroller = document.querySelector('.today-content')
+        return Math.round(element.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop)
+      }
       window.__track = (ms) => new Promise(resolve => {
         const rows = []
         const start = performance.now()
         const frame = now => {
           const tail = document.querySelector('[data-section-slot="tail"]')
-          rows.push(Math.round(tail.getBoundingClientRect().top))
+          rows.push(window.__pageTop(tail))
           if (now - start < ms) requestAnimationFrame(frame)
           else resolve(rows)
         }
         requestAnimationFrame(frame)
       })
     })
-    const tailTop = () => window.locator('[data-section-slot="tail"]').evaluate(el => Math.round(el.getBoundingClientRect().top))
+    const tailTop = () => window.evaluate(() => window.__pageTop(document.querySelector('[data-section-slot="tail"]')))
     const before = await tailTop()
 
     // Adding in the middle: the card below starts exactly where it was and moves down smoothly.
