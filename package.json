@@ -1,6 +1,6 @@
 {
   "name": "mototrace",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "MotoTrace - A self-tracking desktop application",
   "main": "out/main/index.js",
   "author": "MotoTrace",
