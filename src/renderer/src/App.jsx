@@ -212,7 +212,7 @@ function AppContent() {
           onOpenShortcuts={() => setShowShortcuts(true)}
         />
       )}</Presence>
-      <Presence>{showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}</Presence>
+      <Presence>{showShortcuts && <ShortcutsModal stacked={showOnboarding} onClose={() => setShowShortcuts(false)} />}</Presence>
       {tmpFiles.length > 0 && (
         <CrashRecovery
           files={tmpFiles}

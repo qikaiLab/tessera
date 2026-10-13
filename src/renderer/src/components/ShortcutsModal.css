@@ -233,3 +233,14 @@
 .presence.is-leaving > .shortcuts-overlay > .shortcuts-modal {
   animation: modalOut var(--exit-duration, 140ms) var(--ease-in) both;
 }
+
+/* Opened from the guide, which already dims the window: add no second dimming layer. */
+.shortcuts-overlay.is-stacked,
+:root[data-interface-style='frosted-glass'] .shortcuts-overlay.is-stacked {
+  background: transparent;
+}
+
+.shortcuts-overlay.is-stacked::before {
+  background: transparent;
+  backdrop-filter: none;
+}
