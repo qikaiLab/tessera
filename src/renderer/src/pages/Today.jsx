@@ -19,6 +19,7 @@ import {
 import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../utils/editorShortcuts'
 import { getSectionPreview } from '../utils/sectionPreview'
 import { collapseDurationMs } from '../utils/collapseMotion'
+import { isEntryEmpty, isSectionClosable } from '../utils/dayEntries'
 import { useFullscreenPresence } from '../utils/useFullscreenPresence'
 import { buildFavoriteLookup, favoriteKey } from '../utils/favorites'
 import './Today.css'
@@ -42,6 +43,8 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const NUMBER_DEFAULT_MODE_CARRY = 'carry'
 // Matches the slotGrow animation in Today.css.
 const ADD_SECTION_MS = 460
+// Matches the slotShrink animation in Today.css.
+const REMOVE_SECTION_MS = 380
 // Time constant of the follow-scroll easing: smaller is snappier.
 const SCROLL_FOLLOW_MS = 120
 
@@ -59,7 +62,7 @@ export default function Today() {
   const navigate = useNavigate()
   const {
     sections, datesWithData, readDayData, writeDayData, selectedDate, setSelectedDate, showToast,
-    registerPendingFlush, unregisterPendingFlush, favorites, toggleFavorite
+    registerPendingFlush, unregisterPendingFlush, favorites, toggleFavorite, confirm
   } = useApp()
 
   const [data, setData] = useState({})
@@ -96,6 +99,10 @@ export default function Today() {
   // The section that was just added from the "add record" row: it grows into place, the page
   // follows it, and it takes focus.
   const [addedSectionId, setAddedSectionId] = useState(null)
+  // Sections that are folding away after being closed or cleared. They stay on screen, showing
+  // the value they had (id -> value), until their exit animation has finished.
+  const [leavingSections, setLeavingSections] = useState({})
+  const leaveTimersRef = useRef(new Map())
   const saveTimerRef = useRef(null)
   const pendingDataRef = useRef(null)
   const hasLoadedOnceRef = useRef(false)
@@ -170,6 +177,7 @@ export default function Today() {
     setFullScreenSectionId(null) // Exit full screen on date change
     setManuallyAdded(new Set())  // Task 2: clear manual additions on date change
     setAddedSectionId(null)
+    setLeavingSections({})
     setNumberDefaults({})
 
     if (!hasLoadedOnce) {
@@ -303,21 +311,79 @@ export default function Today() {
     })
   }, [scheduleSave])
 
-  const clearSection = useCallback((sectionId) => {
+  const dataRef = useRef(data)
+  dataRef.current = data
+
+  const getSectionDisplayValue = useCallback((section) => {
+    // A section that is folding away keeps showing what it held.
+    if (leavingSections[section.id] !== undefined) return leavingSections[section.id]
+    const stored = data[section.id]?.value
+    if (stored !== undefined && stored !== null) return stored
+    if (section.type === 'number') return numberDefaults[section.id] ?? '0'
+    return ''
+  }, [data, numberDefaults, leavingSections])
+
+  // The data a section has on this day is dropped at once; an optional section then folds away
+  // (it stays on screen with the value it had until its exit animation is over).
+  const removeSectionData = useCallback((sectionId, { leaveWith } = {}) => {
     setData(prev => {
       const next = { ...prev }
       delete next[sectionId]
       scheduleSave(next)
       return next
     })
+    if (leaveWith === undefined) return
     setManuallyAdded(prev => {
       if (!prev.has(sectionId)) return prev
       const next = new Set(prev)
       next.delete(sectionId)
       return next
     })
-    showToast('已清空记录', 'success', 1200)
-  }, [scheduleSave, showToast])
+    setLeavingSections(prev => ({ ...prev, [sectionId]: leaveWith }))
+    clearTimeout(leaveTimersRef.current.get(sectionId))
+    leaveTimersRef.current.set(sectionId, setTimeout(() => {
+      leaveTimersRef.current.delete(sectionId)
+      setLeavingSections(prev => {
+        const next = { ...prev }
+        delete next[sectionId]
+        return next
+      })
+    }, REMOVE_SECTION_MS))
+  }, [scheduleSave])
+
+  useEffect(() => {
+    const timers = leaveTimersRef.current
+    return () => timers.forEach(timer => clearTimeout(timer))
+  }, [])
+
+  // Closes an optional section that holds nothing: no confirmation, it just folds away.
+  const closeSection = useCallback((section) => {
+    removeSectionData(section.id, { leaveWith: getSectionDisplayValue(section) })
+  }, [removeSectionData, getSectionDisplayValue])
+
+  // Clearing a section that holds something asks first: a misclick must not wipe a long text.
+  const clearSection = useCallback(async (sectionId) => {
+    const section = sections.find(item => item.id === sectionId)
+    if (!section) return
+    const hasContent = !isEntryEmpty(dataRef.current[sectionId]?.value)
+    if (hasContent) {
+      const confirmed = await confirm({
+        title: section.resident ? '清空记录' : '清空并关闭板块',
+        message: `确定要清空「${section.name}」${isToday(selectedDate) ? '今天' : '这一天'}的记录吗？
+清空后内容无法恢复。`,
+        confirmText: '清空',
+        cancelText: '取消',
+        danger: true
+      })
+      if (!confirmed) return
+    }
+    if (section.resident) {
+      removeSectionData(sectionId)
+    } else {
+      removeSectionData(sectionId, { leaveWith: getSectionDisplayValue(section) })
+    }
+    showToast(section.resident ? '已清空记录' : '已清空并关闭板块', 'success', 1200)
+  }, [sections, confirm, selectedDate, removeSectionData, getSectionDisplayValue, showToast])
 
   const favoriteLookup = React.useMemo(() => buildFavoriteLookup(favorites), [favorites])
 
@@ -335,10 +401,15 @@ export default function Today() {
     if (isEditableMenuTarget(event.target)) return
 
     const isFavorite = favoriteLookup.has(favoriteKey(dateStr, section.id))
+    const hasContent = !isEntryEmpty(dataRef.current[section.id]?.value)
+    // An optional section that is empty is just closed; with content, clearing asks first.
+    const clearLabel = section.resident
+      ? '清空'
+      : (hasContent ? '清空并关闭板块' : '关闭板块')
     showContextMenu(event, [
       { id: 'favorite', label: isFavorite ? '取消收藏' : '收藏' },
       separator,
-      { id: 'clear', label: '清空', tone: 'danger' },
+      { id: 'clear', label: clearLabel, tone: 'danger' },
       separator,
       { id: 'edit-settings', label: '在设置中编辑' }
     ], {
@@ -362,13 +433,6 @@ export default function Today() {
       navigate('/settings')
     }
   }, [clearSection, handleToggleFavorite, navigate, sections]))
-
-  const getSectionDisplayValue = useCallback((section) => {
-    const stored = data[section.id]?.value
-    if (stored !== undefined && stored !== null) return stored
-    if (section.type === 'number') return numberDefaults[section.id] ?? '0'
-    return ''
-  }, [data, numberDefaults])
 
   // Fix #3: goTo() now catches write errors and shows user feedback
   const goTo = async (date) => {
@@ -409,6 +473,7 @@ export default function Today() {
 
   const visibleSections = sections.filter(sec => {
     if (sec.resident) return true
+    if (leavingSections[sec.id] !== undefined) return true
     // Task 2: show section if manually added this session (even if empty)
     if (manuallyAdded.has(sec.id)) return true
     const entry = data[sec.id]
@@ -653,7 +718,8 @@ export default function Today() {
                   <div
                     key={sec.id}
                     data-section-slot={sec.id}
-                    className={`section-slot ${addedSectionId === sec.id ? 'is-adding' : ''} ${manuallyAdded.has(sec.id) ? 'was-added' : ''}`}
+                    className={`section-slot ${addedSectionId === sec.id ? 'is-adding' : ''} ${manuallyAdded.has(sec.id) ? 'was-added' : ''} ${leavingSections[sec.id] !== undefined ? 'is-removing' : ''}`}
+                    inert={leavingSections[sec.id] !== undefined ? '' : undefined}
                     onAnimationEnd={event => {
                       if (event.target === event.currentTarget && addedSectionId === sec.id) focusAddedSection(sec.id)
                     }}
@@ -670,6 +736,8 @@ export default function Today() {
                     isFullScreen={fullScreenSectionId === sec.id}
                     favorite={favoriteLookup.has(favoriteKey(dateStr, sec.id))}
                     onToggleFavorite={() => handleToggleFavorite(sec)}
+                    closable={leavingSections[sec.id] === undefined && isSectionClosable(sec, data[sec.id])}
+                    onClose={() => closeSection(sec)}
                     collapsed={collapsedCards.has(`${dateStr}:${sec.id}`)}
                     onToggleCollapsed={() => toggleCardCollapsed(sec.id)}
                     onToggleFullScreen={() => setFullScreenSectionId(prev => prev === sec.id ? null : sec.id)}
@@ -693,9 +761,9 @@ export default function Today() {
                         // Task 2: register as manually added so it stays visible
                         setManuallyAdded(prev => new Set([...prev, sec.id]))
                         setAddedSectionId(sec.id)
-                        if (sec.type === 'number') {
-                          handleChange(sec.id, getSectionDisplayValue(sec))
-                        }
+                        // A number section shows its default value (0, or the carried one) but
+                        // nothing is stored until the user enters something: otherwise merely
+                        // adding it would count as data and keep it activated on this day.
                       }}
                     >
                       + {sec.name}
@@ -758,6 +826,8 @@ function SectionCard({
   isFullScreen: fullScreenRequested,
   favorite,
   onToggleFavorite,
+  closable,
+  onClose,
   collapsed,
   onToggleCollapsed,
   onSave,
@@ -831,9 +901,7 @@ function SectionCard({
         <div className="number-card-content">
           <div className="number-card-left">
             <span className="section-card-title">{section.name}</span>
-            <span className={`section-type-badge ${section.resident ? 'resident' : 'activated'}`}>
-              {section.resident ? '常驻' : '激发'}
-            </span>
+            <SectionTypeBadge section={section} closable={closable} onClose={onClose} />
             <FavoriteButton favorite={favorite} onToggle={onToggleFavorite} name={section.name} />
           </div>
           <div className="number-card-right">
@@ -873,9 +941,7 @@ function SectionCard({
             <span className="section-collapse-chevron" aria-hidden="true">▾</span>
           </button>
           <span className="section-card-title">{section.name}</span>
-          <span className={`section-type-badge ${section.resident ? 'resident' : 'activated'}`}>
-            {section.resident ? '常驻' : '激发'}
-          </span>
+          <SectionTypeBadge section={section} closable={closable} onClose={onClose} />
           {collapsed && !isFullScreen && (
             <button type="button" className="section-collapsed-preview" onClick={handleToggleCollapsed}>
               {getSectionPreview(value) || '（空）'}
@@ -929,6 +995,26 @@ function SectionCard({
         />
       </div>
     </div>
+  )
+}
+
+// "常驻" / "激发" tag. An activated section that holds nothing yet gets a × on its tag: the tag
+// itself closes the section, so a misclicked "add record" button is undone where the eye already
+// is, without another control in the header. Once there is content the × goes away.
+function SectionTypeBadge({ section, closable, onClose }) {
+  if (section.resident) return <span className="section-type-badge resident">常驻</span>
+  if (!closable) return <span className="section-type-badge activated">激发</span>
+  return (
+    <button
+      type="button"
+      className="section-type-badge activated is-closable"
+      onClick={onClose}
+      title="这个板块还没有内容，点击关闭"
+      aria-label={`关闭${section.name}`}
+    >
+      激发
+      <span className="section-type-badge-close" aria-hidden="true">×</span>
+    </button>
   )
 }
 

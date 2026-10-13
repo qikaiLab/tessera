@@ -253,6 +253,41 @@
   border-color: var(--tag-activated-border);
 }
 
+/* An empty activated section can be closed from its tag: the × is always there (so the tag does
+ * not change size), quiet until the tag is hovered or focused. */
+button.section-type-badge.is-closable {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.section-type-badge-close {
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.55;
+  transition: opacity var(--transition-fast);
+}
+
+button.section-type-badge.is-closable:hover,
+button.section-type-badge.is-closable:focus-visible {
+  background: var(--error-light);
+  border-color: color-mix(in srgb, var(--error) 35%, transparent);
+  color: var(--error);
+}
+
+button.section-type-badge.is-closable:hover .section-type-badge-close,
+button.section-type-badge.is-closable:focus-visible .section-type-badge-close {
+  opacity: 1;
+}
+
+button.section-type-badge.is-closable:active {
+  transform: scale(0.94);
+}
+
 /* Number input */
 .num-btn {
   width: 36px;
@@ -767,19 +802,40 @@
 /* A section added from the "add record" row grows into its slot: the cards below slide down
  * with it instead of jumping, and the card itself eases in. The slot never carries opacity or
  * a filter (that would flatten the card's glass); only its row height and margins move. */
-.section-slot.is-adding {
+.section-slot.is-adding,
+.section-slot.is-removing {
+  /* The slot is "absent" at the small end of the animation, so it must also take back the one
+   * gap it contributes: the one above it, or (as the first slot) the one below. */
   --slot-mt: calc(var(--spacing-4) * -1);
-  --slot-mb: calc(var(--spacing-4) * -1);
+  --slot-mb: 0px;
   display: grid;
+}
+
+.section-slot.is-adding:first-child,
+.section-slot.is-removing:first-child {
+  --slot-mt: 0px;
+  --slot-mb: calc(var(--spacing-4) * -1);
+}
+
+.section-slot.is-adding:first-child:last-child,
+.section-slot.is-removing:first-child:last-child {
+  --slot-mb: 0px;
+}
+
+.section-slot.is-adding {
   animation: slotGrow 460ms var(--ease-travel) both;
 }
 
-.section-slot.is-adding:first-child {
-  --slot-mt: 0px;
+/* A closed or cleared section folds away: the card fades itself, the slot gives its height back
+ * so the cards below glide up. Again nothing on the slot carries opacity (glass). */
+.section-slot.is-removing {
+  pointer-events: none;
+  animation: slotShrink 380ms var(--ease-travel) both;
 }
 
-.section-slot.is-adding:last-child {
-  --slot-mb: 0px;
+.sections-grid .section-slot.is-removing > .section-card {
+  min-height: 0;
+  animation: removeCardOut 230ms var(--ease-in) both;
 }
 
 .section-slot.is-adding > .section-card {
@@ -796,6 +852,16 @@
 @keyframes slotGrow {
   from { grid-template-rows: 0fr; margin-top: var(--slot-mt); margin-bottom: var(--slot-mb); }
   to { grid-template-rows: 1fr; margin-top: 0; margin-bottom: 0; }
+}
+
+@keyframes slotShrink {
+  from { grid-template-rows: 1fr; margin-top: 0; margin-bottom: 0; }
+  to { grid-template-rows: 0fr; margin-top: var(--slot-mt); margin-bottom: var(--slot-mb); }
+}
+
+@keyframes removeCardOut {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-10px) scale(0.985); }
 }
 
 @keyframes addCardIn {

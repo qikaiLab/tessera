@@ -12,6 +12,7 @@ import {
 } from '../theme/appearanceRegistry'
 import { applyFrostedGlassBackground } from '../theme/frostedGlassBackground'
 import { buildMetadataContent, normalizeFavorites, toggleFavoriteEntry } from '../utils/favorites'
+import { isEntryEmpty } from '../utils/dayEntries'
 import {
   FROSTED_BACKGROUND_BLUR,
   applyFrostedBackgroundBlur,
@@ -28,29 +29,6 @@ import {
 } from '../theme/interfacePreferences'
 
 const AppContext = createContext(null)
-
-const isEntryEmpty = (val) => {
-  if (val === undefined || val === null) return true
-  const str = String(val).trim()
-  if (str === '') return true
-  if (str.startsWith('{') && str.endsWith('}')) {
-    try {
-      const doc = JSON.parse(str)
-      if (doc.type === 'doc') {
-        const hasContent = (node) => {
-          if (!node) return false
-          if (node.type === 'text' && node.text && node.text.trim() !== '') return true
-          if (node.content && Array.isArray(node.content)) {
-            return node.content.some(hasContent)
-          }
-          return false
-        }
-        return !hasContent(doc)
-      }
-    } catch {}
-  }
-  return false
-}
 
 export function AppProvider({ children }) {
   const [theme, setTheme] = useState('dark')
