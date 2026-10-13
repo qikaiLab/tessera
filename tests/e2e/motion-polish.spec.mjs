@@ -312,10 +312,14 @@ test('calendar month changes never flash a scrollbar', async ({ sandbox }) => {
         const scroller = document.querySelector('.cal-content')
         const start = performance.now()
         // Scrollbars take room from the box: a horizontal one shows as offsetHeight - clientHeight.
-        const result = { wider: 0, taller: 0, barWidth: scroller.offsetWidth - scroller.clientWidth }
+        // The vertical bar may legitimately appear once (a month with more weeks), but it must
+        // not blink on and off.
+        const result = { wider: 0, taller: 0 }
+        let barWidth = scroller.offsetWidth - scroller.clientWidth
         const frame = now => {
           if (scroller.offsetHeight - scroller.clientHeight > 0) result.wider += 1
-          if (scroller.offsetWidth - scroller.clientWidth !== result.barWidth) result.taller += 1
+          const width = scroller.offsetWidth - scroller.clientWidth
+          if (width !== barWidth) { result.taller += 1; barWidth = width }
           if (now - start < ms) requestAnimationFrame(frame)
           else resolve(result)
         }
@@ -327,7 +331,7 @@ test('calendar month changes never flash a scrollbar', async ({ sandbox }) => {
       await window.getByLabel(action).click()
       const result = await window.evaluate(() => window.__run)
       expect(result.wider).toBe(0)
-      expect(result.taller).toBe(0)
+      expect(result.taller).toBeLessThanOrEqual(1)
       await window.waitForTimeout(100)
     }
     for (const tab of [1, 2, 0]) {
