@@ -114,3 +114,78 @@ test('opens a previewed day in the record page and filters several sections at o
     await app.close()
   }
 })
+
+test('a pinned day header meets the toolbar exactly, square-cornered and dense in frosted glass', async ({ sandbox }) => {
+  await fs.mkdir(sandbox.dataDir, { recursive: true })
+  await fs.writeFile(path.join(sandbox.dataDir, 'sections.json'), JSON.stringify([
+    { id: 'diary', name: '日记', type: 'text', unit: '', resident: true, order: 0 }
+  ]))
+  for (const daysAgo of [1, 2, 3]) {
+    const { file } = dayInfo(daysAgo)
+    const target = path.join(sandbox.dataDir, ...file)
+    await fs.mkdir(path.dirname(target), { recursive: true })
+    const paragraphs = Array.from({ length: 40 }, (_, index) => `第 ${index} 段：${'内容'.repeat(20)}`)
+    await fs.writeFile(target, JSON.stringify({ diary: { value: doc(...paragraphs), updatedAt: new Date().toISOString() } }))
+  }
+  const launched = await launchApp(sandbox)
+  const { app, window, problems } = launched
+  try {
+    await window.evaluate(() => window.api.config.set('onboardingDone', true))
+    await window.reload()
+    await window.waitForSelector('.sidebar')
+    await window.locator('.nav-item', { hasText: '时间线' }).click()
+    await window.getByRole('radio', { name: /预览/ }).click()
+    await expect(window.locator('.preview-day')).toHaveCount(3)
+
+    const measure = () => window.evaluate(() => {
+      const list = document.querySelector('.timeline-list').getBoundingClientRect()
+      const toolbar = document.querySelector('.timeline-toolbar').getBoundingClientRect()
+      const headers = [...document.querySelectorAll('.preview-day-header')]
+      const pinned = headers.find(header => header.getAttribute('data-stuck') === 'true')
+      const style = element => getComputedStyle(element)
+      const alpha = value => {
+        const match = value.match(/rgba?\(([^)]+)\)/)
+        const parts = match ? match[1].split(',').map(Number) : [0, 0, 0, 0]
+        return parts.length > 3 ? parts[3] : 1
+      }
+      return {
+        gapToToolbar: Math.abs(list.top - toolbar.bottom),
+        first: { radius: style(headers[0]).borderTopLeftRadius, stuck: headers[0].getAttribute('data-stuck') },
+        pinned: pinned ? {
+          offset: Math.abs(pinned.getBoundingClientRect().top - list.top),
+          radius: style(pinned).borderTopLeftRadius,
+          alpha: alpha(style(pinned).backgroundColor)
+        } : null
+      }
+    })
+
+    for (const interfaceStyle of ['default', 'frosted-glass']) {
+      await window.evaluate(async (name) => {
+        await window.api.config.set('interfaceStyle', name)
+        await window.api.config.set('theme', 'dark')
+      }, interfaceStyle)
+      await window.reload()
+      await window.waitForSelector('.sidebar')
+      await window.locator('.nav-item', { hasText: '时间线' }).click()
+      await window.getByRole('radio', { name: /预览/ }).click()
+      await expect(window.locator('.preview-day')).toHaveCount(3)
+      await window.waitForTimeout(500)
+
+      // At rest the first header is still part of its rounded card.
+      const resting = await measure()
+      expect(resting.first.stuck).toBeNull()
+      expect(Number.parseFloat(resting.first.radius)).toBeGreaterThan(0)
+
+      // Scrolled into the first day: its header is pinned flush under the toolbar, corners square.
+      await window.locator('.timeline-list').evaluate(element => { element.scrollTop = 400 })
+      await expect.poll(async () => (await measure()).pinned !== null).toBe(true)
+      const stuck = await measure()
+      expect(stuck.pinned.offset, `${interfaceStyle}: header flush with the list edge`).toBeLessThan(0.6)
+      expect(Number.parseFloat(stuck.pinned.radius)).toBe(0)
+      if (interfaceStyle === 'frosted-glass') expect(stuck.pinned.alpha).toBeGreaterThan(0.85)
+    }
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
