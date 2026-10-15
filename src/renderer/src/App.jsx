@@ -14,6 +14,7 @@ import { isThemeToggleAvailable } from './theme/appearanceRegistry'
 import { APPEARANCE_MESSAGE_KEYS, appearanceText } from './theme/appearanceMessages'
 import { getZoomDeltaFromKeyboardEvent, getZoomDeltaFromWheelEvent } from './theme/interfacePreferences'
 import { editMenuItems, focusEditableTarget, getEditableSelectionState, showContextMenu } from './utils/contextMenu'
+import { useResizableWidth } from './utils/useResizableWidth'
 import './styles/App.css'
 import './theme/appearanceSurfaces.css'
 
@@ -49,7 +50,6 @@ function preloadPagesWhenIdle() {
   setTimeout(schedule, 1500)
 }
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const APP_SIDEBAR_MIN = 160
 const APP_SIDEBAR_MAX = 280
 const APP_SIDEBAR_DEFAULT = 200
@@ -71,32 +71,12 @@ function AppContent() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [tmpFiles, setTmpFiles] = useState([])
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = parseInt(localStorage.getItem('mototrace_sidebar_width') || '', 10)
-    return Number.isFinite(saved) ? clamp(saved, APP_SIDEBAR_MIN, APP_SIDEBAR_MAX) : APP_SIDEBAR_DEFAULT
+  const sidebar = useResizableWidth({
+    storageKey: 'mototrace_sidebar_width',
+    min: APP_SIDEBAR_MIN,
+    max: APP_SIDEBAR_MAX,
+    initial: APP_SIDEBAR_DEFAULT
   })
-
-  const startSidebarResize = (event) => {
-    event.preventDefault()
-    const startX = event.clientX
-    const startWidth = sidebarWidth
-    document.body.classList.add('is-resizing')
-
-    const handleMove = (moveEvent) => {
-      const nextWidth = clamp(startWidth + moveEvent.clientX - startX, APP_SIDEBAR_MIN, APP_SIDEBAR_MAX)
-      setSidebarWidth(nextWidth)
-      localStorage.setItem('mototrace_sidebar_width', String(nextWidth))
-    }
-
-    const handleUp = () => {
-      document.body.classList.remove('is-resizing')
-      window.removeEventListener('mousemove', handleMove)
-      window.removeEventListener('mouseup', handleUp)
-    }
-
-    window.addEventListener('mousemove', handleMove)
-    window.addEventListener('mouseup', handleUp)
-  }
 
   useEffect(() => {
     if (!isInitialized) return
@@ -186,8 +166,8 @@ function AppContent() {
       <TitleBar />
       <div className="app-body">
         <Sidebar
-          width={sidebarWidth}
-          onResizeStart={startSidebarResize}
+          width={sidebar.width}
+          onResizeStart={sidebar.startResize}
           onOpenOnboarding={() => setShowOnboarding(true)}
         />
         <main className="app-main">

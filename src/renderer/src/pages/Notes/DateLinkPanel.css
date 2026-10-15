@@ -1,0 +1,104 @@
+.notes-date-link-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.notes-date-link-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.notes-date-link-btn:hover,
+.notes-date-link-btn.linked {
+  border-color: var(--border-hover);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+.notes-date-link-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 120;
+  width: 260px;
+  padding: var(--spacing-3);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+  animation: scaleIn var(--transition-fast) both;
+}
+
+.notes-date-link-panel-title {
+  margin-bottom: var(--spacing-2);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.notes-date-link-type {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-2);
+}
+
+.notes-date-link-type button {
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.notes-date-link-type button:hover,
+.notes-date-link-type button.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.notes-date-link-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-3);
+}
+
+.notes-date-link-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.notes-date-link-fields .input {
+  height: 32px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: var(--text-xs);
+}
+
+.notes-date-link-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-3);
+}
