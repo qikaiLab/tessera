@@ -1,0 +1,64 @@
+/* ─── Bubble Toolbar ─────────────────────────────────────────────────────── */
+.bubble-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  background-color: var(--floating-toolbar-background);
+  background-image: var(--floating-toolbar-background-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
+  border: 1px solid var(--floating-toolbar-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--floating-toolbar-shadow), var(--floating-toolbar-inset-shadow);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  
+  /* Transition states */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px) scale(0.97);
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+}
+
+.bubble-toolbar.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.bubble-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--floating-toolbar-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+  white-space: nowrap;
+}
+.bubble-btn:hover {
+  background: var(--floating-toolbar-hover-background);
+  color: var(--floating-toolbar-hover-text);
+}
+.bubble-btn.is-active {
+  background: var(--floating-toolbar-active-background);
+  color: var(--floating-toolbar-active-text);
+}
+
+.bubble-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--floating-toolbar-separator);
+  margin: 0 3px;
+  flex-shrink: 0;
+}

@@ -17,7 +17,11 @@ import { useFullscreenEditor } from './useFullscreenEditor'
 import { useApp } from '../../context/AppContext'
 import { isClearFormattingShortcut, isFullscreenEditorShortcut } from '../../utils/editorShortcuts'
 import { replaceEditorDocument } from '../../utils/editorDocumentState'
+// Order matters: later files override earlier ones.
 import './TiptapEditor.css'
+import './BubbleToolbar.css'
+import './SlashMenu.css'
+import './FullscreenEditor.css'
 
 /**
  * The rich-text editor behind every text card and note. `value` is a Tiptap JSON document (or

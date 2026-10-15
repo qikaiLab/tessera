@@ -103,6 +103,7 @@ npm run check
 - `context/`：全局状态。`AppContext.jsx` 只组合 `useSections`、`useMetadata`、`useDayStorage`、`useAppearance` 等 hook；`sectionsFile.js`、`metadataFile.js` 负责文件格式的解析与迁移（纯函数，有测试）。
 - `components/`：跨页面复用的组件。`TiptapEditor/` 拆为 `index.jsx`（组合）、`editorExtensions.js`（扩展与快捷键）、`editorHelpers.js`（纯函数）、`useEditorContextMenu.js`、`useFullscreenEditor.js` 和 `FullscreenHeader.jsx`。
 - `styles/`：`global.css` 只是入口，按 `@import` 的顺序（即层叠顺序）引入 `tokens.css`（颜色与尺寸令牌、深浅主题）、`interfaces/*.css`（三套界面风格）、`typography.css`、`base.css`、`animations.css`、`controls.css`、`overlays.css`、`states.css`、`layout.css`、`tabs.css`、`widgets.css`。通用样式放进对应文件；只属于某个页面或组件的样式写在它旁边，不要放进 `styles/`。
+  **层叠顺序的陷阱**：`main.jsx` 先导入 `App`（连带所有组件样式），最后才导入 `global.css`，所以打包后组件样式在前、`styles/` 在后；同优先级的规则以后者为准（例如 `.btn` 的内边距会盖过编辑器样式里的 `.btn-xs`）。移动或合并 CSS 规则时要保持这个先后关系，并用计算样式对比确认外观没变。
 - `theme/`：界面风格注册、壁纸取色、风格材质层（`appearanceSurfaces.css`）。
 
 ### 主进程（`src/main`）

@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { readStylesheet } from './helpers/source.mjs'
+import { readStylesheet, readTree } from './helpers/source.mjs'
 
 const css = readStylesheet('src/renderer/src/styles/global.css')
 const appCss = fs.readFileSync(path.resolve('src/renderer/src/styles/App.css'), 'utf8')
@@ -9,10 +9,7 @@ const surfacesCss = fs.readFileSync(
   path.resolve('src/renderer/src/theme/appearanceSurfaces.css'),
   'utf8'
 )
-const editorCss = fs.readFileSync(
-  path.resolve('src/renderer/src/components/TiptapEditor/TiptapEditor.css'),
-  'utf8'
-)
+const editorCss = readTree('src/renderer/src/components/TiptapEditor', ['.css'])
 
 function getRule(selector) {
   const start = css.indexOf(`${selector} {`)

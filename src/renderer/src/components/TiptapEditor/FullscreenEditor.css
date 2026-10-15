@@ -1,0 +1,353 @@
+/* ─── Fullscreen header controls ─────────────────────────────────────────── */
+.tiptap-font-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.tiptap-font-label {
+  min-width: 18px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.btn-xs {
+  padding: 1px 5px;
+  font-size: 11px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+/* ─── Fullscreen Mode ────────────────────────────────────────────────────── */
+/*
+ * Full-window overlay — covers the entire window (including sidebar + titlebar)
+ * so the writer gets a true distraction-free canvas. The sidebar and titlebar
+ * still exist in DOM (just visually covered), so no layout side-effects.
+ */
+.tiptap-fullscreen {
+  position: fixed;
+  inset: 0;             /* top:0 right:0 bottom:0 left:0 */
+  z-index: 1000;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  transition: none;
+  -webkit-app-region: no-drag;
+  /* The veil comes first; the header and the writing column follow it (see below). */
+  animation: fsVeilIn 240ms var(--ease-out) backwards;
+}
+
+.tiptap-fullscreen.is-leaving {
+  pointer-events: none;
+  animation: fsVeilOut 230ms var(--ease-in) both;
+}
+
+.tiptap-fullscreen {
+  background: var(--editor-fullscreen-background);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-interface-style='frosted-glass'] .tiptap-fullscreen {
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--frosted-background-fallback);
+}
+
+[data-interface-style='frosted-glass'] .tiptap-fullscreen::before,
+[data-interface-style='frosted-glass'] .tiptap-fullscreen::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-interface-style='frosted-glass'] .tiptap-fullscreen::before {
+  inset: calc(0px - var(--frosted-background-bleed));
+  background-image: var(--frosted-background-image);
+  background-position: center;
+  background-size: cover;
+  filter: blur(var(--frosted-background-blur));
+  transition: filter var(--transition-base), inset var(--transition-base);
+}
+
+[data-interface-style='frosted-glass'] .tiptap-fullscreen::after {
+  inset: 0;
+  background: var(--frosted-fullscreen-overlay);
+}
+
+@keyframes fullscreenFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fsVeilIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fsVeilOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fsRise {
+  from { opacity: 0; transform: translateY(22px) scale(0.992); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fsSink {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(14px) scale(0.994); }
+}
+
+@keyframes fsDrop {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fsLift {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+@keyframes fullscreenContentIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Centre the content column in the full canvas */
+.tiptap-fullscreen .tiptap-editor-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  /* max-width is set dynamically via style prop */
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  /* Smooth scrollbar in context */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  animation: fsRise 440ms var(--ease-out) 80ms backwards;
+}
+
+.tiptap-fullscreen.is-leaving .tiptap-editor-wrapper {
+  animation: fsSink 210ms var(--ease-in) both;
+}
+
+[data-interface-style='frosted-glass'] .tiptap-fullscreen .tiptap-editor-wrapper {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-interface-style='frosted-glass'][data-theme='dark'] .tiptap-fullscreen .ProseMirror {
+  text-shadow: 0 1px 2px hsl(var(--frosted-accent-h) calc(48% * var(--frosted-tint-k)) 4% / 0.2);
+}
+
+[data-interface-style='frosted-glass'][data-theme='light'] .tiptap-fullscreen .ProseMirror {
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.tiptap-fullscreen .ProseMirror {
+  padding: 48px 0 60px;
+  font-size: 1em;
+  line-height: var(--editor-line-height, 2);
+  color: var(--text-primary);
+}
+
+.tiptap-fullscreen .ProseMirror p,
+.tiptap-fullscreen .ProseMirror li > p,
+.tiptap-fullscreen .ProseMirror ul[data-type='taskList'] li > div > p {
+  line-height: var(--editor-line-height, 2);
+}
+
+.tiptap-fullscreen .ProseMirror li {
+  line-height: var(--editor-line-height, 2);
+}
+
+/* ── Fullscreen Header: minimal floating strip at the top ───────────────── */
+.tiptap-fullscreen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  min-height: 42px;
+  /* Keep clear of the fixed exit button and window controls in the top right corner: only as
+   * much as the column does not already leave free on its right (--fs-column-max is set from
+   * the chosen column width). */
+  padding: 6px max(20px, calc(var(--fs-controls-reserve) - (100% - min(100%, var(--fs-column-max, 100%))) / 2)) 8px 20px;
+  /* max-width is set dynamically via style prop */
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
+  z-index: 10;
+  animation: fsDrop 360ms var(--ease-out) 50ms backwards;
+}
+
+.tiptap-fullscreen.is-leaving .tiptap-fullscreen-header {
+  animation: fsLift 170ms var(--ease-in) both;
+}
+
+[data-interface-style='frosted-glass'] .tiptap-fullscreen-header {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Apply opacity transition to char count and font controls, but NOT the exit button */
+.tiptap-fullscreen-header .tiptap-char-count,
+.tiptap-fullscreen-header .tiptap-font-controls,
+.tiptap-fullscreen-header .tiptap-width-toggle {
+  opacity: 0.35;
+  transition: opacity 250ms ease;
+}
+
+.tiptap-fullscreen-header:hover .tiptap-char-count,
+.tiptap-fullscreen-header:hover .tiptap-font-controls,
+.tiptap-fullscreen-header:hover .tiptap-width-toggle {
+  opacity: 1;
+}
+
+.tiptap-fullscreen-header .tiptap-char-count,
+.tiptap-fullscreen-header .tiptap-font-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.tiptap-fullscreen-header .tiptap-font-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tiptap-fullscreen-header-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+/* Exit sits in the top right corner, just left of the window controls, and the header keeps
+ * clear of that corner (see padding above), so the two can never overlap. */
+.tiptap-fullscreen .fullscreen-exit-btn {
+  position: fixed;
+  top: 6px;
+  right: calc(var(--window-controls-width) + 16px);
+  z-index: 1060;
+  box-sizing: border-box;
+  height: 28px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  animation: fsDrop 360ms var(--ease-out) 50ms backwards;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm, 4px);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background-color 200ms, border-color 200ms, color 200ms, box-shadow 200ms, transform 200ms, opacity 200ms;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  -webkit-app-region: no-drag;
+}
+
+.tiptap-fullscreen.is-leaving .fullscreen-exit-btn {
+  animation: fsLift 170ms var(--ease-in) both;
+}
+
+.tiptap-fullscreen .fullscreen-exit-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.tiptap-fullscreen .fullscreen-exit-btn:active {
+  transform: translateY(0);
+}
+
+[data-theme='light'] .tiptap-fullscreen .fullscreen-exit-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.75);
+}
+
+[data-theme='light'] .tiptap-fullscreen .fullscreen-exit-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.25);
+  color: #000;
+}
+
+[data-interface-style='frosted-glass'] .tiptap-fullscreen .fullscreen-exit-btn {
+  background: var(--bg-surface-2);
+  border-color: var(--border);
+  color: var(--text-secondary);
+  box-shadow: var(--material-inset-shadow), var(--shadow-sm);
+}
+
+[data-interface-style='frosted-glass'] .tiptap-fullscreen .fullscreen-exit-btn:hover {
+  background: var(--bg-surface-3);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+@media (max-width: 1024px) {
+  .tiptap-fullscreen-header {
+    gap: 8px;
+    padding-left: 16px;
+  }
+
+  .tiptap-fullscreen-header-actions {
+    gap: 8px;
+  }
+
+  .tiptap-fullscreen .fullscreen-exit-btn {
+    padding-inline: 10px;
+  }
+}
+
+@media (max-width: 520px) {
+  .tiptap-fullscreen-header {
+    padding-left: 12px;
+  }
+
+  .tiptap-fullscreen-header-actions {
+    gap: 4px;
+  }
+}
+
+/* Fullscreen window dragging support */
+.tiptap-fullscreen-drag-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  z-index: 1050;
+  -webkit-app-region: drag;
+  background: transparent;
+}

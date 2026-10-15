@@ -6,10 +6,7 @@ import { readTree } from './helpers/source.mjs'
 const notesCss = readTree('src/renderer/src/pages/Notes', ['.css'])
 const notesDrawerCss = readTree('src/renderer/src/components/NotesDrawer', ['.css'])
 const surfacesCss = fs.readFileSync(path.resolve('src/renderer/src/theme/appearanceSurfaces.css'), 'utf8')
-const editorCss = fs.readFileSync(
-  path.resolve('src/renderer/src/components/TiptapEditor/TiptapEditor.css'),
-  'utf8'
-)
+const editorCss = readTree('src/renderer/src/components/TiptapEditor', ['.css'])
 const editorComponent = fs.readFileSync(
   path.resolve('src/renderer/src/components/TiptapEditor/index.jsx'),
   'utf8'
