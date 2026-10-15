@@ -157,7 +157,7 @@ npm run dist
 npm run check
 ```
 
-该命令会运行 ESLint、Vitest、版本一致性检查和生产构建。分支、提交、评审、依赖维护与发布规则见 [贡献规范](CONTRIBUTING.md) 和 [工程化管理指南](docs/ENGINEERING_GUIDE.md)。
+该命令会依次运行 ESLint、Vitest、依赖漏洞审计、版本一致性检查和生产构建；涉及界面或主进程的改动还应运行 `npm run test:e2e`（Electron 冒烟测试，默认在屏幕外静默运行）。分支、提交、评审、依赖维护与发布规则见 [贡献规范](CONTRIBUTING.md) 和 [工程化管理指南](docs/ENGINEERING_GUIDE.md)。
 
 ### 发布新版本（CI/CD 自动化）
 
