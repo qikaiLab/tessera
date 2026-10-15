@@ -19,7 +19,7 @@ const packageLock = readJson('package-lock.json')
 const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8')
 const releaseNotes = fs.readFileSync(path.join(rootDir, 'RELEASE_NOTES.md'), 'utf8')
 const electronViteConfig = fs.readFileSync(path.join(rootDir, 'electron.vite.config.js'), 'utf8')
-const rendererApp = fs.readFileSync(path.join(rootDir, 'src/renderer/src/App.jsx'), 'utf8')
+const rendererSidebar = fs.readFileSync(path.join(rootDir, 'src/renderer/src/app/Sidebar.jsx'), 'utf8')
 const bugReportTemplate = fs.readFileSync(path.join(rootDir, '.github/ISSUE_TEMPLATE/bug_report.yml'), 'utf8')
 const version = packageJson.version
 const expectedTag = `v${version}`
@@ -45,7 +45,7 @@ if (!releaseNotes.startsWith(`# MotoTrace ${expectedTag}`)) {
 if (!electronViteConfig.includes('__APP_VERSION__: JSON.stringify(packageJson.version)')) {
   fail('electron-vite config does not inject package.json version into the renderer')
 }
-if (!rendererApp.includes('v{__APP_VERSION__}')) {
+if (!rendererSidebar.includes('v{__APP_VERSION__}')) {
   fail('sidebar does not display the injected application version')
 }
 if (!bugReportTemplate.includes(`placeholder: ${expectedTag}`)) {
