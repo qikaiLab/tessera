@@ -28,3 +28,20 @@ export function isEntryEmpty(value) {
 export function isSectionClosable(section, entry) {
   return !section.resident && isEntryEmpty(entry?.value)
 }
+
+// Something is stored for the section (a number, or any non-blank text or document).
+export function hasStoredValue(entry) {
+  return entry?.value !== undefined && entry?.value !== null && String(entry.value).trim() !== ''
+}
+
+// Resident sections are always on a day. An optional ("activated") one is there while it holds
+// something, or because the user just added it by hand, or while it folds away after closing.
+export function isSectionOnDay(section, entry, { added = false, leaving = false } = {}) {
+  if (section.resident) return true
+  return added || leaving || hasStoredValue(entry)
+}
+
+// Optional sections that can still be offered under "add record".
+export function isSectionAddable(section, entry, added = false) {
+  return !section.resident && !added && !hasStoredValue(entry)
+}

@@ -3,19 +3,11 @@ import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import RichTextView from './RichTextView'
 import { favoriteKey } from '../utils/favorites'
+import { readEditorFontSize } from '../utils/editorFontSize'
 import { useIncrementalList } from '../utils/useIncrementalList'
 import './TimelinePreview.css'
 
 const PAGE_SIZE = 12
-
-function readEditorFontSize() {
-  try {
-    const stored = parseInt(localStorage.getItem('mototrace_font_size') || '14', 10)
-    return Number.isFinite(stored) ? Math.min(Math.max(stored, 12), 24) : 14
-  } catch {
-    return 14
-  }
-}
 
 function FavoriteStar({ active, onToggle, label }) {
   return (

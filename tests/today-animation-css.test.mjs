@@ -1,9 +1,8 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { readTree } from './helpers/source.mjs'
 
-const css = fs.readFileSync(path.resolve('src/renderer/src/pages/Today.css'), 'utf8')
-const component = fs.readFileSync(path.resolve('src/renderer/src/pages/Today.jsx'), 'utf8')
+const css = readTree('src/renderer/src/pages/Today', ['.css'])
+const component = readTree('src/renderer/src/pages/Today', ['.jsx', '.js'])
 
 describe('today page transition contract', () => {
   it('removes the hard-coded date flash while retaining content transitions', () => {
