@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { hasStoredValue } from '../../utils/dayEntries'
 import { flushPendingValue } from '../../utils/pendingSaves'
+import { NUMBER_DEFAULT_MODE, getNumberDefaultMode } from '../../utils/sectionDefaults'
 
 export const SAVE_STATUS = {
   SAVED: 'saved',
@@ -15,11 +16,6 @@ const SAVE_DEBOUNCE_MS = 800
 const SAVED_BADGE_MS = 2000
 // A first load that takes longer than this shows skeleton cards instead of an empty page.
 const SKELETON_DELAY_MS = 180
-const NUMBER_DEFAULT_MODE_CARRY = 'carry'
-
-const getNumberDefaultMode = (section) => (
-  section?.numberDefaultMode === NUMBER_DEFAULT_MODE_CARRY ? NUMBER_DEFAULT_MODE_CARRY : 'manual'
-)
 
 /**
  * The records of one day: loading them, the number defaults shown for empty number sections,
@@ -67,7 +63,7 @@ export function useDayRecords({ dateStr, sections }) {
     const defaults = {}
     for (const section of sections) {
       if (section.type !== 'number' || hasStoredValue(loadedData[section.id])) continue
-      defaults[section.id] = getNumberDefaultMode(section) === NUMBER_DEFAULT_MODE_CARRY
+      defaults[section.id] = getNumberDefaultMode(section) === NUMBER_DEFAULT_MODE.CARRY
         ? await findRecentNumberValue(targetDateStr, section.id)
         : '0'
     }
