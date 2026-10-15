@@ -3,7 +3,8 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import AnalyticsCardEditor from '../../components/AnalyticsCardEditor'
 import { buildChartData, getHeatmapColor } from '../../utils/analyticsData'
-import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { isEditableMenuTarget } from '../../utils/editableText'
 import ChartRenderer from './ChartRenderer'
 
 // One chart: title and actions, the (collapsible) settings editor, and the chart itself.

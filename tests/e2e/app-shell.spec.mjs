@@ -132,3 +132,28 @@ test('a text field gets the in-app edit menu, the editor keeps its own', async (
     await app.close()
   }
 })
+
+test('the text field menu acts on the field: select all, and disabled entries stay disabled', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.locator('.nav-item', { hasText: '时间线' }).click()
+    const field = window.locator('.search-input').first()
+    await field.fill('abcdef')
+    await field.click()
+    await field.evaluate(el => el.setSelectionRange(2, 2))
+
+    await field.click({ button: 'right' })
+    const menu = window.locator('.app-context-menu')
+    await expect(menu).toBeVisible()
+    // Nothing is selected, so there is nothing to cut or copy.
+    await expect(menu.getByRole('menuitem', { name: '剪切' })).toBeDisabled()
+    await expect(menu.getByRole('menuitem', { name: '复制文本' })).toBeDisabled()
+    await menu.getByRole('menuitem', { name: '全选' }).click()
+    await expect(menu).toHaveCount(0)
+    const selection = await field.evaluate(el => [el.selectionStart, el.selectionEnd])
+    expect(selection).toEqual([0, 6])
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

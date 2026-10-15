@@ -1,16 +1,16 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { readStylesheet } from './helpers/source.mjs'
+import { readSource, readStylesheet } from './helpers/source.mjs'
 import {
   clampMenuPosition,
   nextEnabledMenuIndex,
   normalizeContextMenuItems
 } from '../src/renderer/src/utils/contextMenuModel.js'
 
-const contextMenuSource = fs.readFileSync(
-  path.resolve('src/renderer/src/utils/contextMenu.js'),
-  'utf8'
+const contextMenuSource = readSource(
+  'src/renderer/src/utils/contextMenu.js',
+  'src/renderer/src/utils/editableText.js'
 )
 const contextMenuComponent = fs.readFileSync(
   path.resolve('src/renderer/src/components/ContextMenu.jsx'),

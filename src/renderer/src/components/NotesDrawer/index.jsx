@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useRef } from 'react'
-import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { isEditableMenuTarget } from '../../utils/editableText'
 import { useSlidingThumb } from '../../utils/useSlidingThumb'
 import DrawerNoteItem from './DrawerNoteItem'
 import { useDrawerNotes } from './useDrawerNotes'

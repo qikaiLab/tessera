@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { getZoomDeltaFromKeyboardEvent, getZoomDeltaFromWheelEvent } from '../theme/interfacePreferences'
-import { editMenuItems, focusEditableTarget, getEditableSelectionState, showContextMenu } from '../utils/contextMenu'
+import { editMenuItems, showContextMenu } from '../utils/contextMenu'
+import { focusEditableTarget, getEditableSelectionState } from '../utils/editableText'
 
 /**
  * Input that works on every page: Ctrl +/- and Ctrl+wheel zoom the interface, F1 opens the

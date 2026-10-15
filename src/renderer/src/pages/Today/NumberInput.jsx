@@ -1,12 +1,6 @@
 import { useCallback } from 'react'
-import {
-  editMenuItems,
-  focusEditableTarget,
-  getEditableSelectionState,
-  separator,
-  showContextMenu,
-  useContextMenuCommand
-} from '../../utils/contextMenu'
+import { editMenuItems, separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { focusEditableTarget, getEditableSelectionState } from '../../utils/editableText'
 import './NumberInput.css'
 
 const isNumericText = (value) => /^-?\d+(\.\d+)?$/.test(String(value || '').trim())

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { hasStoredValue, isEntryEmpty } from '../../utils/dayEntries'
 import { buildFavoriteLookup, favoriteKey } from '../../utils/favorites'
-import { isEditableMenuTarget, separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { isEditableMenuTarget } from '../../utils/editableText'
 
 /**
  * Favourites and the right-click menu of a record card. Right-clicking text or an input keeps

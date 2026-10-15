@@ -1,5 +1,6 @@
 import { useCallback, useId } from 'react'
-import { hasClipboardText, separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { hasClipboardText } from '../../utils/editableText'
 import { canRunEditorCommand, countChars, getSelectedEditorText, insertPlainText } from './editorHelpers'
 
 /**
