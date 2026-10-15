@@ -14,6 +14,10 @@ const editorComponent = fs.readFileSync(
   path.resolve('src/renderer/src/components/TiptapEditor/index.jsx'),
   'utf8'
 )
+const fullscreenHeader = fs.readFileSync(
+  path.resolve('src/renderer/src/components/TiptapEditor/FullscreenHeader.jsx'),
+  'utf8'
+)
 const analyticsComponent = readTree('src/renderer/src/pages/Analytics', ['.jsx', '.js'])
 const analyticsCss = readTree('src/renderer/src/pages/Analytics', ['.css'])
 
@@ -55,8 +59,10 @@ describe('editor and analytics theme CSS contract', () => {
 
   it('keeps the exit button beside the window controls and the header clear of them', () => {
     // The button lives outside the header (whose entrance animation would trap a fixed child).
-    expect(editorComponent).toMatch(/tiptap-fullscreen-header-actions[\s\S]*fullscreen-exit-btn/)
-    expect(editorComponent).toContain("'--fs-column-max': currentMaxWidth")
+    expect(fullscreenHeader).toContain('tiptap-fullscreen-header-actions')
+    expect(fullscreenHeader).not.toContain('fullscreen-exit-btn')
+    expect(editorComponent).toContain('fullscreen-exit-btn')
+    expect(fullscreenHeader).toContain("'--fs-column-max': maxWidth")
     expect(editorCss).toMatch(/\.tiptap-fullscreen \.fullscreen-exit-btn\s*\{[^}]*position:\s*fixed;[^}]*right:\s*calc\(var\(--window-controls-width\) \+ 16px\)/)
     expect(editorCss).toContain('var(--fs-controls-reserve)')
     expect(editorCss).toContain('white-space: nowrap')

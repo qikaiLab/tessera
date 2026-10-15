@@ -10,3 +10,10 @@ export function isFullscreenEditorShortcut(event) {
     event.key === 'Enter'
   )
 }
+
+// Ctrl+\ / Cmd+\ clears the formatting at the cursor.
+export function isClearFormattingShortcut(event) {
+  if (event.altKey || event.shiftKey) return false
+  if (!event.ctrlKey && !event.metaKey) return false
+  return event.code === 'Backslash' || event.key === '\\'
+}
