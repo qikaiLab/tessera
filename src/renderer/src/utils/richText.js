@@ -26,10 +26,13 @@ export function extractPlainText(value) {
   if (!value) return ''
   if (typeof value === 'string') {
     try {
-      return nodeText(JSON.parse(value))
+      const parsed = JSON.parse(value)
+      // Only a document counts: text like "8000" or "true" is valid JSON but plain text.
+      if (parsed && typeof parsed === 'object') return nodeText(parsed)
     } catch {
-      return value
+      // Legacy plain text falls through.
     }
+    return value
   }
   if (typeof value === 'object') return nodeText(value)
   return String(value)

@@ -1028,6 +1028,13 @@ body {
   to { opacity: 1; }
 }
 
+/* Used by the notes list, the notes drawer and the timeline, so it must not live in a lazily
+ * loaded page's stylesheet: the others would have no animation until that page was opened. */
+@keyframes revealIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+
 @keyframes overlayIn {
   from { opacity: 0; }
   to { opacity: 1; }
