@@ -1,12 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { readTree } from './helpers/source.mjs'
 
-const notesCss = fs.readFileSync(path.resolve('src/renderer/src/pages/Notes.css'), 'utf8')
-const notesDrawerCss = fs.readFileSync(
-  path.resolve('src/renderer/src/components/NotesDrawer.css'),
-  'utf8'
-)
+const notesCss = readTree('src/renderer/src/pages/Notes', ['.css'])
+const notesDrawerCss = readTree('src/renderer/src/components/NotesDrawer', ['.css'])
 const surfacesCss = fs.readFileSync(path.resolve('src/renderer/src/theme/appearanceSurfaces.css'), 'utf8')
 const editorCss = fs.readFileSync(
   path.resolve('src/renderer/src/components/TiptapEditor/TiptapEditor.css'),
