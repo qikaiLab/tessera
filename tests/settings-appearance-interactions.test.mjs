@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { readSource, readTree } from './helpers/source.mjs'
+import { readTree } from './helpers/source.mjs'
 
 const component = readTree('src/renderer/src/pages/Settings', ['.jsx', '.js'])
 const css = readTree('src/renderer/src/pages/Settings', ['.css'])
-const appContext = readSource('src/renderer/src/context/AppContext.jsx')
+const appContext = readTree('src/renderer/src/context', ['.jsx', '.js'])
 
 describe('settings appearance interaction contract', () => {
   it('defers pointer-driven interface zoom until the drag finishes', () => {
@@ -32,6 +32,6 @@ describe('settings appearance interaction contract', () => {
     expect(css).toContain('filter: blur(var(--frosted-preview-blur))')
     expect(css).toContain('.appearance-background-blur-control')
     expect(appContext).toContain("window.api.config.set('frostedBackgroundBlur', next)")
-    expect(appContext).toContain('normalizeFrostedBackgroundBlur(cfg.frostedBackgroundBlur)')
+    expect(appContext).toContain('normalizeFrostedBackgroundBlur(config.frostedBackgroundBlur)')
   })
 })
