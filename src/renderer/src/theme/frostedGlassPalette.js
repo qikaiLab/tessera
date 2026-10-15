@@ -10,6 +10,9 @@
  *  - brightness   very bright photos wash out light text on dark glass (and very dark ones
  *                 sink dark text on light glass), so a soft scrim is added where needed.
  */
+
+import { clamp } from '../utils/math'
+
 export const DEFAULT_FROSTED_PALETTE = Object.freeze({
   hue: 212,
   saturation: 64,
@@ -37,10 +40,6 @@ const SCRIM = Object.freeze({
   maxDark: 0.34,
   maxLight: 0.3
 })
-
-function clamp(value, minimum, maximum) {
-  return Math.min(maximum, Math.max(minimum, value))
-}
 
 function lerp(from, to, amount) {
   return from + (to - from) * amount

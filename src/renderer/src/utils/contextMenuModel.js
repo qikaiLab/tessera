@@ -1,3 +1,5 @@
+import { clamp } from './math'
+
 export function normalizeContextMenuItems(items = []) {
   const visibleItems = items.filter(item => item && item.visible !== false)
   const normalized = []
@@ -31,8 +33,8 @@ export function clampMenuPosition({
   const maxTop = Math.max(topInset, viewportHeight - height - inset)
 
   return {
-    left: Math.min(Math.max(x, inset), maxLeft),
-    top: Math.min(Math.max(y, topInset), maxTop)
+    left: clamp(x, inset, maxLeft),
+    top: clamp(y, topInset, maxTop)
   }
 }
 

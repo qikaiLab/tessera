@@ -1,12 +1,9 @@
 import { useState } from 'react'
 import SelectMenu from '../../components/SelectMenu'
+import { generateId } from '../../utils/ids'
 import { NUMBER_DEFAULT_MODE } from '../../utils/sectionDefaults'
 
 const DEFAULT_SECTION_COLOR = '#7c6aff'
-
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2)
-}
 
 // Creates a new (optional) section; `onAdd` receives it and the form starts over.
 export default function AddSectionForm({ nextOrder, onAdd }) {

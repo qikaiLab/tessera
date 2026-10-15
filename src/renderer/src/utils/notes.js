@@ -1,6 +1,8 @@
 // The note model shared by the notes page and the notes drawer: what a note looks like on disk,
 // how it is cleaned up, ordered, found and described. No React and no file access in here.
 
+import { generateUuid } from './ids'
+import { clamp } from './math'
 import { extractPlainText } from './richText'
 
 export const NOTES_INDEX_PATH = 'notes/index.json'
@@ -14,11 +16,6 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 export const notePath = (id) => `notes/${id}.json`
 
 export const emptyDoc = () => ({ type: 'doc', content: [{ type: 'paragraph' }] })
-
-export function generateNoteId() {
-  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
-  return Date.now().toString(36) + Math.random().toString(36).slice(2)
-}
 
 export function cloneNoteContent(content) {
   try {
@@ -34,7 +31,7 @@ export const buildDuplicateTitle = (title) => `${title?.trim() || UNTITLED_NOTE}
 
 export function normalizeNoteFontSize(value) {
   const parsed = parseInt(value, 10)
-  return Number.isFinite(parsed) ? Math.min(NOTE_FONT_MAX, Math.max(NOTE_FONT_MIN, parsed)) : NOTE_FONT_DEFAULT
+  return Number.isFinite(parsed) ? clamp(parsed, NOTE_FONT_MIN, NOTE_FONT_MAX) : NOTE_FONT_DEFAULT
 }
 
 // ─── Dates a note can be linked to ────────────────────────────────────────────
@@ -205,7 +202,7 @@ export function filterNotes(notes, { query, showArchived, dateFilter }) {
 export function createBlankNote({ pinned = false, dateLink = null, fontSize } = {}) {
   const now = new Date().toISOString()
   return {
-    id: generateNoteId(),
+    id: generateUuid(),
     title: '',
     content: emptyDoc(),
     createdAt: now,
@@ -221,7 +218,7 @@ export function duplicateNote(source) {
   const now = new Date().toISOString()
   return {
     ...source,
-    id: generateNoteId(),
+    id: generateUuid(),
     title: buildDuplicateTitle(source.title),
     content: cloneNoteContent(source.content),
     createdAt: now,

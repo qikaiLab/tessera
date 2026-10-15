@@ -1,10 +1,7 @@
 import { useState } from 'react'
 import { arrayMove } from '@dnd-kit/sortable'
 import { DATE_AXIS_RECORDED, LINE_STYLE_SMOOTH } from '../../utils/analyticsCard'
-
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2)
-}
+import { generateId } from '../../utils/ids'
 
 function defaultCard(index) {
   return {

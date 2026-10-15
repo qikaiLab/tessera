@@ -1,4 +1,5 @@
 import React from 'react'
+import { clamp } from '../utils/math'
 import { isSafeLink, parseRichText } from '../utils/richText'
 
 function escapeRegex(value) {
@@ -53,7 +54,7 @@ function renderNode(node, highlight, key) {
       return <p key={key}>{inner.length ? inner : <br />}</p>
     }
     case 'heading': {
-      const level = Math.min(Math.max(Number(node.attrs?.level) || 1, 1), 3)
+      const level = clamp(Number(node.attrs?.level) || 1, 1, 3)
       return React.createElement(`h${level}`, { key }, children())
     }
     case 'bulletList':

@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react'
-
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+import { clamp } from './math'
 
 /**
  * A panel width the user drags with a handle, remembered across sessions.

@@ -1,3 +1,5 @@
+import { clamp } from './math'
+
 export const COLLAPSE_MIN_MS = 240
 export const COLLAPSE_MAX_MS = 620
 const COLLAPSE_BASE_MS = 210
@@ -9,5 +11,5 @@ const COLLAPSE_MS_PER_PX = 0.45
 export function collapseDurationMs(contentHeight) {
   const height = Number.isFinite(contentHeight) ? Math.max(0, contentHeight) : 0
   const ms = COLLAPSE_BASE_MS + height * COLLAPSE_MS_PER_PX
-  return Math.round(Math.min(COLLAPSE_MAX_MS, Math.max(COLLAPSE_MIN_MS, ms)))
+  return Math.round(clamp(ms, COLLAPSE_MIN_MS, COLLAPSE_MAX_MS))
 }

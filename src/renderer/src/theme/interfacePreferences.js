@@ -1,3 +1,4 @@
+import { clamp } from '../utils/math'
 import { APPEARANCE_MESSAGE_KEYS } from './appearanceMessages'
 
 export const INTERFACE_ZOOM = Object.freeze({
@@ -41,7 +42,7 @@ const WEIGHT_IDS = new Set(INTERFACE_WEIGHT_OPTIONS.map(option => option.id))
 export function normalizeInterfaceZoom(value) {
   const numeric = Number(value)
   if (!Number.isFinite(numeric)) return INTERFACE_ZOOM.DEFAULT
-  const clamped = Math.min(INTERFACE_ZOOM.MAX, Math.max(INTERFACE_ZOOM.MIN, numeric))
+  const clamped = clamp(numeric, INTERFACE_ZOOM.MIN, INTERFACE_ZOOM.MAX)
   return Math.round(clamped / INTERFACE_ZOOM.STEP) * INTERFACE_ZOOM.STEP
 }
 
