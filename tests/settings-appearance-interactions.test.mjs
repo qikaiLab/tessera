@@ -1,10 +1,9 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { readSource, readTree } from './helpers/source.mjs'
 
-const component = fs.readFileSync(path.resolve('src/renderer/src/pages/Settings.jsx'), 'utf8')
-const css = fs.readFileSync(path.resolve('src/renderer/src/pages/Settings.css'), 'utf8')
-const appContext = fs.readFileSync(path.resolve('src/renderer/src/context/AppContext.jsx'), 'utf8')
+const component = readTree('src/renderer/src/pages/Settings', ['.jsx', '.js'])
+const css = readTree('src/renderer/src/pages/Settings', ['.css'])
+const appContext = readSource('src/renderer/src/context/AppContext.jsx')
 
 describe('settings appearance interaction contract', () => {
   it('defers pointer-driven interface zoom until the drag finishes', () => {
