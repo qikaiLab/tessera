@@ -29,6 +29,16 @@ export function isSectionClosable(section, entry) {
   return !section.resident && isEntryEmpty(entry?.value)
 }
 
+// A day's entries without the ones that hold nothing. Empty entries are neither shown nor
+// stored, so a day whose entries are all empty has no file at all.
+export function dropEmptyEntries(entries) {
+  const kept = {}
+  for (const [key, entry] of Object.entries(entries)) {
+    if (entry?.value !== undefined && entry?.value !== null && !isEntryEmpty(entry.value)) kept[key] = entry
+  }
+  return kept
+}
+
 // Something is stored for the section (a number, or any non-blank text or document).
 export function hasStoredValue(entry) {
   return entry?.value !== undefined && entry?.value !== null && String(entry.value).trim() !== ''
