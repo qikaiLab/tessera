@@ -1,9 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { readStylesheet } from './helpers/source.mjs'
 
-const cssPath = path.resolve('src/renderer/src/styles/global.css')
-const css = fs.readFileSync(cssPath, 'utf8')
+const css = readStylesheet('src/renderer/src/styles/global.css')
 const appCss = fs.readFileSync(path.resolve('src/renderer/src/styles/App.css'), 'utf8')
 const surfacesCss = fs.readFileSync(
   path.resolve('src/renderer/src/theme/appearanceSurfaces.css'),

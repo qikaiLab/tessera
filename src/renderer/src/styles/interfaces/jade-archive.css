@@ -1,0 +1,97 @@
+[data-interface-style='jade-archive'] {
+  color-scheme: dark;
+  --font-style-stack: var(--font-serif-stack);
+  --bg-app: #141c17;
+  --bg-sidebar: #17211b;
+  --bg-surface: #1c2821;
+  --bg-surface-2: #223128;
+  --bg-surface-3: #293d32;
+  --bg-hover: #2b4035;
+  --bg-input: #19251e;
+  --bg-glass: rgba(23, 33, 27, 0.92);
+  --border: rgba(196, 178, 132, 0.14);
+  --border-hover: rgba(196, 178, 132, 0.25);
+  --border-focus: rgba(200, 166, 106, 0.55);
+  --text-primary: #f1eadc;
+  --text-secondary: #beb6a3;
+  --text-tertiary: #969487;
+  --text-muted: #747d75;
+  --text-inverse: #11150f;
+  --accent: #c8a66a;
+  --accent-contrast: #11150f;
+  --accent-hover: #d3b477;
+  --accent-light: rgba(88, 120, 97, 0.24);
+  --accent-light-hover: rgba(88, 120, 97, 0.34);
+  --success: #5ba180;
+  --success-light: rgba(91, 161, 128, 0.12);
+  --warning: #d0a058;
+  --warning-light: rgba(208, 160, 88, 0.12);
+  --error: #d46a6a;
+  --error-light: rgba(212, 106, 106, 0.12);
+  --info: #6f9fc9;
+  --info-light: rgba(111, 159, 201, 0.12);
+  --shadow-sm: 0 2px 8px rgba(3, 8, 5, 0.28);
+  --shadow-md: 0 6px 18px rgba(3, 8, 5, 0.34);
+  --shadow-lg: 0 12px 30px rgba(3, 8, 5, 0.4);
+  --shadow-xl: 0 20px 52px rgba(3, 8, 5, 0.46);
+  --scrollbar-thumb: rgba(207, 190, 147, 0.16);
+  --scrollbar-thumb-hover: rgba(207, 190, 147, 0.28);
+  --theme-texture-image: url('../assets/themes/jade-stone-texture.webp');
+  --theme-texture-size: 620px 620px;
+  --theme-texture-opacity: 0.38;
+  --theme-sidebar-texture-opacity: 0.46;
+  --theme-titlebar-texture-opacity: 0.28;
+  --theme-texture-blend-mode: soft-light;
+  --theme-backdrop-image:
+    radial-gradient(circle at 72% 8%, rgba(200, 166, 106, 0.2), transparent 30%);
+  --surface-material-image:
+    linear-gradient(135deg, rgba(34, 47, 39, 0.72), rgba(18, 29, 24, 0.82)),
+    url('../assets/themes/jade-stone-texture.webp');
+  --surface-material-subtle-image:
+    linear-gradient(145deg, rgba(31, 44, 36, 0.78), rgba(17, 27, 22, 0.88)),
+    url('../assets/themes/jade-stone-texture.webp');
+  --input-material-image:
+    linear-gradient(180deg, rgba(21, 32, 26, 0.86), rgba(15, 24, 20, 0.92)),
+    url('../assets/themes/jade-stone-texture.webp');
+  --surface-material-size: auto, 480px 480px;
+  --surface-material-position: center, center;
+  --material-surface-shadow: 0 9px 24px rgba(3, 8, 5, 0.22);
+  --material-inset-shadow: inset 0 1px rgba(220, 203, 160, 0.065), inset 0 0 0 1px rgba(91, 161, 128, 0.035);
+  --font-weight-body-style: 500;
+  --font-weight-reading-style: 500;
+  --font-weight-control-style: 600;
+  --font-weight-title-style: 700;
+  --tag-resident-text: #d0b37b;
+  --tag-resident-bg: rgba(200, 166, 106, 0.13);
+  --tag-resident-border: rgba(200, 166, 106, 0.25);
+  --tag-activated-text: #79b394;
+  --tag-activated-bg: rgba(91, 161, 128, 0.14);
+  --tag-activated-border: rgba(91, 161, 128, 0.25);
+  --editor-fullscreen-background:
+    radial-gradient(circle at center, rgba(23, 34, 29, 0.1) 0%, rgba(10, 16, 13, 0.24) 100%),
+    url('../assets/themes/jade-fullscreen-background.webp') center / cover no-repeat;
+  --selection-bg: rgba(200, 166, 106, 0.22);
+  --floating-toolbar-background: rgba(28, 40, 33, 0.96);
+  --floating-toolbar-background-image: var(--surface-material-subtle-image);
+  --floating-toolbar-border: rgba(200, 166, 106, 0.28);
+  --floating-toolbar-hover-background: rgba(200, 166, 106, 0.1);
+  --floating-toolbar-active-background: rgba(91, 161, 128, 0.22);
+  --floating-toolbar-separator: rgba(200, 166, 106, 0.2);
+  --floating-toolbar-shadow: 0 12px 32px rgba(3, 8, 5, 0.44);
+  --floating-toolbar-inset-shadow: inset 0 1px rgba(220, 203, 160, 0.08);
+  --chart-tooltip-background: rgba(28, 40, 33, 0.98);
+  --chart-tooltip-border: rgba(200, 166, 106, 0.26);
+  --chart-tooltip-shadow: 0 10px 26px rgba(3, 8, 5, 0.38);
+  --context-menu-background: rgba(26, 38, 31, 0.98);
+  --context-menu-background-image: var(--surface-material-subtle-image);
+  --context-menu-background-size: var(--surface-material-size);
+  --context-menu-border: rgba(200, 166, 106, 0.27);
+  --context-menu-shortcut-text: #969487;
+  --context-menu-hover-background: rgba(200, 166, 106, 0.11);
+  --context-menu-hover-text: #f4ecdd;
+  --context-menu-disabled-text: #747d75;
+  --context-menu-separator: rgba(200, 166, 106, 0.18);
+  --context-menu-danger-background: rgba(212, 106, 106, 0.13);
+  --context-menu-shadow: 0 14px 34px rgba(3, 8, 5, 0.46);
+  --context-menu-inset-shadow: inset 0 1px rgba(220, 203, 160, 0.08);
+}

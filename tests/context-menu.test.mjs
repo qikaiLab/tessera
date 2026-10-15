@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { readStylesheet } from './helpers/source.mjs'
 import {
   clampMenuPosition,
   nextEnabledMenuIndex,
@@ -19,7 +20,7 @@ const contextMenuCss = fs.readFileSync(
   path.resolve('src/renderer/src/components/ContextMenu.css'),
   'utf8'
 )
-const globalCss = fs.readFileSync(path.resolve('src/renderer/src/styles/global.css'), 'utf8')
+const globalCss = readStylesheet('src/renderer/src/styles/global.css')
 
 describe('application context menu model', () => {
   it('removes hidden commands and redundant separators', () => {

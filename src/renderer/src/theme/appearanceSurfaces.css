@@ -1,7 +1,7 @@
 /*
  * Central material layer for fixed interface styles.
  * Business components expose stable classes; all style-specific color, texture,
- * weight, and depth decisions stay in the theme tokens declared in global.css.
+ * weight, and depth decisions stay in the theme tokens declared in styles/tokens.css and styles/interfaces/.
  */
 
 :root:is([data-interface-style='linen-study'], [data-interface-style='jade-archive'], [data-interface-style='frosted-glass']) body {
@@ -137,16 +137,13 @@
   .nav-label,
   .notes-list-title,
   .notes-count,
-  .timeline-card-title,
   .analytics-card-title,
   .settings-field-label,
   .interface-preference-title,
-  .editor-label,
   .card-editor-label,
   .tl-snippet-label,
   .cal-weekday,
   .cal-weekday-label,
-  .badge,
   .section-type-badge
 ) {
   font-weight: var(--font-weight-control);
@@ -173,7 +170,7 @@
   .modal,
   .dropdown-menu,
   .slash-menu,
-  .context-menu
+  .app-context-menu
 ) {
   backdrop-filter: var(--glass-backdrop-elevated);
   -webkit-backdrop-filter: var(--glass-backdrop-elevated);
@@ -181,8 +178,7 @@
 
 :root[data-interface-style='frosted-glass'] :is(
   .input,
-  .notes-drawer-search .search-input,
-  .floating-toolbar
+  .notes-drawer-search .search-input
 ) {
   backdrop-filter: var(--glass-backdrop-recessed);
   -webkit-backdrop-filter: var(--glass-backdrop-recessed);

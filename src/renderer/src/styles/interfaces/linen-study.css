@@ -1,0 +1,97 @@
+/* ─── Fixed interface styles ───────────────────────────────────────────── */
+[data-interface-style='linen-study'] {
+  color-scheme: light;
+  --font-style-stack: var(--font-serif-stack);
+  --bg-app: #f4efe6;
+  --bg-sidebar: #eee6d9;
+  --bg-surface: #fbf8f1;
+  --bg-surface-2: #f4ecdf;
+  --bg-surface-3: #eadfce;
+  --bg-hover: #e8dccb;
+  --bg-input: #fffdf8;
+  --bg-glass: rgba(251, 248, 241, 0.9);
+  --border: rgba(104, 76, 48, 0.14);
+  --border-hover: rgba(104, 76, 48, 0.25);
+  --border-focus: rgba(89, 100, 122, 0.52);
+  --text-primary: #30271d;
+  --text-secondary: #695b4a;
+  --text-tertiary: #81725f;
+  --text-muted: #9a8a74;
+  --text-inverse: #fffaf0;
+  --accent: #765235;
+  --accent-contrast: #fffaf0;
+  --accent-hover: #865f3f;
+  --accent-light: rgba(118, 82, 53, 0.12);
+  --accent-light-hover: rgba(118, 82, 53, 0.19);
+  --success: #2e7d5b;
+  --success-light: rgba(46, 125, 91, 0.1);
+  --warning: #ae741f;
+  --warning-light: rgba(174, 116, 31, 0.11);
+  --error: #b94d3b;
+  --error-light: rgba(185, 77, 59, 0.1);
+  --info: #526f96;
+  --info-light: rgba(82, 111, 150, 0.1);
+  --shadow-sm: 0 1px 4px rgba(86, 63, 38, 0.11);
+  --shadow-md: 0 5px 16px rgba(86, 63, 38, 0.13);
+  --shadow-lg: 0 10px 28px rgba(86, 63, 38, 0.15);
+  --shadow-xl: 0 18px 48px rgba(86, 63, 38, 0.18);
+  --scrollbar-thumb: rgba(96, 70, 43, 0.18);
+  --scrollbar-thumb-hover: rgba(96, 70, 43, 0.3);
+  --theme-texture-image: url('../assets/themes/linen-paper-texture.webp');
+  --theme-texture-size: 560px 560px;
+  --theme-texture-opacity: 0.34;
+  --theme-sidebar-texture-opacity: 0.42;
+  --theme-titlebar-texture-opacity: 0.26;
+  --theme-texture-blend-mode: multiply;
+  --theme-backdrop-image:
+    radial-gradient(circle at 16% 10%, rgba(255, 255, 255, 0.42), transparent 36%);
+  --surface-material-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(251, 248, 241, 0.76) 48%, rgba(244, 236, 223, 0.72)),
+    url('../assets/themes/linen-paper-texture.webp');
+  --surface-material-subtle-image:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(244, 236, 223, 0.84)),
+    url('../assets/themes/linen-paper-texture.webp');
+  --input-material-image:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.86), rgba(248, 242, 232, 0.9)),
+    url('../assets/themes/linen-paper-texture.webp');
+  --surface-material-size: auto, 420px 420px;
+  --surface-material-position: center, center;
+  --material-surface-shadow: 0 7px 20px rgba(86, 63, 38, 0.1);
+  --material-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.72), inset 0 0 0 1px rgba(118, 82, 53, 0.025);
+  --font-weight-body-style: 500;
+  --font-weight-reading-style: 500;
+  --font-weight-control-style: 600;
+  --font-weight-title-style: 700;
+  --tag-resident-text: #6d4b30;
+  --tag-resident-bg: rgba(118, 82, 53, 0.13);
+  --tag-resident-border: rgba(118, 82, 53, 0.24);
+  --tag-activated-text: #62713e;
+  --tag-activated-bg: rgba(98, 113, 62, 0.13);
+  --tag-activated-border: rgba(98, 113, 62, 0.24);
+  --editor-fullscreen-background:
+    linear-gradient(rgba(255, 253, 248, 0.12), rgba(244, 239, 230, 0.2)),
+    url('../assets/themes/linen-fullscreen-background.webp') center / cover no-repeat;
+  --selection-bg: rgba(118, 82, 53, 0.22);
+  --floating-toolbar-background: rgba(251, 248, 241, 0.96);
+  --floating-toolbar-background-image: var(--surface-material-subtle-image);
+  --floating-toolbar-border: rgba(118, 82, 53, 0.27);
+  --floating-toolbar-hover-background: rgba(118, 82, 53, 0.1);
+  --floating-toolbar-active-background: rgba(118, 82, 53, 0.16);
+  --floating-toolbar-separator: rgba(118, 82, 53, 0.2);
+  --floating-toolbar-shadow: 0 10px 28px rgba(86, 63, 38, 0.18);
+  --floating-toolbar-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.82);
+  --chart-tooltip-background: rgba(251, 248, 241, 0.98);
+  --chart-tooltip-border: rgba(118, 82, 53, 0.24);
+  --chart-tooltip-shadow: 0 8px 22px rgba(86, 63, 38, 0.16);
+  --context-menu-background: rgba(251, 248, 241, 0.98);
+  --context-menu-background-image: var(--surface-material-subtle-image);
+  --context-menu-background-size: var(--surface-material-size);
+  --context-menu-border: rgba(118, 82, 53, 0.26);
+  --context-menu-shortcut-text: #81725f;
+  --context-menu-hover-background: rgba(118, 82, 53, 0.11);
+  --context-menu-disabled-text: #9a8a74;
+  --context-menu-separator: rgba(118, 82, 53, 0.18);
+  --context-menu-danger-background: rgba(185, 77, 59, 0.1);
+  --context-menu-shadow: 0 11px 30px rgba(86, 63, 38, 0.2);
+  --context-menu-inset-shadow: inset 0 1px rgba(255, 255, 255, 0.82);
+}

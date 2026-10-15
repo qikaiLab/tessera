@@ -19,7 +19,7 @@ function placeThumb(el) {
 /**
  * Lets the highlight of a segmented control / tab strip slide to the newly selected button
  * instead of jumping. It measures the active child and publishes its box as CSS variables
- * (--thumb-x/y/w/h); the `.has-thumb::before` rule in global.css draws and animates it.
+ * (--thumb-x/y/w/h); the `.has-thumb::before` rule in styles/tabs.css draws and animates it.
  * Attach the returned ref to the container (which may mount later than the component).
  */
 export function useSlidingThumb() {

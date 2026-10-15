@@ -1,5 +1,5 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readStylesheet } from './helpers/source.mjs'
 import {
   DEFAULT_FROSTED_PALETTE,
   analyzePixels,
@@ -105,7 +105,7 @@ describe('Frosted Glass adaptive palette', () => {
 
 describe('Frosted Glass stylesheet', () => {
   it('only lets accent colours, not glass surfaces, use the accent saturation', () => {
-    const css = fs.readFileSync(new URL('../src/renderer/src/styles/global.css', import.meta.url), 'utf8')
+    const css = readStylesheet('src/renderer/src/styles/global.css')
     const accentTokens = /^\s*--(accent|accent-hover|accent-light|accent-light-hover|border-focus|tag-resident-border|selection-bg):/
     const offenders = css.split(/\r?\n/)
       .filter(line => line.includes('var(--frosted-accent-s)'))

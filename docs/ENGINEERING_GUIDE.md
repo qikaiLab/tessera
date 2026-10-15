@@ -63,10 +63,10 @@ npm run check
 
 ### 动效约定
 
-- 时长与曲线统一用 `global.css` 里的令牌：`--transition-fast/base/slow`、`--ease-out`（入场、悬停）、`--ease-in`（退场，更短，约 140 ms）。弹窗只带极轻微的回弹（`--transition-spring`），不做弹跳。
+- 时长与曲线统一用 `styles/tokens.css` 里的令牌：`--transition-fast/base/slow`、`--ease-out`（入场、悬停）、`--ease-in`（退场，更短，约 140 ms）。弹窗只带极轻微的回弹（`--transition-spring`），不做弹跳。
 - 只动画 `transform` 和 `opacity`；需要改变高度时用 `grid-template-rows: 0fr ↔ 1fr`。不使用 `transition: all`，不对整块内容区使用 `filter: blur`，不对 `margin`、`width` 做逐帧动画。
-- 弹窗、下拉、菜单的退场用 `components/Presence.jsx`：它让被移除的子元素多停留一小会儿并带上 `.presence.is-leaving`（同时 `aria-hidden` 和 `inert`），样式写在 `global.css`。新增浮层时给它的根节点加 `.modal-overlay`、`.dropdown-menu` 等已有类，或照样补一条 `.presence.is-leaving > .你的类` 规则。
-- 标签条和分段控件的滑动高亮用 `utils/useSlidingThumb.js`：把返回的 ref 挂到容器上即可，样式见 `global.css` 的 `.has-thumb`。
+- 弹窗、下拉、菜单的退场用 `components/Presence.jsx`：它让被移除的子元素多停留一小会儿并带上 `.presence.is-leaving`（同时 `aria-hidden` 和 `inert`），样式写在 `styles/overlays.css`。新增浮层时给它的根节点加 `.modal-overlay`、`.dropdown-menu` 等已有类，或照样补一条 `.presence.is-leaving > .你的类` 规则。
+- 标签条和分段控件的滑动高亮用 `utils/useSlidingThumb.js`：把返回的 ref 挂到容器上即可，样式见 `styles/tabs.css` 的 `.has-thumb`。
 - 入场动画的填充模式用 `backwards`，不要用 `both`：`both` 会在动画结束后一直锁住 `transform: none`，让元素的 `:hover` 位移失效；对页面根元素等「全屏编辑器的祖先」更是致命，会让 `position: fixed` 的全屏层被圈在该元素内，不再铺满窗口（`tests/e2e/fullscreen-editor.spec.mjs` 守护）。
 - **雾化玻璃：玻璃元素（带 `backdrop-filter`）的任何祖先都不能带 `opacity < 1`、`filter` 或 `mask`，哪怕只是动画途中。** 否则浏览器只在该祖先内部取景，玻璃会在动画期间变成「平的」，动画一结束颜色突然跳变。含玻璃的容器（页面根、抽屉、设置卡片、弹窗遮罩）在该风格下只做位移动画，淡入淡出放在玻璃元素自身或遮罩的伪元素上；见 `theme/appearanceSurfaces.css` 与 `tests/e2e/frosted-glass-motion.spec.mjs`。
 - 高度会变化、距离不定的动画（卡片折叠）时长要随距离伸缩，见 `utils/collapseMotion.js`，并使用起步较柔的 `--ease-travel`；时长通过 `--collapse-ms` 在切换时按内容高度写入。
@@ -92,7 +92,36 @@ npm run check
 - 过亮的壁纸在深色主题下叠一层压暗（`--frosted-dark-scrim`），过暗的壁纸在浅色主题下叠一层提亮（`--frosted-light-scrim`），保证文字可读。
 - 调整算法时，用几类典型图片（灰色雨窗、雪景、霓虹、夜景、米色纸、森林）对照输出，而不是只看一张。
 
-## 6. 测试策略
+## 6. 代码结构与拆分约定
+
+目标：加功能或改行为时，只需要打开一两个小文件。
+
+### 渲染层（`src/renderer/src`）
+
+- `pages/<页面>/`：一个页面一个文件夹。`index.jsx` 只负责组合；状态与副作用拆成 `use*.js`，界面按卡片或区块拆成组件，样式 `.css` 与组件放在一起。Today、Notes、Settings、Analytics、Timeline、Calendar 都按这个方式组织。
+- `utils/`：**纯逻辑**（不碰 React、DOM 或 Electron）放这里，按领域命名，如 `notes.js`、`analyticsData.js`、`timelineCards.js`、`dayEntries.js`、`countdowns.js`，并且必须有单元测试。`use*.js` 是跨页面复用的 hook。
+- `context/`：全局状态。`AppContext.jsx` 只组合 `useSections`、`useMetadata`、`useDayStorage`、`useAppearance` 等 hook；`sectionsFile.js`、`metadataFile.js` 负责文件格式的解析与迁移（纯函数，有测试）。
+- `components/`：跨页面复用的组件。`TiptapEditor/` 拆为 `index.jsx`（组合）、`editorExtensions.js`（扩展与快捷键）、`editorHelpers.js`（纯函数）、`useEditorContextMenu.js`、`useFullscreenEditor.js` 和 `FullscreenHeader.jsx`。
+- `styles/`：`global.css` 只是入口，按 `@import` 的顺序（即层叠顺序）引入 `tokens.css`（颜色与尺寸令牌、深浅主题）、`interfaces/*.css`（三套界面风格）、`typography.css`、`base.css`、`animations.css`、`controls.css`、`overlays.css`、`states.css`、`layout.css`、`tabs.css`、`widgets.css`。通用样式放进对应文件；只属于某个页面或组件的样式写在它旁边，不要放进 `styles/`。
+- `theme/`：界面风格注册、壁纸取色、风格材质层（`appearanceSurfaces.css`）。
+
+### 主进程（`src/main`）
+
+- `index.js` 只做装配：运行时覆盖、单实例锁、应用生命周期。
+- `appState.js` 是各部分共享的进程级状态（窗口、数据目录、是否正在退出）；`window.js` 创建窗口并处理静默测试模式；`externalLinks.js` 判定哪些地址可以在外部打开。
+- `dataFiles.js`、`dataDirectory.js` 是数据文件操作与数据目录解析（纯函数，有测试）；`security.js` 限制可访问路径。
+- `ipc/*Ipc.js` 按主题注册 IPC handler（文件、备份、配置、元数据、对话框、窗口、外观），统一经 `ipc/attempt.js` 包装为 `{ ok, ... }` 结果；`ipc/index.js` 汇总注册。
+- `contextMenu.js`、`contextMenuTemplate.js` 是原生右键菜单的兜底路径；界面里实际使用的是渲染层的自绘菜单（`components/ContextMenu.jsx`）。
+
+### 拆分约定
+
+1. 一个文件同时承担多件事、或超过约 300 行时先拆：纯逻辑 → `utils/` 并补单元测试；状态与副作用 → hook；界面 → 组件；样式随组件走。
+2. 拆分是**不改变行为**的重构。先写（或确认已有）能在旧实现上通过的测试，再在新实现上运行同一份；过程中发现的缺陷单独修复、单独说明，不夹带在搬运里。
+3. 读取源码或 CSS 文本的契约测试一律通过 `tests/helpers/source.mjs` 的 `readSource`、`readTree`、`readStylesheet`，这样拆分文件不会让它们失效。
+4. 及时清理不再使用的 CSS 类、导出和死代码。判断类名是否仍在使用时，要考虑动态拼接的写法（如 `cal-slide-${motion}`）和由库生成的类（`recharts-*`、`ProseMirror-*`）。
+5. 懒加载页面的样式不得定义被其他页面共用的 `@keyframes`，它们必须放在 `styles/` 里随首屏加载（`tests/css-keyframes.test.mjs` 守卫）。
+
+## 7. 测试策略
 
 优先测试错误代价最高的边界：
 
@@ -133,7 +162,7 @@ npx playwright test   # 已有最新构建时直接运行
 
 未设置 `ELECTRON_RENDERER_URL`（仅 `electron-vite dev` 会注入）时，未打包的启动会加载构建产物而不是开发服务器。CI 在 `npm run check` 之后运行冒烟测试；它们不属于 `npm run check`，改动主进程、预加载桥接、编辑器保存或窗口生命周期时请在本地运行。
 
-## 7. 合并与评审
+## 8. 合并与评审
 
 项目目前由单人维护，没有第二位评审人，因此不要求每次改动都创建 Pull Request。合并依据是：本地 `npm run check` 通过，且推送分支后 CI（对所有分支生效）成功。小改动（文档、文案、纯样式、仅补测试）本地检查通过即可合并。
 
@@ -141,7 +170,7 @@ npx playwright test   # 已有最新构建时直接运行
 
 当前私有仓库套餐不支持 `main` 分支保护，因此流程约束需要人工遵守：只在 CI 通过后合并。若未来升级套餐、公开仓库或加入协作者，应开启 required status check（`Lint, test and build`），并恢复 Pull Request 加评审的流程。
 
-## 8. 发布纪律
+## 9. 发布纪律
 
 1. `main` 的 CI 成功后才允许准备版本。
 2. 使用 `npm version <patch|minor|major> --no-git-tag-version` 同步两个包文件。
@@ -153,7 +182,7 @@ npx playwright test   # 已有最新构建时直接运行
 
 标签是不可变发布记录。已推送标签不得重打；失败时修复并增加 patch 版本。不要使用 `git push --tags`，避免误推本地旧标签。
 
-## 9. 发布后验证
+## 10. 发布后验证
 
 每个正式版本至少检查：
 
@@ -165,13 +194,13 @@ npx playwright test   # 已有最新构建时直接运行
 - 外部链接只在系统浏览器打开；
 - 卸载不会误删用户选择的数据目录。
 
-## 10. 依赖与安全
+## 11. 依赖与安全
 
 每月处理 Dependabot，运行 `npm audit`，优先修复运行时依赖中的 high/critical 问题。大版本升级一次只处理一个核心组件，并保留独立回滚提交。
 
 安全问题不得包含真实用户数据、数据库、访问令牌或本机隐私路径。处理原则见 `SECURITY.md`。
 
-## 11. 仓库清洁
+## 12. 仓库清洁
 
 每次合并后删除已合并分支。每月检查一次：
 
@@ -185,7 +214,7 @@ npm audit
 
 确认后再删除或 prune。构建产物、覆盖率、日志和用户数据必须保持在 `.gitignore` 中。
 
-## 12. 建议节奏
+## 13. 建议节奏
 
 - 每次提交：运行相关测试和 lint。
 - 每次合并前：完整运行 `npm run check`。
@@ -193,7 +222,7 @@ npm audit
 - 每个 Release：全量门禁、不可变标签、安装包冒烟测试。
 - 每季度：检查 Node/Electron 支持周期、备份恢复演练和文档有效性。
 
-## 13. AI 助手自主管理约定
+## 14. AI 助手自主管理约定
 
 本项目主要通过自然语言交由 AI 助手开发。根目录 `AGENTS.md` 是助手在本仓库内的工作约定：按改动风险分级，自行管理任务分支、提交、推送、合并和合并后清理，用户无需重复提醒这些例行事项。
 

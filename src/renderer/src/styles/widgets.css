@@ -1,0 +1,95 @@
+/* ─── Search Input ───────────────────────────────────────────────────────── */
+.search-wrap {
+  position: relative;
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  font-size: 14px;
+  pointer-events: none;
+}
+.search-input {
+  padding-left: 32px;
+}
+
+/* ─── Highlight ─────────────────────────────────────────────────────────── */
+mark {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* ─── Number Input ───────────────────────────────────────────────────────── */
+.number-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.number-input {
+  width: 120px;
+  text-align: center;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  padding: var(--spacing-2) var(--spacing-3);
+}
+.number-unit {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* ─── Dropdown ───────────────────────────────────────────────────────────── */
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  z-index: 500;
+  overflow: hidden;
+  animation: popIn var(--transition-fast) both;
+  transform-origin: top left;
+}
+
+.presence.is-leaving > .dropdown-menu {
+  animation: popOut 100ms var(--ease-in) both;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+}
+.dropdown-item:hover { background: var(--bg-hover); }
+.dropdown-item.danger { color: var(--error); }
+.dropdown-item.danger:hover { background: var(--error-light); }
+
+/* ─── Select ─────────────────────────────────────────────────────────────── */
+select.input {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%239090a0' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+select.input option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}

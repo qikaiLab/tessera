@@ -20,3 +20,13 @@ export function readTree(directory, extensions) {
   walk(root)
   return files.map(file => fs.readFileSync(file, 'utf8')).join('\n')
 }
+
+// A stylesheet with its local @import lines replaced by the files they import, in order, the
+// way the bundler reads it (the entry stylesheet only lists the files it is made of).
+export function readStylesheet(file) {
+  const full = path.resolve(file)
+  const localImport = /^@import\s+'(\.[^']+)';[ \t]*\r?\n?/gm
+  return fs.readFileSync(full, 'utf8').replace(localImport, (_, relative) => (
+    readStylesheet(path.join(path.dirname(full), relative))
+  ))
+}

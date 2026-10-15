@@ -110,14 +110,18 @@ Electron (electron-vite)
 Project_SlefTracker/
 ├── .github/workflows/    # GitHub Actions — 日常质量门禁与 Tag 自动发布
 ├── docs/                 # 工程化管理与维护文档
+├── scripts/              # 版本校验、清理产物、开发示例数据等脚本
 ├── src/
-│   ├── main/             # 主进程：文件读写、IPC handler、备份逻辑
-│   ├── preload/          # 预加载脚本：安全桥接 electronAPI
+│   ├── main/             # 主进程：窗口与生命周期、数据文件、备份；ipc/ 按主题注册 IPC handler
+│   ├── preload/          # 预加载脚本：安全桥接 window.api
 │   └── renderer/src/
-│       ├── context/      # AppContext — selectedDate、sections 全局状态
-│       ├── pages/        # Record / Calendar / Timeline / Analytics / Settings
-│       └── components/   # TiptapEditor、Modal、各类图表组件
-├── tests/                # Vitest 自动化测试
+│       ├── context/      # AppContext 及其 hook：当前日期、板块、元数据、外观
+│       ├── pages/        # Today / Notes / Calendar / Timeline / Analytics / Settings，每页一个文件夹
+│       ├── components/   # TiptapEditor、NotesDrawer、弹窗、右键菜单等共享组件
+│       ├── utils/        # 纯逻辑与通用 hook（便签、统计、时间线、倒数日……）
+│       ├── theme/        # 界面风格与壁纸取色
+│       └── styles/       # 设计令牌、三套界面风格与基础样式
+├── tests/                # Vitest 单元与契约测试；tests/e2e 是 Playwright 的 Electron 冒烟测试
 ├── electron.vite.config.js
 └── package.json
 ```

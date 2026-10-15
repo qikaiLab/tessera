@@ -1,13 +1,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { readStylesheet } from './helpers/source.mjs'
 
 const read = file => fs.readFileSync(path.resolve(file), 'utf8')
 const modalCss = read('src/renderer/src/components/ShortcutsModal.css')
-const globalCss = read('src/renderer/src/styles/global.css')
+const globalCss = readStylesheet('src/renderer/src/styles/global.css')
 
 describe('shortcuts modal theming', () => {
-  it('only references theme variables that global.css actually defines', () => {
+  it('only references theme variables that the stylesheets actually define', () => {
     const used = [...modalCss.matchAll(/var\((--[\w-]+)/g)].map(match => match[1])
     const undefinedVariables = [...new Set(used)].filter(
       name => !new RegExp(`${name}\s*:`).test(globalCss)

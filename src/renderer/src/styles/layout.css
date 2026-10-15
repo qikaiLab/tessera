@@ -1,0 +1,110 @@
+/* ─── Page Layout ────────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-5) var(--spacing-6);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.page-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-title);
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.page-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-6);
+}
+
+/* Keep the scrollbar's strip reserved. Otherwise content that grows past the viewport (an
+ * editor panel opening, a card unfolding) makes the scrollbar appear mid-animation, which
+ * narrows everything by a few pixels and makes charts and text reflow with a visible twitch. */
+:is(.page-content, .today-content, .timeline-list, .settings-scroll) {
+  scrollbar-gutter: stable;
+}
+
+/* ─── Section Card ───────────────────────────────────────────────────────── */
+.section-card {
+  background-color: var(--bg-surface);
+  background-image: var(--surface-material-image);
+  background-size: var(--surface-material-size);
+  background-position: var(--surface-material-position);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color var(--transition-base);
+  animation: fadeIn var(--transition-base) both;
+  box-shadow: var(--material-surface-shadow), var(--material-inset-shadow);
+}
+.section-card:hover { border-color: var(--border-hover); }
+
+/* Break the containing block when an inner element goes fullscreen */
+.section-card.fullscreen-active-parent {
+  /* The entrance animation is neutralised, not removed: dropping the animation name would
+   * make it start over (card fading in from nothing) the moment fullscreen ends. */
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-fill-mode: none !important;
+  transform: none !important;
+  filter: none !important;
+  perspective: none !important;
+  contain: none !important;
+  backdrop-filter: none !important;
+  will-change: auto !important;
+  z-index: 1000;
+}
+
+.section-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-2) var(--spacing-4);
+  background: transparent;
+  position: relative;
+}
+
+.section-card-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: var(--spacing-4);
+  right: var(--spacing-4);
+  border-bottom: 1px dashed var(--border);
+}
+
+.section-card-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.section-card-body {
+  padding: var(--spacing-4);
+}
+
+.text-editor-body {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Drag Handle ────────────────────────────────────────────────────────── */
+.drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+.drag-handle:hover { color: var(--text-secondary); }
+.drag-handle:active { cursor: grabbing; }

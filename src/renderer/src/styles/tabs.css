@@ -1,0 +1,76 @@
+/* ─── Tabs ───────────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-surface-2);
+  border-radius: var(--radius-md);
+  padding: 3px;
+}
+
+/* The sliding highlight of tab strips and segmented controls (see useSlidingThumb). */
+:where(.tabs, .segmented-control) {
+  position: relative;
+}
+
+.has-thumb::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--thumb-w);
+  height: var(--thumb-h);
+  transform: translate(var(--thumb-x), var(--thumb-y));
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.has-thumb.thumb-ready::before {
+  transition:
+    transform 320ms var(--ease-out),
+    width 320ms var(--ease-out),
+    height 320ms var(--ease-out);
+}
+
+.segmented-control.has-thumb::before {
+  background: var(--accent-light);
+}
+
+.tabs.has-thumb::before {
+  background: var(--bg-surface);
+  border-radius: calc(var(--radius-md) - 2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.has-thumb > .segmented-btn,
+.has-thumb > .tab {
+  position: relative;
+}
+
+.has-thumb > .segmented-btn.active,
+.has-thumb > .segmented-btn.active:hover,
+.has-thumb > .tab.active {
+  background: transparent;
+  box-shadow: none;
+}
+
+.tab {
+  flex: 1;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+  text-align: center;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+}
+
+.tab:hover { color: var(--text-primary); }
+.tab.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}

@@ -1,0 +1,32 @@
+/* User typography preferences stay independent from interface style palettes. */
+[data-interface-font='theme'] {
+  --font-sans: var(--font-style-stack);
+}
+
+[data-interface-font='system'] {
+  --font-sans: var(--font-system-stack);
+}
+
+[data-interface-font='sans'] {
+  --font-sans: var(--font-modern-sans-stack);
+}
+
+[data-interface-font='serif'] {
+  --font-sans: var(--font-serif-stack);
+}
+
+[data-interface-font='kai'] {
+  --font-sans: var(--font-kai-stack);
+}
+
+[data-interface-weight='light'] {
+  --font-weight-offset: -100;
+}
+
+[data-interface-weight='standard'] {
+  --font-weight-offset: 0;
+}
+
+[data-interface-weight='heavy'] {
+  --font-weight-offset: 100;
+}
