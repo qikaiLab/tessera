@@ -72,8 +72,8 @@ test('the sidebar highlights the open page, hands over its indicator and keeps a
     const sidebar = window.locator('.sidebar')
     const before = (await sidebar.boundingBox()).width
     const handle = await window.locator('.sidebar-resize-handle').boundingBox()
-    // Only the part of the handle inside the sidebar is clickable (the rest is clipped).
-    await window.mouse.move(handle.x + 1, handle.y + handle.height / 2)
+    // The whole handle is grabbable, its middle included.
+    await window.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2)
     await window.mouse.down()
     await window.mouse.move(handle.x + 60, handle.y + handle.height / 2, { steps: 5 })
     await window.mouse.up()

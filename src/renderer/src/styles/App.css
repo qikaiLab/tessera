@@ -294,10 +294,12 @@ body.editor-fullscreen-active .titlebar-controls:focus-within {
   z-index: 1;
 }
 
+/* Inside the sidebar on purpose: its overflow is clipped, so a handle straddling the edge would
+ * only be grabbable on its inner half. The visible line stays beside the border. */
 .sidebar-resize-handle {
   position: absolute;
   top: 0;
-  right: -3px;
+  right: 0;
   width: 6px;
   height: 100%;
   cursor: col-resize;
@@ -309,7 +311,7 @@ body.editor-fullscreen-active .titlebar-controls:focus-within {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 2px;
+  left: 5px;
   width: 1px;
   background: transparent;
   transition: background var(--transition-fast);
