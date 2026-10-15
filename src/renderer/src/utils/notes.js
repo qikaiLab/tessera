@@ -1,6 +1,8 @@
 // The note model shared by the notes page and the notes drawer: what a note looks like on disk,
 // how it is cleaned up, ordered, found and described. No React and no file access in here.
 
+import { extractPlainText } from './richText'
+
 export const NOTES_INDEX_PATH = 'notes/index.json'
 export const UNTITLED_NOTE = '无标题便签'
 
@@ -155,19 +157,7 @@ export function serializeNote(note) {
   }, null, 2)
 }
 
-export function extractNoteText(value) {
-  if (!value) return ''
-  if (typeof value === 'string') {
-    try {
-      return extractNoteText(JSON.parse(value))
-    } catch {
-      return value
-    }
-  }
-  if (Array.isArray(value.content)) return value.content.map(extractNoteText).join('')
-  if (value.type === 'text') return value.text || ''
-  return ''
-}
+export const extractNoteText = extractPlainText
 
 export const countNoteChars = (content) => extractNoteText(content).length
 

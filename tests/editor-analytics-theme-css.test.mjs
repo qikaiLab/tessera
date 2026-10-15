@@ -14,8 +14,8 @@ const editorComponent = fs.readFileSync(
   path.resolve('src/renderer/src/components/TiptapEditor/index.jsx'),
   'utf8'
 )
-const analyticsComponent = fs.readFileSync(path.resolve('src/renderer/src/pages/Analytics.jsx'), 'utf8')
-const analyticsCss = fs.readFileSync(path.resolve('src/renderer/src/pages/Analytics.css'), 'utf8')
+const analyticsComponent = readTree('src/renderer/src/pages/Analytics', ['.jsx', '.js'])
+const analyticsCss = readTree('src/renderer/src/pages/Analytics', ['.css'])
 
 describe('editor and analytics theme CSS contract', () => {
   it('keeps the note title on its semantic transparent editor surface', () => {

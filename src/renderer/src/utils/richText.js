@@ -19,6 +19,32 @@ export function parseRichText(value) {
   }
 }
 
+// The text of a stored value (a Tiptap document, its serialized JSON, or legacy plain text) with
+// nothing between blocks: for searching, word counts and one-line snippets. See
+// richTextToPlainText for the version that keeps line breaks.
+export function extractPlainText(value) {
+  if (!value) return ''
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      // Only a document counts: text like "8000" or "true" is valid JSON but plain text.
+      if (parsed && typeof parsed === 'object') return nodeText(parsed)
+    } catch {
+      // Legacy plain text falls through.
+    }
+    return value
+  }
+  if (typeof value === 'object') return nodeText(value)
+  return String(value)
+}
+
+function nodeText(node) {
+  if (!node) return ''
+  if (node.type === 'text') return node.text || ''
+  if (Array.isArray(node.content)) return node.content.map(nodeText).join('')
+  return ''
+}
+
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'codeBlock', 'listItem', 'taskItem'])
 
 export function richTextToPlainText(value) {
