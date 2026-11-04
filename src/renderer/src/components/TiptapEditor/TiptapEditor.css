@@ -157,6 +157,71 @@
   margin: 1.2em 0;
 }
 
+/* ─── Tables ─────────────────────────────────────────────────────────────── */
+/* The wrapper scrolls a table that is wider than the card instead of overflowing it. */
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 0.8em 0;
+  max-width: 100%;
+}
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0;
+  table-layout: fixed;
+  overflow: hidden;
+}
+.ProseMirror .tableWrapper table {
+  /* Column widths are set by dragging a column border, so a wide table is allowed to grow. */
+  width: auto;
+  min-width: 100%;
+}
+.ProseMirror th,
+.ProseMirror td {
+  position: relative;
+  min-width: 72px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  vertical-align: top;
+  text-align: left;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.ProseMirror th {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.ProseMirror th p,
+.ProseMirror td p {
+  margin: 0;
+  padding: 0;
+  line-height: var(--editor-line-height, 1.8);
+}
+.ProseMirror th > :last-child,
+.ProseMirror td > :last-child {
+  margin-bottom: 0;
+}
+.ProseMirror .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-light);
+  pointer-events: none;
+}
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  top: -1px;
+  right: -2px;
+  bottom: -1px;
+  width: 4px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
 /* ─── Lists — unified spacing ────────────────────────────────────────────── */
 .ProseMirror ul,
 .ProseMirror ol {

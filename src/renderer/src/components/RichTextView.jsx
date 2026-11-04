@@ -78,6 +78,25 @@ function renderNode(node, highlight, key) {
       return <blockquote key={key}>{children()}</blockquote>
     case 'codeBlock':
       return <pre key={key}><code>{(node.content || []).map(child => child.text || '').join('')}</code></pre>
+    case 'table':
+      return <div key={key} className="tableWrapper"><table><tbody>{children()}</tbody></table></div>
+    case 'tableRow':
+      return <tr key={key}>{children()}</tr>
+    case 'tableHeader':
+    case 'tableCell': {
+      const Cell = node.type === 'tableHeader' ? 'th' : 'td'
+      const { colspan, rowspan, align } = node.attrs || {}
+      return (
+        <Cell
+          key={key}
+          colSpan={colspan > 1 ? colspan : undefined}
+          rowSpan={rowspan > 1 ? rowspan : undefined}
+          style={['left', 'center', 'right'].includes(align) ? { textAlign: align } : undefined}
+        >
+          {children()}
+        </Cell>
+      )
+    }
     case 'hardBreak':
       return <br key={key} />
     case 'horizontalRule':

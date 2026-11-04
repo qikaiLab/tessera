@@ -77,6 +77,14 @@ export const slashCommands = [
     },
   },
   {
+    title: '表格',
+    description: '3 × 3 表格，Tab 键切换单元格',
+    icon: '▦',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+    },
+  },
+  {
     title: '分割线',
     description: '水平分隔线',
     icon: '—',

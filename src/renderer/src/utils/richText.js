@@ -41,11 +41,15 @@ export function extractPlainText(value) {
 function nodeText(node) {
   if (!node) return ''
   if (node.type === 'text') return node.text || ''
-  if (Array.isArray(node.content)) return node.content.map(nodeText).join('')
+  if (Array.isArray(node.content)) {
+    const text = node.content.map(nodeText).join('')
+    // Keep neighbouring table cells from running together in searches and snippets.
+    return node.type === 'tableCell' || node.type === 'tableHeader' ? `${text} ` : text
+  }
   return ''
 }
 
-const BLOCK_TYPES = new Set(['paragraph', 'heading', 'codeBlock', 'listItem', 'taskItem'])
+const BLOCK_TYPES = new Set(['paragraph', 'heading', 'codeBlock', 'listItem', 'taskItem', 'tableRow'])
 
 export function richTextToPlainText(value) {
   const parts = []

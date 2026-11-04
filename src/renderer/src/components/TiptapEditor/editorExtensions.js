@@ -1,12 +1,9 @@
-import StarterKit from '@tiptap/starter-kit'
-import Underline from '@tiptap/extension-underline'
-import Link from '@tiptap/extension-link'
-import TaskList from '@tiptap/extension-task-list'
-import TaskItem from '@tiptap/extension-task-item'
 import CharacterCount from '@tiptap/extension-character-count'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Extension } from '@tiptap/core'
 import { SlashExtension } from './slashExtension'
+import { buildContentExtensions } from './contentExtensions'
+import { MarkdownLinkShortcut, MarkdownPaste } from './markdownInput'
 
 /** Remove the character formatting at the cursor / selection and refocus the editor view. */
 export function clearCharacterFormattingFromView(view) {
@@ -43,7 +40,7 @@ function saveShortcut(onSave) {
   })
 }
 
-// Mod+Enter leaves a code block or blockquote, adding a paragraph below it, so the cursor is
+// Mod+Enter leaves a code block, blockquote or table, adding a paragraph below it, so the cursor is
 // never stuck inside a block.
 function exitBlockInsertParagraphAfter(editor, nodeName) {
   return editor.chain().focus().command(({ tr, dispatch, state }) => {
@@ -68,6 +65,7 @@ const ExitBlockExtension = Extension.create({
       'Mod-Enter': ({ editor }) => {
         if (editor.isActive('codeBlock')) return editor.chain().focus().exitCode().run()
         if (editor.isActive('blockquote')) return exitBlockInsertParagraphAfter(editor, 'blockquote')
+        if (editor.isActive('table')) return exitBlockInsertParagraphAfter(editor, 'table')
         return false
       }
     }
@@ -85,27 +83,10 @@ const ClearFormattingExtension = Extension.create({
   }
 })
 
-// Links do not grow when typing at their end.
-const ExternalLink = Link.extend({ inclusive: false })
-
 /** The extensions of every MotoTrace editor. `onSave` runs on Ctrl+S / Cmd+S. */
 export function buildEditorExtensions({ placeholder, onSave }) {
   return [
-    StarterKit.configure({
-      bulletList: { keepMarks: true, keepAttributes: false },
-      orderedList: { keepMarks: true, keepAttributes: false },
-      hardBreak: { keepMarks: true }
-    }),
-    Underline,
-    ExternalLink.configure({
-      autolink: true,
-      linkOnPaste: true,
-      openOnClick: false,
-      protocols: ['http', 'https', 'mailto', 'tel'],
-      HTMLAttributes: { rel: 'noopener noreferrer', target: null }
-    }),
-    TaskList,
-    TaskItem.configure({ nested: true }),
+    ...buildContentExtensions(),
     CharacterCount,
     Placeholder.configure({
       placeholder,
@@ -114,6 +95,8 @@ export function buildEditorExtensions({ placeholder, onSave }) {
       showOnlyCurrent: false
     }),
     SlashExtension,
+    MarkdownLinkShortcut,
+    MarkdownPaste,
     ExitBlockExtension,
     ClearFormattingExtension,
     saveShortcut(onSave)
