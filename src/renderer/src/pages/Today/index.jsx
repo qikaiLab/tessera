@@ -29,6 +29,21 @@ function SkeletonCards() {
   )
 }
 
+// The day's file is there but could not be read: nothing is offered to type into, since saving would
+// replace it. The file itself was not touched.
+function DayReadError({ message, onRetry }) {
+  return (
+    <div className="today-empty-day" role="alert">
+      <div className="empty-state">
+        <span className="empty-state-icon">⚠</span>
+        <p className="empty-state-title">这天的记录暂时无法读取</p>
+        <p className="empty-state-desc">{message}。为避免覆盖，这一天暂不可编辑，原文件没有被改动。可以重试；若文件确已损坏，可在「设置 → 数据与备份 → 查看自动历史」中找回。</p>
+        <button className="btn btn-secondary" onClick={onRetry}>重试读取</button>
+      </div>
+    </div>
+  )
+}
+
 function EmptyDay() {
   return (
     <div className="today-empty-day">
@@ -84,6 +99,7 @@ export default function Today() {
   const renderContent = () => {
     if (records.holding) return null
     if (records.loading) return records.showSkeleton ? <SkeletonCards /> : <div className="today-loading-quiet" />
+    if (records.loadError) return <DayReadError message={records.loadError} onRetry={records.retryLoad} />
     if (presence.visibleSections.length === 0 && sections.length > 0) return <EmptyDay />
     return (
       <div key={`sections-${dateStr}`} className="sections-grid">

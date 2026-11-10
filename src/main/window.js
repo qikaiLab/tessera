@@ -1,11 +1,12 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { BrowserWindow, app, dialog } from 'electron'
+import { BrowserWindow, Menu, app, dialog } from 'electron'
 import { appState, loadConfig, saveConfig } from './appState.js'
 import { ensureDirSync } from './dataFiles.js'
+import { syncDataPathFile } from './dataDirectory.js'
 import { resolveStartupDataDirectory } from './dataDirectoryStartup.js'
 import { isAppNavigationUrl, openExternalQuietly } from './externalLinks.js'
+import { isBlockedShortcut } from './shortcuts.js'
 
 // How long the renderer has to confirm that pending edits were saved before the user is told
 // the close was cancelled.
@@ -27,10 +28,14 @@ export function focusMainWindow() {
 }
 
 // Closing asks the renderer to flush pending saves first; the window only closes when it
-// confirms (app:confirmClose). A slow or failed save is never permission to discard edits.
+// confirms (app:confirmClose). A slow or failed save is never permission to discard edits. The one
+// way out is the user's own, explicit choice after the wait: a page that crashed or hung can never
+// confirm, and must not make the window impossible to close.
 function guardClose(window) {
   window.on('close', (event) => {
     if (appState.isQuitting) return // Already confirmed, let it close
+    // A crashed renderer holds nothing that could still be saved.
+    if (window.webContents.isCrashed()) return
 
     event.preventDefault()
     if (closeRequestTimer) return
@@ -43,7 +48,15 @@ function guardClose(window) {
           type: 'warning',
           title: '尚未确认保存完成',
           message: '应用仍在等待保存结果，已取消退出。请检查保存状态后重试。',
-          buttons: ['继续使用']
+          detail: '如果页面已经卡死或无法响应，可以选择放弃未保存的内容并退出；此前已保存的数据不受影响。',
+          buttons: ['继续使用', '放弃未保存的内容并退出'],
+          defaultId: 0,
+          cancelId: 0,
+          noLink: true
+        }).then(({ response }) => {
+          if (response !== 1) return
+          appState.isQuitting = true
+          if (appState.mainWindow && !appState.mainWindow.isDestroyed()) appState.mainWindow.close()
         })
       }
     }, CLOSE_CONFIRM_TIMEOUT_MS)
@@ -60,6 +73,12 @@ function restrictNavigation(window) {
     if (isAppNavigationUrl(url)) return
     event.preventDefault()
     openExternalQuietly(url)
+  })
+}
+
+function blockReloadShortcuts(window) {
+  window.webContents.on('before-input-event', (event, input) => {
+    if (!appState.isDev && isBlockedShortcut(input)) event.preventDefault()
   })
 }
 
@@ -116,12 +135,11 @@ export async function createWindow({ runtimeOverrides }) {
     app.quit()
     return
   }
-  if (startup.configChanged) {
-    saveConfig(startup.config)
-    // Older versions kept the folder in this file too; keep it pointing at the folder in use.
-    if (startup.config.dataDir) {
-      try { fs.writeFileSync(path.join(app.getPath('userData'), 'datapath.txt'), startup.config.dataDir, 'utf8') } catch { /* optional */ }
-    }
+  if (startup.configChanged) saveConfig(startup.config)
+  // The uninstaller reads the folder in use from datapath.txt (it cannot read the config): keep it
+  // current at every start, not only when the config changed. Pinned test/dev folders stay out of it.
+  if (!runtimeOverrides?.fixedDataDir && startup.config.dataDir) {
+    syncDataPathFile(app.getPath('userData'), startup.config.dataDir)
   }
   rememberDataDirNotice(startup.notice)
   const dataDir = startup.dataDir
@@ -132,6 +150,10 @@ export async function createWindow({ runtimeOverrides }) {
   // Automated runs set MOTOTRACE_E2E_QUIET so the test window opens far off-screen and never
   // takes focus from whatever the developer is doing; the page itself still renders and runs.
   const quietWindow = process.env.MOTOTRACE_E2E_QUIET === '1'
+
+  // The default menu would give a packaged app reload and developer-tools shortcuts: reloading
+  // would drop edits that have not been saved yet. Packaged builds have no menu bar to show anyway.
+  if (app.isPackaged && process.platform !== 'darwin') Menu.setApplicationMenu(null)
 
   const window = new BrowserWindow({
     icon: path.join(__dirname, '../../logo.ico'),
@@ -148,6 +170,7 @@ export async function createWindow({ runtimeOverrides }) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      devTools: !app.isPackaged,
       backgroundThrottling: !quietWindow
     },
     show: false
@@ -166,6 +189,7 @@ export async function createWindow({ runtimeOverrides }) {
   }
 
   restrictNavigation(window)
+  blockReloadShortcuts(window)
   reportWindowState(window)
   guardClose(window)
   window.on('closed', () => {

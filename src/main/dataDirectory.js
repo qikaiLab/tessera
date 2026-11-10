@@ -39,3 +39,29 @@ export function resolveDataDirectory({ config, runtimeOverrides, userDataDir, ho
     migratedPath
   }
 }
+
+/**
+ * Keeps `datapath.txt` (in the app's own settings folder) naming the folder in use. The uninstaller
+ * cannot read config.json, so this file is how it learns where the data is; the installer writes it
+ * too, and a later move in Settings must not leave it pointing at the old place. Rewritten only
+ * when it differs. Returns whether anything was written.
+ */
+export function syncDataPathFile(userDataDir, dataDir) {
+  if (!userDataDir || !dataDir) return false
+  const file = path.join(userDataDir, 'datapath.txt')
+  try {
+    let current = null
+    try {
+      current = fs.readFileSync(file, 'utf8').trim()
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+    if (current === dataDir) return false
+    fs.mkdirSync(userDataDir, { recursive: true })
+    fs.writeFileSync(file, dataDir, 'utf8')
+    return true
+  } catch (error) {
+    console.error('Failed to write datapath.txt:', error)
+    return false
+  }
+}

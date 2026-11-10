@@ -1,42 +1,62 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createCoalescedWriter } from '../utils/coalescedWriter'
 import { buildMetadataContent, toggleFavoriteEntry } from '../utils/favorites'
 import { clearLegacyMetadata, parseMetadata } from './metadataFile'
 
-const METADATA_SAVE_DEBOUNCE_MS = 300
-const METADATA_REWRITE_DELAY_MS = 50
-
 /**
  * Countdowns, analytics charts and favourites: kept in metadata.json next to the data, written
- * shortly after a change, with one write in flight at a time (a change during a write triggers
- * another write after it) and flushed before the window closes.
+ * shortly after a change (see coalescedWriter: one write at a time, a change made during a write is
+ * written after it, a failed write is retried) and flushed before the window closes.
  */
-export function useMetadata({ registerPendingFlush, unregisterPendingFlush }) {
+export function useMetadata({ registerPendingFlush, unregisterPendingFlush, showToast }) {
   const [countdowns, setCountdowns] = useState([])
   const [analytics, setAnalytics] = useState([])
   const [favorites, setFavorites] = useState([])
-  const timerRef = useRef(null)
-  const hasChangedRef = useRef(false)
-  const isWritingRef = useRef(false)
-  const writeRef = useRef(Promise.resolve())
-  const needsRewriteRef = useRef(false)
-  const writeMetadataRef = useRef(null)
+  // The latest values, readable at the moment a write actually happens.
+  const stateRef = useRef({ countdowns: [], analytics: [], favorites: [] })
+  const failureShownRef = useRef(false)
+  const toastRef = useRef(showToast)
+  toastRef.current = showToast
+
+  const writerRef = useRef(null)
+  if (!writerRef.current) {
+    writerRef.current = createCoalescedWriter({
+      write: () => window.api.metadata.set(buildMetadataContent(stateRef.current)),
+      onSuccess: () => { failureShownRef.current = false },
+      onFailure: () => {
+        if (failureShownRef.current) return
+        failureShownRef.current = true
+        toastRef.current?.('倒数日、图表或收藏的更改保存失败，将自动重试；退出软件前也会再次尝试', 'error', 8000)
+      }
+    })
+  }
+
+  const commit = useCallback((patch) => {
+    stateRef.current = { ...stateRef.current, ...patch }
+    if ('countdowns' in patch) setCountdowns(patch.countdowns)
+    if ('analytics' in patch) setAnalytics(patch.analytics)
+    if ('favorites' in patch) setFavorites(patch.favorites)
+    writerRef.current.markDirty()
+  }, [])
 
   const loadMetadata = useCallback(async () => {
     const res = await window.api.metadata.get()
     if (!res.ok) return false
     try {
       const parsed = parseMetadata(res.data, localStorage)
+      stateRef.current = { countdowns: parsed.countdowns, analytics: parsed.analytics, favorites: parsed.favorites }
       setCountdowns(parsed.countdowns)
       setAnalytics(parsed.analytics)
       setFavorites(parsed.favorites)
       if (parsed.migrated) {
         // Older versions kept these in localStorage: move them into metadata.json.
-        await window.api.metadata.set(buildMetadataContent({
+        const migrated = await window.api.metadata.set(buildMetadataContent({
           countdowns: parsed.countdowns,
           analytics: parsed.analytics,
           favorites: parsed.rawFavorites
         }))
-        clearLegacyMetadata(localStorage)
+        // The old copy is only dropped once the new file is safely on disk.
+        if (migrated?.ok) clearLegacyMetadata(localStorage)
       }
       return true
     } catch (error) {
@@ -45,87 +65,23 @@ export function useMetadata({ registerPendingFlush, unregisterPendingFlush }) {
     }
   }, [])
 
+  // Like a state setter: `next` is the new list or a function of the latest one (several quick
+  // changes in a row each build on the one before).
   const saveCountdowns = useCallback((next) => {
-    hasChangedRef.current = true
-    setCountdowns(next)
-  }, [])
-
+    commit({ countdowns: typeof next === 'function' ? next(stateRef.current.countdowns) : next })
+  }, [commit])
   const saveAnalytics = useCallback((next) => {
-    hasChangedRef.current = true
-    setAnalytics(next)
-  }, [])
-
+    commit({ analytics: typeof next === 'function' ? next(stateRef.current.analytics) : next })
+  }, [commit])
   const toggleFavorite = useCallback((dateStr, sectionId) => {
-    hasChangedRef.current = true
-    setFavorites(prev => toggleFavoriteEntry(prev, dateStr, sectionId))
-  }, [])
-
-  const writeMetadata = useCallback(async () => {
-    if (isWritingRef.current) {
-      // A write is in progress: write again when it is done.
-      needsRewriteRef.current = true
-      return
-    }
-    isWritingRef.current = true
-    try {
-      // The state is committed before the debounce timer fires, so this closure is current.
-      writeRef.current = window.api.metadata.set(buildMetadataContent({ countdowns, analytics, favorites }))
-      const result = await writeRef.current
-      if (!result.ok) hasChangedRef.current = true
-    } catch (error) {
-      hasChangedRef.current = true
-      console.error('Failed to write metadata:', error)
-    } finally {
-      isWritingRef.current = false
-      if (needsRewriteRef.current) {
-        needsRewriteRef.current = false
-        // Changes arrived during the write: write again on the next tick, with the latest state
-        // (this closure's own state is already stale by then, so go through the ref).
-        setTimeout(() => {
-          if (hasChangedRef.current) {
-            hasChangedRef.current = false
-            writeMetadataRef.current?.()
-          }
-        }, METADATA_REWRITE_DELAY_MS)
-      }
-    }
-  }, [countdowns, analytics, favorites])
-  writeMetadataRef.current = writeMetadata
-
-  useEffect(() => {
-    if (!hasChangedRef.current) return undefined
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      hasChangedRef.current = false
-      writeMetadata()
-    }, METADATA_SAVE_DEBOUNCE_MS)
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [countdowns, analytics, favorites, writeMetadata])
+    commit({ favorites: toggleFavoriteEntry(stateRef.current.favorites, dateStr, sectionId) })
+  }, [commit])
 
   // Before the window closes: wait for a write in flight, then write anything still pending.
   useEffect(() => {
-    const flushMetadata = async () => {
-      try { await writeRef.current } catch { hasChangedRef.current = true }
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
-      }
-      if (hasChangedRef.current || needsRewriteRef.current) {
-        hasChangedRef.current = false
-        needsRewriteRef.current = false
-        const result = await window.api.metadata.set(buildMetadataContent({ countdowns, analytics, favorites }))
-        if (!result.ok) {
-          hasChangedRef.current = true
-          return false
-        }
-      }
-      return undefined
-    }
-    registerPendingFlush('metadata', flushMetadata)
+    registerPendingFlush('metadata', () => writerRef.current.flush())
     return () => unregisterPendingFlush('metadata')
-  }, [countdowns, analytics, favorites, registerPendingFlush, unregisterPendingFlush])
+  }, [registerPendingFlush, unregisterPendingFlush])
 
   return {
     countdowns, saveCountdowns,

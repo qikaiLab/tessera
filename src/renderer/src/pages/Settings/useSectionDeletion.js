@@ -30,8 +30,7 @@ export function useSectionDeletion() {
 
   const confirmDelete = async () => {
     if (request.sec) {
-      await saveSections(sections.filter(s => s.id !== request.sec.id))
-      showToast('已删除版块', 'success')
+      if (await saveSections(sections.filter(s => s.id !== request.sec.id))) showToast('已删除版块', 'success')
     }
     setRequest(NO_REQUEST)
   }

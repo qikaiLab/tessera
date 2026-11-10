@@ -152,6 +152,19 @@ npm run check
 - 导入 ZIP 先整体校验（合法 JSON、相对路径），有任何问题就一个文件都不写。
 - 构建出的页面带 Content-Security-Policy（`scripts/contentSecurityPolicy.mjs`，由 Vite 插件只在构建时注入）：脚本只允许应用自带，禁止任何网络连接、框架与插件；样式允许内联，图片允许 `data:`（自选背景）。因此不得再引入远程字体、样式、脚本或图片，也不得在页面里发起网络请求；`tests/content-security-policy.test.mjs` 与 `tests/e2e/security-policy.spec.mjs` 守住这一点。开发服务器不加该策略（热更新需要内联脚本与套接字）。
 
+### 保存、关闭与编辑器打开文档
+
+渲染层的保存路径是数据安全的核心，约定如下（回归测试：`tests/pending-saves.test.mjs`、`coalesced-writer`、`leftover-saves`、`today-rollover`、`main-shortcuts`，以及 `tests/e2e/save-pipeline.spec.mjs`、`editor-integrity.spec.mjs`）：
+
+- 任何持有「尚未写入的编辑」的地方都要用 `registerPendingFlush` 登记。关闭窗口时主进程发 `app-before-close`，渲染层把登记的全部冲刷成功后才 `confirmClose`；失败或超时不会放弃编辑，主进程 15 秒后询问用户是继续使用，还是明确选择放弃未保存内容后退出（渲染进程已崩溃时直接允许关闭）。
+- 页面被离开时（记录页、便签页卸载，或切换便签）还没写出的内容不能随页面消失：用 `utils/leftoverSaves.js` 移交，立即写入，失败则继续挂在关闭冲刷上重试；同一天/同一便签之后有了更新的写入（`markWritten`）时旧的内容作废，不会把旧版本写回去。
+- 一个文件被频繁改写（`metadata.json`）时用 `utils/coalescedWriter.js`：同一时刻只有一个写入，写入期间的新改动在其后补写，失败会自动重试并提示一次，而不是认为已保存。
+- 读取日记文件分严格与宽松：`readDayDataStrict` 对「文件存在但读不出或解析不了」抛错，记录页据此显示错误面板，不提供可编辑的空白日（否则一次输入就会覆盖真实文件）；列表、查找等可以跳过的场景用 `readDayData`。
+- 跨过零点后记录页自动移到新的一天（`context/useTodayRollover.js`），先冲刷当前内容，失败则留在原日期。
+- 打包版禁用刷新与开发者工具快捷键并移除默认菜单（`main/shortcuts.js`、`window.js`）：刷新会丢掉未保存的编辑。开发进程不受影响。
+- 编辑器打开文档前先经 `utils/documentSanitizer.js`：含有本版本不认识的节点或标记的文档，保留文字并提示，而不是显示成空白卡片（否则第一下输入就会把空白存到真实内容上）；形如 `2024` 的旧纯文本按文字显示。
+- 退出全屏的 Esc 要在编辑器处理按键之前判断（`isLeaveFullscreenKey`，捕获阶段）：ProseMirror 会把编辑器内的每个 Esc 都标记为已处理，所以不能用 `defaultPrevented` 区分。
+
 ### 软件内的使用说明
 
 「使用说明」（侧栏 💡、`F1`、首次启动）的内容是数据：`src/renderer/src/components/guide/guideTopics.js`，界面在 `Onboarding.jsx` 与 `guide/GuideBlock.jsx`。新增、改名或删除用户可见的功能（页面、按钮、快捷键、斜杠菜单项、设置项）时，在同一个提交里更新对应主题。`tests/guide-content.test.mjs` 会检查说明里用「」引用的界面文字是否仍然出现在应用源码中，改名后忘记更新说明会让测试失败；`tests/e2e/guide.spec.mjs` 检查各主题下的显示、溢出和键盘行为。示例输入用 `{{...}}`（按代码显示，不解析），按键用 `[[Ctrl]]`，加粗用 `**...**`。

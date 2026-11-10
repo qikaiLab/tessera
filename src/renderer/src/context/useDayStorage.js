@@ -14,28 +14,46 @@ const dayPath = (dateStr) => {
 export function useDayStorage() {
   const [datesWithData, setDatesWithData] = useState([])
 
-  // A day that is missing or cannot be parsed reads as empty; entries with nothing in them are
-  // left out so they never show up on the record page.
-  const readDayData = useCallback(async (dateStr) => {
+  // A day that does not exist is empty. A day whose file exists but cannot be read or parsed is NOT:
+  // this throws, so the caller never mistakes it for an empty day and saves over it. Entries with
+  // nothing in them are left out so they never show up on the record page.
+  const readDayDataStrict = useCallback(async (dateStr) => {
     const result = await window.api.fs.readFile(dayPath(dateStr))
-    if (!result.ok) return {}
+    if (!result.ok) {
+      if (result.code === 'ENOENT') return {}
+      throw new Error(`无法读取 ${dateStr} 的记录文件：${result.error}`)
+    }
     try {
       return dropEmptyEntries(JSON.parse(result.data))
     } catch (error) {
       console.error(`Failed to parse data for ${dateStr}:`, error)
-      return {}
+      throw new Error(`${dateStr} 的记录文件内容已损坏，无法解析`)
     }
   }, [])
 
+  // For listings and look-ups that can simply skip a day they cannot read.
+  const readDayData = useCallback(async (dateStr) => {
+    try {
+      return await readDayDataStrict(dateStr)
+    } catch {
+      return {}
+    }
+  }, [readDayDataStrict])
+
   const refreshDates = useCallback(async () => {
     const rawDates = await window.api.fs.scanDates()
-    const checked = await Promise.all(rawDates.map(async (dateStr) => (
-      Object.keys(await readDayData(dateStr)).length > 0 ? dateStr : null
-    )))
+    const checked = await Promise.all(rawDates.map(async (dateStr) => {
+      try {
+        return Object.keys(await readDayDataStrict(dateStr)).length > 0 ? dateStr : null
+      } catch {
+        // The file is there but unreadable: keep the day visible so it can be opened and looked at.
+        return dateStr
+      }
+    }))
     const withData = checked.filter(Boolean)
     setDatesWithData(withData)
     return withData
-  }, [readDayData])
+  }, [readDayDataStrict])
 
   // Empty entries are not written; a day left with none has its file removed.
   const writeDayData = useCallback(async (dateStr, data) => {
@@ -54,5 +72,5 @@ export function useDayStorage() {
     return result
   }, [])
 
-  return { datesWithData, refreshDates, readDayData, writeDayData }
+  return { datesWithData, refreshDates, readDayData, readDayDataStrict, writeDayData }
 }

@@ -27,15 +27,13 @@ export default function SectionsCard({ hidden, onRequestDelete }) {
   const updateSection = (id, patch) => saveSections(sections.map(s => (s.id === id ? { ...s, ...patch } : s)))
 
   const addSection = async (section) => {
-    await saveSections([...sections, section])
-    showToast('已添加新数据版块', 'success')
+    if (await saveSections([...sections, section])) showToast('已添加新数据版块', 'success')
   }
 
   const renameSection = async (id, newName) => {
     const trimmed = newName.trim()
     if (!trimmed) return
-    await updateSection(id, { name: trimmed })
-    showToast('已重命名版块', 'success')
+    if (await updateSection(id, { name: trimmed })) showToast('已重命名版块', 'success')
   }
 
   const changeNumberDefaultMode = (id, mode) => {

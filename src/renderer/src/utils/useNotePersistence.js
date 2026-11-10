@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
+import { handOverPendingWrite, markWritten } from './leftoverSaves'
 import { NOTES_INDEX_PATH, normalizeNoteMeta, notePath, serializeNote } from './notes'
 
 export const NOTE_SAVE = {
@@ -12,7 +13,11 @@ export const NOTE_SAVE = {
 
 const SAVE_DEBOUNCE_MS = 800
 
-const writeNote = (note) => window.api.fs.writeFile(notePath(note.id), serializeNote(note))
+const writeNote = async (note) => {
+  const result = await window.api.fs.writeFile(notePath(note.id), serializeNote(note))
+  if (result.ok) markWritten(`note:${note.id}`)
+  return result
+}
 
 const writeIndex = (notes) => window.api.fs.writeFile(
   NOTES_INDEX_PATH,
@@ -29,6 +34,8 @@ export function useNotePersistence({ flushKey, savedBadgeMs = 1600 }) {
   const [saveStatus, setSaveStatus] = useState(NOTE_SAVE.IDLE)
   const saveTimerRef = useRef(null)
   const pendingRef = useRef(null)
+  const leaveRef = useRef(null)
+  leaveRef.current = { registerPendingFlush, unregisterPendingFlush, showToast }
 
   // Writes the note, then the index; false (and a failed status) when either write fails.
   const persistNow = useCallback(async (note, notes) => {
@@ -87,12 +94,23 @@ export function useNotePersistence({ flushKey, savedBadgeMs = 1600 }) {
         saveTimerRef.current = null
       }
       pendingRef.current = null
-      if (pending) {
-        writeNote(pending.note)
-          .then(() => writeIndex(pending.notes))
-          .catch(error => console.error('Failed to flush notes on unmount:', error))
-      }
       unregisterPendingFlush(flushKey)
+      if (pending) {
+        // The note first, the index only if that worked; a failure stays registered with the
+        // shutdown flush (see leftoverSaves) instead of being forgotten with the page.
+        const { registerPendingFlush: register, unregisterPendingFlush: unregister, showToast: toast } = leaveRef.current
+        handOverPendingWrite({
+          key: `note:${pending.note.id}`,
+          write: async () => {
+            const noteResult = await writeNote(pending.note)
+            if (!noteResult.ok) return noteResult
+            return writeIndex(pending.notes)
+          },
+          registerPendingFlush: register,
+          unregisterPendingFlush: unregister,
+          onFailure: () => toast('便签保存失败，退出软件前会再次尝试保存', 'error', 8000)
+        })
+      }
     }
   }, [flushKey, flushPending, registerPendingFlush, unregisterPendingFlush])
 

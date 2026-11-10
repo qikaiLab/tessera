@@ -4,6 +4,7 @@ export async function attempt(action) {
   try {
     return { ok: true, ...await action() }
   } catch (error) {
-    return { ok: false, error: error.message }
+    // `code` (ENOENT, EBUSY...) lets the renderer tell a missing file from one that could not be read.
+    return { ok: false, error: error.message, code: error.code }
   }
 }

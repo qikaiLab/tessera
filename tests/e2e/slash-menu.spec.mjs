@@ -39,22 +39,22 @@ test('arrow keys walk the whole slash menu and keep the chosen item in view', as
     for (let index = 1; index < count; index += 1) {
       await window.keyboard.press('ArrowDown')
       await expect(items.nth(index)).toHaveClass(/is-selected/)
-      expect(await selectedItemIsVisible(window)).toBe(true)
+      await expect.poll(() => selectedItemIsVisible(window)).toBe(true)
     }
     // Past the last item wraps to the first, and the list scrolls back with it.
     await window.keyboard.press('ArrowDown')
     await expect(items.nth(0)).toHaveClass(/is-selected/)
-    expect(await selectedItemIsVisible(window)).toBe(true)
+    await expect.poll(() => selectedItemIsVisible(window)).toBe(true)
     expect(await menu.evaluate(el => el.scrollTop)).toBe(0)
 
     // Up from the first item wraps to the last, then back up through the list.
     await window.keyboard.press('ArrowUp')
     await expect(items.nth(count - 1)).toHaveClass(/is-selected/)
-    expect(await selectedItemIsVisible(window)).toBe(true)
+    await expect.poll(() => selectedItemIsVisible(window)).toBe(true)
     for (let index = count - 2; index >= 0; index -= 1) {
       await window.keyboard.press('ArrowUp')
       await expect(items.nth(index)).toHaveClass(/is-selected/)
-      expect(await selectedItemIsVisible(window)).toBe(true)
+      await expect.poll(() => selectedItemIsVisible(window)).toBe(true)
     }
     expect(problems).toEqual([])
   } finally {

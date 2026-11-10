@@ -7,6 +7,7 @@ import { useMetadata } from './useMetadata'
 import { usePendingFlushes } from './usePendingFlushes'
 import { useSections } from './useSections'
 import { useToasts } from './useToasts'
+import { useTodayRollover } from './useTodayRollover'
 import { describeDataDirNotice } from '../utils/dataDirChange'
 
 const AppContext = createContext(null)
@@ -24,11 +25,12 @@ export function AppProvider({ children }) {
   const { toasts, showToast } = useToasts()
   const { confirm, dialog: confirmDialog } = useConfirmDialog()
   const flushes = usePendingFlushes({ showToast })
+  useTodayRollover({ selectedDate, setSelectedDate, flushPendingSaves: flushes.flushPendingSaves, showToast })
   const appearance = useAppearance()
   const typesetting = useEditorTypesetting()
   const sectionsStore = useSections({ showToast })
   const dayStorage = useDayStorage()
-  const metadata = useMetadata(flushes)
+  const metadata = useMetadata({ ...flushes, showToast })
 
   const { loadAppearance } = appearance
   const { loadTypesetting } = typesetting

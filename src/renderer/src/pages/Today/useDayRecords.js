@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { hasStoredValue } from '../../utils/dayEntries'
+import { handOverPendingWrite, markWritten } from '../../utils/leftoverSaves'
 import { flushPendingValue } from '../../utils/pendingSaves'
 import { NUMBER_DEFAULT_MODE, getNumberDefaultMode } from '../../utils/sectionDefaults'
 
@@ -26,7 +27,7 @@ const SKELETON_DELAY_MS = 180
  */
 export function useDayRecords({ dateStr, sections }) {
   const {
-    readDayData, writeDayData, datesWithData, registerPendingFlush, unregisterPendingFlush, showToast
+    readDayData, readDayDataStrict, writeDayData, datesWithData, registerPendingFlush, unregisterPendingFlush, showToast
   } = useApp()
 
   const [data, setData] = useState({})
@@ -35,17 +36,37 @@ export function useDayRecords({ dateStr, sections }) {
   const [loading, setLoading] = useState(true)
   const [showSkeleton, setShowSkeleton] = useState(false)
   const [loadedDateStr, setLoadedDateStr] = useState(null)
+  // Set when the day's file exists but could not be read: the page shows why instead of an empty
+  // day, because typing into an "empty" day would write over the real one.
+  const [loadError, setLoadError] = useState(null)
+  const [reloadTick, setReloadTick] = useState(0)
 
   // `dataRef` is the source of truth between renders, so several edits in a row never lose one.
   const dataRef = useRef({})
   const saveTimerRef = useRef(null)
   const pendingDataRef = useRef(null)
+  // The day the pending edits belong to (not necessarily the day on screen by the time they are written).
+  const pendingDateRef = useRef(null)
+  const loadedDateRef = useRef(null)
+  const saveFailureShownRef = useRef(false)
   const hasLoadedOnceRef = useRef(false)
   const loadSeqRef = useRef(0)
   const datesWithDataRef = useRef(datesWithData)
   datesWithDataRef.current = datesWithData
   const dateStrRef = useRef(dateStr)
   dateStrRef.current = dateStr
+
+  // Writes one day's data and notes that newer content of that day exists.
+  const writeDay = useCallback(async (date, value) => {
+    const result = await writeDayData(date, value)
+    if (result.ok) markWritten(`day:${date}`)
+    return result
+  }, [writeDayData])
+
+  const writePending = useCallback(
+    value => writeDay(pendingDateRef.current ?? dateStrRef.current, value),
+    [writeDay]
+  )
 
   const findRecentNumberValue = useCallback(async (targetDateStr, sectionId) => {
     const candidates = datesWithDataRef.current
@@ -77,26 +98,30 @@ export function useDayRecords({ dateStr, sections }) {
     let skeletonTimer = null
 
     setLoading(!hasLoadedOnce)
+    setLoadError(null)
     setShowSkeleton(false)
     setSaveStatus(SAVE_STATUS.IDLE)
     setNumberDefaults({})
     if (!hasLoadedOnce) skeletonTimer = setTimeout(() => setShowSkeleton(true), SKELETON_DELAY_MS)
 
-    readDayData(dateStr)
+    readDayDataStrict(dateStr)
       .then(async loaded => {
         const defaults = await buildNumberDefaults(dateStr, loaded)
         if (loadSeqRef.current !== seq) return
         dataRef.current = loaded
+        loadedDateRef.current = dateStr
         setData(loaded)
         setNumberDefaults(defaults)
       })
       .catch(error => {
         console.error('Failed to load day data:', error)
         if (loadSeqRef.current !== seq) return
-        // Never keep showing another day's cards under this date: edits would be saved into it.
+        // Never keep showing another day's cards, and never offer an empty day to type into:
+        // edits would be saved over the day that could not be read.
         dataRef.current = {}
+        loadedDateRef.current = null
         setData({})
-        showToast('读取记录失败', 'error')
+        setLoadError(error.message)
       })
       .finally(() => {
         if (loadSeqRef.current !== seq) return
@@ -109,24 +134,33 @@ export function useDayRecords({ dateStr, sections }) {
     return () => {
       if (skeletonTimer) clearTimeout(skeletonTimer)
     }
-  }, [dateStr, readDayData, showToast, buildNumberDefaults])
+  }, [dateStr, reloadTick, readDayDataStrict, buildNumberDefaults])
+
+  const retryLoad = useCallback(() => setReloadTick(tick => tick + 1), [])
 
   const scheduleSave = useCallback((nextData) => {
     pendingDataRef.current = nextData
+    pendingDateRef.current = loadedDateRef.current ?? dateStrRef.current
     setSaveStatus(SAVE_STATUS.UNSAVED)
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus(SAVE_STATUS.SAVING)
       saveTimerRef.current = null
-      const result = await flushPendingValue(pendingDataRef, value => writeDayData(dateStrRef.current, value))
+      const result = await flushPendingValue(pendingDataRef, writePending)
       if (result.ok) {
+        saveFailureShownRef.current = false
         setSaveStatus(SAVE_STATUS.SAVED)
         setTimeout(() => setSaveStatus(SAVE_STATUS.IDLE), SAVED_BADGE_MS)
       } else {
         setSaveStatus(SAVE_STATUS.FAILED)
+        // The edit stays pending (a later save, leaving the day or closing retries it); say so once.
+        if (!saveFailureShownRef.current) {
+          saveFailureShownRef.current = true
+          showToast('保存失败，改动仍保留在页面中，请稍后重试保存或先复制内容', 'error', 8000)
+        }
       }
     }, SAVE_DEBOUNCE_MS)
-  }, [writeDayData])
+  }, [writePending, showToast])
 
   // Writes whatever is pending right now (cancelling the debounce).
   const flushNow = useCallback(async () => {
@@ -134,14 +168,37 @@ export function useDayRecords({ dateStr, sections }) {
       clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
     }
-    return flushPendingValue(pendingDataRef, value => writeDayData(dateStrRef.current, value))
-  }, [writeDayData])
+    return flushPendingValue(pendingDataRef, writePending)
+  }, [writePending])
 
   // Lets the app flush this page before the window closes.
   useEffect(() => {
     registerPendingFlush('today', flushNow)
     return () => unregisterPendingFlush('today')
   }, [flushNow, registerPendingFlush, unregisterPendingFlush])
+
+  // Leaving the page with an edit still pending (the debounce has not fired yet, or the last save
+  // failed): hand it over instead of dropping it; it keeps being retried until it is on disk.
+  const leaveRef = useRef(null)
+  leaveRef.current = { writeDay, registerPendingFlush, unregisterPendingFlush, showToast }
+  useEffect(() => () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    const value = pendingDataRef.current
+    const date = pendingDateRef.current
+    if (value === null || !date) return
+    pendingDataRef.current = null
+    const { writeDay: write, registerPendingFlush: register, unregisterPendingFlush: unregister, showToast: toast } = leaveRef.current
+    handOverPendingWrite({
+      key: `day:${date}`,
+      write: () => write(date, value),
+      registerPendingFlush: register,
+      unregisterPendingFlush: unregister,
+      onFailure: () => toast(`${date} 的记录保存失败，退出软件前会再次尝试保存`, 'error', 8000)
+    })
+  }, [])
 
   // The save shortcut inside an editor: write now and say how it went.
   const saveNow = useCallback(() => {
@@ -192,6 +249,8 @@ export function useDayRecords({ dateStr, sections }) {
     loading,
     showSkeleton,
     holding: loadedDateStr !== null && loadedDateStr !== dateStr,
+    loadError,
+    retryLoad,
     saveStatus,
     reportSaveFailed,
     changeValue,
