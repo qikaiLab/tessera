@@ -1,3 +1,5 @@
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { shell } from 'electron'
 import { appState } from './appState.js'
 import { isAllowedExternalUrl, isAppNavigationUrl as isAllowedAppNavigation } from './security.js'
@@ -10,7 +12,8 @@ let lastExternalOpen = { url: '', time: 0 }
 // in the system browser or not at all.
 export function isAppNavigationUrl(url) {
   const rendererUrl = process.env['ELECTRON_RENDERER_URL'] || 'http://localhost:5173'
-  return isAllowedAppNavigation(url, { isDev: appState.isDev, rendererUrl })
+  const appIndexUrl = pathToFileURL(path.join(__dirname, '../renderer/index.html')).href
+  return isAllowedAppNavigation(url, { isDev: appState.isDev, rendererUrl, appIndexUrl })
 }
 
 export async function openExternalUrl(url) {

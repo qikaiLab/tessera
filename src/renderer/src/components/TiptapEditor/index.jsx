@@ -9,7 +9,7 @@ import {
   formatCssLetterSpacing,
   formatCssWidth,
   isTaskCheckbox,
-  normalizeExternalUrl,
+  openLinkHref,
   selectTaskItemUnderPointer
 } from './editorHelpers'
 import { useEditorContextMenu } from './useEditorContextMenu'
@@ -47,7 +47,8 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     fullscreenStandardWidth,
     fullscreenWideWidth,
     editorLineHeight,
-    editorLetterSpacing
+    editorLetterSpacing,
+    showToast
   } = useApp()
 
   // The editor is created once, so its callbacks read the latest props through refs.
@@ -123,13 +124,12 @@ const TiptapEditor = forwardRef(function TiptapEditor(
       return
     }
 
-    const url = normalizeExternalUrl(linkEl.getAttribute('href'))
-    if (!url) return
+    // Web addresses and local paths are followed; any other link does nothing.
+    if (!openLinkHref(linkEl.getAttribute('href'), showToast)) return
 
     event.preventDefault()
     event.stopPropagation()
-    window.api?.shell?.openExternal?.(url)
-  }, [editor])
+  }, [editor, showToast])
 
   const handleEditorMouseDownCapture = useCallback((event) => {
     selectTaskItemUnderPointer(editor, event.target)

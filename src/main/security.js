@@ -31,9 +31,22 @@ function isAllowedExternalUrl(url) {
   }
 }
 
-function isAppNavigationUrl(url, { isDev, rendererUrl } = {}) {
+// In a packaged app the window may only stay on (or reload) its own index page. A link to some
+// other local file must never replace the app with it.
+function isAppIndexUrl(url, appIndexUrl) {
+  try {
+    const target = new URL(url)
+    const index = new URL(appIndexUrl)
+    return target.protocol === 'file:' &&
+      decodeURIComponent(target.pathname).toLowerCase() === decodeURIComponent(index.pathname).toLowerCase()
+  } catch {
+    return false
+  }
+}
+
+function isAppNavigationUrl(url, { isDev, rendererUrl, appIndexUrl } = {}) {
   if (!url) return false
-  if (!isDev) return url.startsWith('file:')
+  if (!isDev) return appIndexUrl ? isAppIndexUrl(url, appIndexUrl) : url.startsWith('file:')
 
   try {
     return new URL(url).origin === new URL(rendererUrl).origin

@@ -95,7 +95,7 @@ describe('markdown parser', () => {
   })
 
   it('keeps safe links, adds https to www and drops unsafe addresses', () => {
-    const doc = parse('[a](https://example.com) [b](www.example.com) [c](javascript:alert(1)) [d](file:///C:/x) [e](mailto:me@example.com)')
+    const doc = parse('[a](https://example.com) [b](www.example.com) [c](javascript:alert(1)) [d](file://server/share/x) [e](mailto:me@example.com)')
     const links = collect(doc, 'text')
       .filter(node => node.marks?.some(mark => mark.type === 'link'))
       .map(node => [node.text, node.marks.find(mark => mark.type === 'link').attrs.href])

@@ -1,5 +1,5 @@
 import { MarkdownManager } from '@tiptap/markdown'
-import { normalizeExternalUrl } from './editorHelpers'
+import { normalizeLinkHref } from './editorHelpers'
 
 // Pasted text above this size is left to the default paste: parsing it would stall the editor.
 const MAX_MARKDOWN_LENGTH = 200_000
@@ -13,7 +13,7 @@ const INLINE_SIGNALS = [
   /\*\*[^*\s](?:[^*\n]*[^*\s])?\*\*/, // **bold**
   /~~[^~\s](?:[^~\n]*[^~\s])?~~/, // ~~strike~~
   /`[^`\n]+`/, // `code`
-  /!?\[[^\]\n]*\]\([^)\s]+\)/ // [text](url) and ![alt](url)
+  /!?\[[^\]\n]*\]\((?:<[^<>\n]+>|[^)\s]+)\)/ // [text](url) and ![alt](url)
 ]
 
 // Formatting tags that mean the clipboard holds real rich text (a web page, Word, this
@@ -52,22 +52,22 @@ export function shouldPasteAsMarkdown({ text, html }) {
   return looksLikeMarkdown(text)
 }
 
-// Images cannot be stored, so keep their address as a link instead of silently dropping it.
-// Fenced code is left alone.
+// Images cannot be stored, so keep their address (a web address or a local path) as a link
+// instead of silently dropping it. Fenced code is left alone.
 export function imagesToLinks(markdown) {
   let inFence = false
   return markdown.split('\n').map(line => {
     if (/^ {0,3}(```|~~~)/.test(line)) inFence = !inFence
     if (inFence) return line
     return line.replace(
-      /!\[([^\]\n]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+      /!\[([^\]\n]*)\]\((<[^<>\n]+>|[^)\s]+)(?:\s+"[^"]*")?\)/g,
       (_, alt, url) => `[${alt.trim() || '图片'}](${url})`
     )
   }).join('\n')
 }
 
 // Drops what the editor cannot show safely: links to anything but web, mail and phone
-// addresses (a pasted `javascript:` link), and text nodes with no text.
+// addresses and local drive paths (a pasted `javascript:` link), and text nodes with no text.
 function cleanNode(node) {
   if (!node || typeof node !== 'object') return node
   const cleaned = { ...node }
@@ -78,7 +78,7 @@ function cleanNode(node) {
         marks.push(mark)
         continue
       }
-      const href = normalizeExternalUrl(mark.attrs?.href)
+      const href = normalizeLinkHref(String(mark.attrs?.href ?? '').replace(/^<|>$/g, ''))
       if (href) marks.push({ ...mark, attrs: { ...mark.attrs, href } })
     }
     if (marks.length) cleaned.marks = marks

@@ -1,6 +1,8 @@
 import React from 'react'
 import { clamp } from '../utils/math'
 import { isSafeLink, parseRichText } from '../utils/richText'
+import { openLinkHref } from './TiptapEditor/editorHelpers'
+import { useApp } from '../context/AppContext'
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -17,11 +19,6 @@ function highlightText(text, highlight, keyPrefix) {
   ))
 }
 
-function openLink(event, href) {
-  event.preventDefault()
-  window.api?.shell?.openExternal?.(href)
-}
-
 function applyMarks(content, marks, key) {
   let result = content
   for (const mark of marks || []) {
@@ -32,7 +29,7 @@ function applyMarks(content, marks, key) {
     else if (mark.type === 'code') result = <code key={key}>{result}</code>
     else if (mark.type === 'link' && isSafeLink(mark.attrs?.href)) {
       const href = mark.attrs.href
-      result = <a key={key} href={href} onClick={event => openLink(event, href)}>{result}</a>
+      result = <a key={key} href={href}>{result}</a>
     }
   }
   return result
@@ -111,11 +108,21 @@ function renderNode(node, highlight, key) {
  * emitting the same DOM structure Tiptap does.
  */
 export default function RichTextView({ value, highlight = '', fontSize, className = '' }) {
+  // Without the app context (a bare render) a failed open just goes unreported.
+  const showToast = useApp()?.showToast
   const doc = parseRichText(value)
+
+  // One handler for every link in the view, so web addresses and local paths behave as they do in the editor.
+  const handleClick = (event) => {
+    const link = event.target?.closest?.('a[href]')
+    if (link && openLinkHref(link.getAttribute('href'), showToast)) event.preventDefault()
+  }
+
   return (
     <div
       className={`ProseMirror rich-view ${className}`.trim()}
       style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
+      onClick={handleClick}
     >
       {renderChildren(doc, highlight, 'n')}
     </div>

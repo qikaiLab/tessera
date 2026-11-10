@@ -28,11 +28,13 @@ describe('parseRichText', () => {
     expect(richTextToPlainText(doc(paragraph(text('甲')), paragraph(text('乙'))))).toBe('甲\n乙')
   })
 
-  it('only treats web, mail and phone links as safe', () => {
+  it('only treats web, mail, phone and local drive links as safe', () => {
     expect(isSafeLink('https://example.com')).toBe(true)
     expect(isSafeLink('mailto:a@b.c')).toBe(true)
     expect(isSafeLink('javascript:alert(1)')).toBe(false)
-    expect(isSafeLink('file:///C:/secret')).toBe(false)
+    expect(isSafeLink('file:///C:/secret')).toBe(true)
+    expect(isSafeLink('file://server/share/secret')).toBe(false)
+    expect(isSafeLink('file:///etc/passwd')).toBe(false)
     expect(isSafeLink(undefined)).toBe(false)
   })
 })

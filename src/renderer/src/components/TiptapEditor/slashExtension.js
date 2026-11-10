@@ -2,6 +2,7 @@ import { Extension } from '@tiptap/core'
 import Suggestion from '@tiptap/suggestion'
 import { ReactRenderer } from '@tiptap/react'
 import { SlashMenuView } from './SlashMenu'
+import { insertLocalPathLink } from './editorHelpers'
 
 export const slashCommands = [
   {
@@ -82,6 +83,26 @@ export const slashCommands = [
     icon: '▦',
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+    },
+  },
+  {
+    title: '本地文件链接',
+    description: '选择电脑上的文件，插入可点击的链接',
+    icon: '📎',
+    command: async ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run()
+      const picked = await window.api?.dialog?.openFile?.({ title: '选择要链接的文件', properties: ['openFile'] })
+      if (picked) insertLocalPathLink(editor, picked)
+    },
+  },
+  {
+    title: '本地文件夹链接',
+    description: '选择电脑上的文件夹，插入可点击的链接',
+    icon: '📁',
+    command: async ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run()
+      const picked = await window.api?.dialog?.openDirectory?.()
+      if (picked) insertLocalPathLink(editor, picked)
     },
   },
   {

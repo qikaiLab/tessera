@@ -1,4 +1,5 @@
 import { TextSelection } from '@tiptap/pm/state'
+import { fileUrlToLocalPath, isLocalFileHref, localPathLabel, localPathToFileUrl } from '../../utils/localFileLinks'
 
 export const EMPTY_DOC = { type: 'doc', content: [{ type: 'paragraph' }] }
 
@@ -9,6 +10,66 @@ export function normalizeExternalUrl(url) {
   if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) return trimmed
   if (/^www\./i.test(trimmed)) return `https://${trimmed}`
   return null
+}
+
+/**
+ * What a link's address should be stored as: a web / mail / phone address, or a `file:///` URL
+ * for a path on this computer (given as a Windows path or already as a file URL). Null when it
+ * is neither, which includes every unsafe scheme.
+ */
+export function normalizeLinkHref(address) {
+  const text = String(address ?? '').trim()
+  if (!text) return null
+  const web = normalizeExternalUrl(text)
+  if (web) return web
+  if (isLocalFileHref(text)) return localPathToFileUrl(fileUrlToLocalPath(text))
+  return localPathToFileUrl(text)
+}
+
+/** What a clicked link points at: { kind: 'web', url }, { kind: 'file', path } or null. */
+export function resolveLinkTarget(href) {
+  const url = normalizeExternalUrl(href)
+  if (url) return { kind: 'web', url }
+  const path = fileUrlToLocalPath(href)
+  return path ? { kind: 'file', path } : null
+}
+
+/** Inserts a link to a file or folder on this computer at the cursor, named after it. */
+export function insertLocalPathLink(editor, localPath) {
+  const href = localPathToFileUrl(localPath)
+  if (!editor || !href) return false
+  return editor.chain().focus().insertContent({
+    type: 'text',
+    text: localPathLabel(localPath),
+    marks: [{ type: 'link', attrs: { href } }]
+  }).run()
+}
+
+const OPEN_FAILURES = {
+  'not-found': '找不到该文件或文件夹，可能已被移动或删除',
+  'network-path': '不支持网络路径',
+  'invalid-path': '无法打开这个路径',
+  'open-failed': '系统无法打开该文件'
+}
+
+/**
+ * Follows a link: web addresses open in the system browser, local paths in their default app or
+ * in Explorer. `showToast` reports what could not be opened. Returns whether the link was one
+ * we handle, so the caller knows whether to cancel the click.
+ */
+export function openLinkHref(href, showToast) {
+  const target = resolveLinkTarget(href)
+  if (!target) return false
+  if (target.kind === 'web') {
+    window.api?.shell?.openExternal?.(target.url)
+    return true
+  }
+  Promise.resolve(window.api?.shell?.openLocalFile?.(target.path)).then(result => {
+    if (!result) return
+    if (!result.ok) showToast?.(OPEN_FAILURES[result.error] || OPEN_FAILURES['open-failed'], 'error')
+    else if (result.mode === 'revealed') showToast?.('这类文件不会被直接打开，已在文件夹中显示', 'info')
+  }).catch(() => showToast?.(OPEN_FAILURES['open-failed'], 'error'))
+  return true
 }
 
 // Settings keep widths and letter spacing as plain text; a bare number means pixels.

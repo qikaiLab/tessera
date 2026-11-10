@@ -73,6 +73,7 @@ const api = {
   // Shell
   shell: {
     showItemInFolder: (filePath) => ipcRenderer.invoke('shell:showItemInFolder', filePath),
+    openLocalFile: (filePath) => ipcRenderer.invoke('shell:openLocalFile', filePath),
     openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url)
   },
   clipboard: {

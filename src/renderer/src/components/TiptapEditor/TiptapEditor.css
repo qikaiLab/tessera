@@ -101,6 +101,14 @@
 .ProseMirror a:hover {
   color: var(--accent-hover);
 }
+/* A link to a file or folder on this computer. */
+.ProseMirror a[href^="file:///"]::before {
+  content: '📎';
+  display: inline-block;
+  margin-right: 0.2em;
+  font-size: 0.85em;
+  text-decoration: none;
+}
 
 /* Inline code */
 .ProseMirror code {

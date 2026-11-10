@@ -3,6 +3,7 @@ import path from 'node:path'
 import { ipcMain, shell } from 'electron'
 import { appState, automaticBackup } from '../appState.js'
 import { openExternalUrl } from '../externalLinks.js'
+import { openLocalPath } from '../localFiles.js'
 import { attempt } from './attempt.js'
 
 // metadata.json (countdowns, analytics charts, favourites), and the shell helpers.
@@ -25,6 +26,9 @@ export function registerMetadataIpc() {
   ipcMain.handle('shell:showItemInFolder', (_, filePath) => {
     shell.showItemInFolder(filePath)
   })
+
+  // A link to a file or folder on this computer; see localFiles.js for what is opened.
+  ipcMain.handle('shell:openLocalFile', (_, filePath) => openLocalPath(filePath, { shell }))
 
   ipcMain.handle('shell:openExternal', (_, url) => attempt(async () => {
     await openExternalUrl(url)

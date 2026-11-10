@@ -1,11 +1,12 @@
 import { Extension, InputRule } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { createMarkdownParser, docHasNode, shouldPasteAsMarkdown } from './markdownPaste'
-import { normalizeExternalUrl } from './editorHelpers'
+import { normalizeLinkHref } from './editorHelpers'
 
-// Typing `[text](address)` turns it into a link, like the other Markdown shortcuts. A leading
-// "!" means an image, which the editor does not have, so that is left as typed.
-const LINK_SHORTCUT = /\[([^[\]\n]+)\]\(([^()\s]+)\)$/
+// Typing `[text](address)` turns it into a link, like the other Markdown shortcuts. The address
+// may be a web address or a path on this computer; a path with spaces goes in <angle brackets>.
+// A leading "!" means an image, which the editor does not have, so that is left as typed.
+const LINK_SHORTCUT = /\[([^[\]\n]+)\]\((<[^<>\n]+>|[^()\s]+)\)$/
 
 export const MarkdownLinkShortcut = Extension.create({
   name: 'markdownLinkShortcut',
@@ -17,7 +18,7 @@ export const MarkdownLinkShortcut = Extension.create({
           const linkType = state.schema.marks.link
           if (!linkType) return null
           const [, label, address] = match
-          const href = normalizeExternalUrl(address)
+          const href = normalizeLinkHref(address.replace(/^<|>$/g, ''))
           if (!href) return null
           if (range.from > 0 && state.doc.textBetween(range.from - 1, range.from) === '!') return null
 

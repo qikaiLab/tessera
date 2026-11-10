@@ -1,3 +1,5 @@
+import { isLocalFileHref } from './localFileLinks'
+
 // Parses a stored record value (Tiptap JSON object, its serialized form, or legacy plain
 // text) into a document tree. Never throws; unreadable values become an empty document.
 export function parseRichText(value) {
@@ -68,6 +70,7 @@ export function richTextToPlainText(value) {
 
 const SAFE_LINK = /^(https?:|mailto:|tel:)/i
 
+// Web, mail and phone addresses, and links to a file or folder on this computer.
 export function isSafeLink(href) {
-  return typeof href === 'string' && SAFE_LINK.test(href.trim())
+  return typeof href === 'string' && (SAFE_LINK.test(href.trim()) || isLocalFileHref(href))
 }

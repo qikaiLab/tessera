@@ -4,6 +4,7 @@ import Link from '@tiptap/extension-link'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import { TableKit } from '@tiptap/extension-table'
+import { isLocalFileHref } from '../../utils/localFileLinks'
 
 // Links do not grow when typing at their end.
 const ExternalLink = Link.extend({ inclusive: false })
@@ -25,6 +26,8 @@ export function buildContentExtensions() {
       linkOnPaste: true,
       openOnClick: false,
       protocols: ['http', 'https', 'mailto', 'tel'],
+      // Links to a file or folder on this computer are stored as file:/// URLs.
+      isAllowedUri: (url, { defaultValidate }) => defaultValidate(url) || isLocalFileHref(url),
       HTMLAttributes: { rel: 'noopener noreferrer', target: null }
     }),
     TaskList,
