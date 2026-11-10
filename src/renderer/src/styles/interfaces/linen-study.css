@@ -37,7 +37,7 @@
   --shadow-xl: 0 18px 48px rgba(86, 63, 38, 0.18);
   --scrollbar-thumb: rgba(96, 70, 43, 0.18);
   --scrollbar-thumb-hover: rgba(96, 70, 43, 0.3);
-  --theme-texture-image: url('../assets/themes/linen-paper-texture.webp');
+  --theme-texture-image: url('../../assets/themes/linen-paper-texture.webp');
   --theme-texture-size: 560px 560px;
   --theme-texture-opacity: 0.34;
   --theme-sidebar-texture-opacity: 0.42;
@@ -47,13 +47,13 @@
     radial-gradient(circle at 16% 10%, rgba(255, 255, 255, 0.42), transparent 36%);
   --surface-material-image:
     linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(251, 248, 241, 0.76) 48%, rgba(244, 236, 223, 0.72)),
-    url('../assets/themes/linen-paper-texture.webp');
+    url('../../assets/themes/linen-paper-texture.webp');
   --surface-material-subtle-image:
     linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(244, 236, 223, 0.84)),
-    url('../assets/themes/linen-paper-texture.webp');
+    url('../../assets/themes/linen-paper-texture.webp');
   --input-material-image:
     linear-gradient(180deg, rgba(255, 253, 248, 0.86), rgba(248, 242, 232, 0.9)),
-    url('../assets/themes/linen-paper-texture.webp');
+    url('../../assets/themes/linen-paper-texture.webp');
   --surface-material-size: auto, 420px 420px;
   --surface-material-position: center, center;
   --material-surface-shadow: 0 7px 20px rgba(86, 63, 38, 0.1);
@@ -70,7 +70,7 @@
   --tag-activated-border: rgba(98, 113, 62, 0.24);
   --editor-fullscreen-background:
     linear-gradient(rgba(255, 253, 248, 0.12), rgba(244, 239, 230, 0.2)),
-    url('../assets/themes/linen-fullscreen-background.webp') center / cover no-repeat;
+    url('../../assets/themes/linen-fullscreen-background.webp') center / cover no-repeat;
   --selection-bg: rgba(118, 82, 53, 0.22);
   --floating-toolbar-background: rgba(251, 248, 241, 0.96);
   --floating-toolbar-background-image: var(--surface-material-subtle-image);

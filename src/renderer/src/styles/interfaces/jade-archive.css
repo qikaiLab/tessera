@@ -36,7 +36,7 @@
   --shadow-xl: 0 20px 52px rgba(3, 8, 5, 0.46);
   --scrollbar-thumb: rgba(207, 190, 147, 0.16);
   --scrollbar-thumb-hover: rgba(207, 190, 147, 0.28);
-  --theme-texture-image: url('../assets/themes/jade-stone-texture.webp');
+  --theme-texture-image: url('../../assets/themes/jade-stone-texture.webp');
   --theme-texture-size: 620px 620px;
   --theme-texture-opacity: 0.38;
   --theme-sidebar-texture-opacity: 0.46;
@@ -46,13 +46,13 @@
     radial-gradient(circle at 72% 8%, rgba(200, 166, 106, 0.2), transparent 30%);
   --surface-material-image:
     linear-gradient(135deg, rgba(34, 47, 39, 0.72), rgba(18, 29, 24, 0.82)),
-    url('../assets/themes/jade-stone-texture.webp');
+    url('../../assets/themes/jade-stone-texture.webp');
   --surface-material-subtle-image:
     linear-gradient(145deg, rgba(31, 44, 36, 0.78), rgba(17, 27, 22, 0.88)),
-    url('../assets/themes/jade-stone-texture.webp');
+    url('../../assets/themes/jade-stone-texture.webp');
   --input-material-image:
     linear-gradient(180deg, rgba(21, 32, 26, 0.86), rgba(15, 24, 20, 0.92)),
-    url('../assets/themes/jade-stone-texture.webp');
+    url('../../assets/themes/jade-stone-texture.webp');
   --surface-material-size: auto, 480px 480px;
   --surface-material-position: center, center;
   --material-surface-shadow: 0 9px 24px rgba(3, 8, 5, 0.22);
@@ -69,7 +69,7 @@
   --tag-activated-border: rgba(91, 161, 128, 0.25);
   --editor-fullscreen-background:
     radial-gradient(circle at center, rgba(23, 34, 29, 0.1) 0%, rgba(10, 16, 13, 0.24) 100%),
-    url('../assets/themes/jade-fullscreen-background.webp') center / cover no-repeat;
+    url('../../assets/themes/jade-fullscreen-background.webp') center / cover no-repeat;
   --selection-bg: rgba(200, 166, 106, 0.22);
   --floating-toolbar-background: rgba(28, 40, 33, 0.96);
   --floating-toolbar-background-image: var(--surface-material-subtle-image);

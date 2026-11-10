@@ -82,3 +82,37 @@ test('fullscreen over an open notes drawer still covers the whole window', async
     await app.close()
   }
 })
+
+// The fullscreen background of these themes is an image. When its url pointed at nothing the
+// layer silently had no background at all, so the page behind showed through.
+for (const style of ['linen-study', 'jade-archive']) {
+  test(`${style}: the fullscreen editor is painted with its theme background`, async ({ sandbox }) => {
+    const { app, window, problems } = await openApp(sandbox)
+    try {
+      await window.evaluate(value => window.api.config.set('interfaceStyle', value), style)
+      await window.reload()
+      await window.waitForSelector('.sidebar')
+      await window.waitForTimeout(600)
+      await window.locator('.fullscreen-btn').first().click()
+      const shell = window.locator('.tiptap-shell.tiptap-fullscreen')
+      await expect(shell).toBeVisible()
+
+      const images = await shell.evaluate(async el => {
+        const value = getComputedStyle(el).backgroundImage
+        const urls = [...value.matchAll(/url\("?([^")]+)"?\)/g)].map(match => match[1])
+        const loaded = await Promise.all(urls.map(url => new Promise(resolve => {
+          const image = new Image()
+          image.onload = () => resolve(image.naturalWidth > 0)
+          image.onerror = () => resolve(false)
+          image.src = url
+        })))
+        return { urls: urls.length, loaded }
+      })
+      expect(images.urls).toBeGreaterThan(0)
+      expect(images.loaded.every(Boolean)).toBe(true)
+      expect(problems).toEqual([])
+    } finally {
+      await app.close()
+    }
+  })
+}

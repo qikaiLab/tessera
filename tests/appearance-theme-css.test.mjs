@@ -75,8 +75,8 @@ describe('appearance theme CSS contract', () => {
     const jadeAsset = path.resolve('src/renderer/src/assets/themes/jade-fullscreen-background.webp')
     expect(fs.existsSync(linenAsset)).toBe(true)
     expect(fs.existsSync(jadeAsset)).toBe(true)
-    expect(css).toContain("url('../assets/themes/linen-fullscreen-background.webp') center / cover no-repeat")
-    expect(css).toContain("url('../assets/themes/jade-fullscreen-background.webp') center / cover no-repeat")
+    expect(css).toContain("url('../../assets/themes/linen-fullscreen-background.webp') center / cover no-repeat")
+    expect(css).toContain("url('../../assets/themes/jade-fullscreen-background.webp') center / cover no-repeat")
   })
 
   it('defines a generated default background and adaptive light and dark glass recipes', () => {
@@ -186,8 +186,8 @@ describe('appearance theme CSS contract', () => {
   })
 
   it('keeps generated textures and user typography behind theme-level tokens', () => {
-    expect(css).toContain("url('../assets/themes/linen-paper-texture.webp')")
-    expect(css).toContain("url('../assets/themes/jade-stone-texture.webp')")
+    expect(css).toContain("url('../../assets/themes/linen-paper-texture.webp')")
+    expect(css).toContain("url('../../assets/themes/jade-stone-texture.webp')")
     expect(css).toContain("[data-interface-font='theme']")
     expect(css).toContain("[data-interface-weight='heavy']")
   })
