@@ -52,6 +52,13 @@ Var CustomDialog
   Var TimerCounter
 
   Var StateUnData
+  ; Where the data is (from datapath.txt) and whether that is the folder MotoTrace itself creates
+  ; ("default", dedicated to it) or one the user chose ("custom", which may hold other files too).
+  Var UnDataDir
+  Var UnDataKind
+  Var UnDefaultDir
+  ; $installMode (declared later than this file) as it was when the uninstaller started.
+  Var UnInstallMode
 !endif
 
 ; Define macros for page positioning in the wizard sequence
@@ -76,6 +83,9 @@ Var CustomDialog
 ; Installer Steps (Only compiled for Installer)
 ; ─────────────────────────────────────────────────────────────────────────────
 !ifndef BUILD_UNINSTALLER
+
+; Rules for the program folder and the data folder (checked in PagePathsLeave).
+!include "${__FILEDIR__}\installPathRules.nsh"
 
 Function PagePaths
   !insertmacro MUI_HEADER_TEXT "选择安装与数据存储位置" "选择安装文件夹及数据存放文件夹"
@@ -158,6 +168,17 @@ Function PagePathsLeave
   ${NSD_GetText} $TextProgDir $INSTDIR
   ${NSD_GetState} $CheckboxDefaultData $StateDefaultData
   ${NSD_GetText} $TextDataDir $StateDataDir
+
+  ; The program folder is emptied as a whole on upgrade and uninstall: it must be a folder of its own
+  ; (MotoTrace is appended when needed) and the diary data must not live inside it.
+  Call CheckInstallPaths
+  ${If} $PathsError == "root"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "请选择一个文件夹来安装程序，不能直接使用磁盘根目录。"
+    Abort
+  ${ElseIf} $PathsError == "datainside"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "日记数据文件夹不能放在程序安装文件夹里面：升级或卸载时程序文件夹会被整个清空，数据会随之丢失。请把数据文件夹换到别处，或改选另一个程序安装位置。"
+    Abort
+  ${EndIf}
 FunctionEnd
 
 Function PageShortcuts
@@ -209,11 +230,27 @@ FunctionEnd
     CreateShortCut "$SMSTARTUP\MotoTrace.lnk" "$INSTDIR\MotoTrace.exe"
   ${EndIf}
 
-  ; 4. Data directory path synchronization
-  CreateDirectory "$APPDATA\MotoTrace"
-  FileOpen $0 "$APPDATA\MotoTrace\datapath.txt" w
-  FileWrite $0 "$StateDataDir"
-  FileClose $0
+  ; 4. Data directory path synchronization. The app's settings always live in the current user's own
+  ; %APPDATA%, also when installing for all users (where $APPDATA would be C:\ProgramData).
+  ; Nothing is written during a silent install (the wizard pages did not run), and an existing
+  ; datapath.txt - kept up to date by the app - is only replaced when the user picked a folder here.
+  ${If} $installMode == "all"
+    SetShellVarContext current
+  ${EndIf}
+  ${If} $StateDataDir != ""
+    ${If} $StateDefaultData != ${BST_CHECKED}
+    ${OrIfNot} ${FileExists} "$APPDATA\MotoTrace\datapath.txt"
+      ; The app never creates a data folder the user chose by itself, so it has to exist.
+      CreateDirectory "$StateDataDir"
+      CreateDirectory "$APPDATA\MotoTrace"
+      FileOpen $0 "$APPDATA\MotoTrace\datapath.txt" w
+      FileWrite $0 "$StateDataDir"
+      FileClose $0
+    ${EndIf}
+  ${EndIf}
+  ${If} $installMode == "all"
+    SetShellVarContext all
+  ${EndIf}
 !macroend
 
 !endif
@@ -223,11 +260,44 @@ FunctionEnd
 ; ─────────────────────────────────────────────────────────────────────────────
 !ifdef BUILD_UNINSTALLER
 
+; How the data folder recorded in datapath.txt is read and classified (un.ClassifyDataDir).
+!include "${__FILEDIR__}\dataPathRules.nsh"
+!insertmacro DataPathRules "un."
+
+; Asks before an interactive uninstall. An upgrade (and any /S run) runs the old uninstaller silently
+; and must not ask: answering "no" there would abort the upgrade.
 !macro customUnInit
-  MessageBox MB_YESNO|MB_ICONQUESTION "确定要从您的电脑中移除 MotoTrace 吗？" IDYES continue_un
-  Abort
+  StrCpy $UnInstallMode $installMode
+  ${IfNot} ${Silent}
+    MessageBox MB_YESNO|MB_ICONQUESTION "确定要从您的电脑中移除 MotoTrace 吗？" /SD IDYES IDYES continue_un
+    Abort
+  ${EndIf}
 continue_un:
 !macroend
+
+; Works out $UnDataDir and $UnDataKind from the per-user datapath.txt (the app keeps it current).
+Function un.ResolveDataDir
+  ; The app's settings always live in the current user's %APPDATA%, also for an all-users install.
+  ${If} $UnInstallMode == "all"
+    SetShellVarContext current
+  ${EndIf}
+
+  StrCpy $UnDataDir ""
+  ClearErrors
+  FileOpen $0 "$APPDATA\MotoTrace\datapath.txt" r
+  ${IfNot} ${Errors}
+    FileRead $0 $UnDataDir
+    FileClose $0
+  ${EndIf}
+
+  ; Cleans the line up and decides "default" or "custom" (see dataPathRules.nsh).
+  StrCpy $UnDefaultDir "$PROFILE\MotoTrace\data"
+  Call un.ClassifyDataDir
+
+  ${If} $UnInstallMode == "all"
+    SetShellVarContext all
+  ${EndIf}
+FunctionEnd
 
 Function un.PageUnOptions
   !insertmacro MUI_HEADER_TEXT "解除安装 MotoTrace" "选择卸载时的附加选项"
@@ -261,7 +331,14 @@ Function un.PageUnConfirm
     Abort
   ${EndIf}
 
-  !insertmacro MUI_HEADER_TEXT "确认删除日记数据" "删除后数据将无法恢复"
+  ; Name the folder that is affected. Only the folder MotoTrace creates for itself is ever emptied: a
+  ; folder the user chose may hold other files, so it is left alone and the user is told so.
+  Call un.ResolveDataDir
+  ${If} $UnDataKind == "default"
+    !insertmacro MUI_HEADER_TEXT "确认删除日记数据" "删除后数据将无法恢复"
+  ${Else}
+    !insertmacro MUI_HEADER_TEXT "您的数据在自选文件夹中" "卸载程序不会删除这个文件夹"
+  ${EndIf}
 
   nsDialogs::Create 1018
   Pop $CustomDialog
@@ -269,24 +346,32 @@ Function un.PageUnConfirm
     Abort
   ${EndIf}
 
-  ; Create a large red bold warning label
-  ${NSD_CreateLabel} 0 0 100% 60u "请注意：删除后您的日记资产将永久丢失，无法通过重装软件找回。您确定要彻底删除所有日记数据吗？"
-  Pop $0
-  SetCtlColors $0 0xFF0000 "transparent"
-  CreateFont $1 "Microsoft YaHei" 11 700
-  SendMessage $0 ${WM_SETFONT} $1 1
+  ${If} $UnDataKind == "default"
+    ; Create a large red bold warning label
+    ${NSD_CreateLabel} 0 0 100% 100u "请注意：将永久删除下面这个文件夹及其中的全部内容，无法通过重装软件找回：$\r$\n$\r$\n$UnDataDir$\r$\n$\r$\n您确定要彻底删除所有日记数据吗？"
+    Pop $0
+    SetCtlColors $0 0xFF0000 "transparent"
+    CreateFont $1 "Microsoft YaHei" 11 700
+    SendMessage $0 ${WM_SETFONT} $1 1
+  ${Else}
+    ${NSD_CreateLabel} 0 0 100% 100u "您的日记数据保存在您自己选择的文件夹：$\r$\n$\r$\n$UnDataDir$\r$\n$\r$\n这个文件夹里可能还有您的其他文件，为避免误删，卸载程序不会删除它，数据和设置都会保留。如需清除，请在卸载完成后自行在资源管理器中删除。"
+    Pop $0
+  ${EndIf}
 
-  ; Get uninstaller parent window buttons
-  GetDlgItem $UninstNextButton $HWNDPARENT 1
-  GetDlgItem $UninstBackButton $HWNDPARENT 3
+  ; Only a deletion needs the countdown; the notice about a kept folder can be confirmed at once.
+  ${If} $UnDataKind == "default"
+    ; Get uninstaller parent window buttons
+    GetDlgItem $UninstNextButton $HWNDPARENT 1
+    GetDlgItem $UninstBackButton $HWNDPARENT 3
 
-  ; Disable the next button initially
-  EnableWindow $UninstNextButton 0
-  
-  ; Start timer for 5 seconds countdown
-  StrCpy $TimerCounter 5
-  SendMessage $UninstNextButton ${WM_SETTEXT} 0 "STR:确定 (5秒)"
-  ${NSD_CreateTimer} un.CountdownCallback 1000
+    ; Disable the next button initially
+    EnableWindow $UninstNextButton 0
+
+    ; Start timer for 5 seconds countdown
+    StrCpy $TimerCounter 5
+    SendMessage $UninstNextButton ${WM_SETTEXT} 0 "STR:确定 (5秒)"
+    ${NSD_CreateTimer} un.CountdownCallback 1000
+  ${EndIf}
 
   nsDialogs::Show
 FunctionEnd
@@ -307,41 +392,39 @@ Function un.CountdownCallback
 FunctionEnd
 
 !macro customUnInstall
-  ; Remove shortcuts
-  Delete "$DESKTOP\MotoTrace.lnk"
-  Delete "$SMPROGRAMS\MotoTrace.lnk"
-  Delete "$SMSTARTUP\MotoTrace.lnk"
+  ; Remove the shortcuts only when really uninstalling: an upgrade runs this old uninstaller too, and
+  ; the new installer cannot know which of them (autostart in particular) the user had chosen.
+  ${IfNot} ${isUpdated}
+    Delete "$DESKTOP\MotoTrace.lnk"
+    Delete "$SMPROGRAMS\MotoTrace.lnk"
+    Delete "$SMSTARTUP\MotoTrace.lnk"
+  ${EndIf}
 
-  ; Clean data if they checked "Delete all user data" AND completed the countdown confirmation page
+  ; Clean data if they checked "Delete all user data" AND completed the confirmation page
   ${If} $StateUnData == ${BST_CHECKED}
-    ; Read custom data path
-    ClearErrors
-    FileOpen $0 "$APPDATA\MotoTrace\datapath.txt" r
-    IfErrors read_default
-    FileRead $0 $1
-    FileClose $0
-    
-    ; Trim newlines
-    ${TrimNewLines} "$1" $R0
-    StrCmp $R0 "" read_default
-    Goto delete_data
+    Call un.ResolveDataDir
 
-  read_default:
-    StrCpy $R0 "$PROFILE\MotoTrace\data"
+    ; The app's settings live in the current user's %APPDATA%, also for an all-users install.
+    ${If} $installMode == "all"
+      SetShellVarContext current
+    ${EndIf}
 
-  delete_data:
-    ; Safety check: Make sure we don't delete a drive root!
-    ; Check if path length is <= 3 (e.g. "C:\" or "D:\")
-    StrLen $2 $R0
-    IntCmp $2 3 skip_delete skip_delete
+    ${If} $UnDataKind == "default"
+      ; The folder MotoTrace creates for itself: dedicated to it, so it goes with everything in it.
+      RMDir /r "$UnDataDir"
+      ; The folder around it, only if nothing else is in it (RMDir without /r never removes content).
+      RMDir "$PROFILE\MotoTrace"
+      ; Settings, including datapath.txt.
+      RMDir /r "$APPDATA\MotoTrace"
+    ${Else}
+      ; A folder the user chose can hold anything: it is never emptied. The settings stay as well, so
+      ; that installing again finds the data where it is.
+      MessageBox MB_OK|MB_ICONINFORMATION "您的日记数据保存在您自己选择的文件夹中，为避免误删其中的其他文件，没有被删除：$\r$\n$\r$\n$UnDataDir$\r$\n$\r$\n如需清除，请自行在资源管理器中删除这个文件夹。" /SD IDOK
+    ${EndIf}
 
-    ; Delete custom data folder recursively
-    RMDir /r $R0
-
-    ; Delete AppData configuration folder recursively
-    RMDir /r "$APPDATA\MotoTrace"
-
-  skip_delete:
+    ${If} $installMode == "all"
+      SetShellVarContext all
+    ${EndIf}
   ${EndIf}
 !macroend
 
