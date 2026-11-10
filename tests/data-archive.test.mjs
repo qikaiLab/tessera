@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readArchiveJsonEntries, zipFilesToBase64 } from '../src/renderer/src/utils/dataArchive.js'
+import { findInvalidArchiveEntries, readArchiveJsonEntries, zipFilesToBase64 } from '../src/renderer/src/utils/dataArchive.js'
 import { NUMBER_DEFAULT_MODE, getNumberDefaultMode, normalizeNumberDefaultMode } from '../src/renderer/src/utils/sectionDefaults.js'
 
 describe('data archive', () => {
@@ -36,5 +36,32 @@ describe('number default mode', () => {
     expect(getNumberDefaultMode({ numberDefaultMode: 'carry' })).toBe('carry')
     expect(getNumberDefaultMode({})).toBe('manual')
     expect(getNumberDefaultMode(undefined)).toBe('manual')
+  })
+})
+
+describe('findInvalidArchiveEntries', () => {
+  it('accepts sound JSON files with relative paths', () => {
+    expect(findInvalidArchiveEntries([
+      { path: '2026/05/01.json', text: '{"a":1}' },
+      { path: 'notes/index.json', text: '[]' }
+    ])).toEqual([])
+  })
+
+  it('flags JSON that does not parse, so a damaged archive never overwrites good files', () => {
+    expect(findInvalidArchiveEntries([
+      { path: '2026/05/01.json', text: '{"a":1}' },
+      { path: '2026/05/02.json', text: '{"a": ' },
+      { path: 'sections.json', text: '' }
+    ])).toEqual([
+      { path: '2026/05/02.json', reason: 'json' },
+      { path: 'sections.json', reason: 'json' }
+    ])
+  })
+
+  it('flags paths that could leave the data directory', () => {
+    const bad = ['../outside.json', 'a/../../outside.json', '/etc/x.json', 'C:/x.json', 'C:\\x.json', '..\\x.json']
+    const found = findInvalidArchiveEntries(bad.map(path => ({ path, text: '{}' })))
+    expect(found.map(entry => entry.path)).toEqual(bad)
+    expect(found.every(entry => entry.reason === 'path')).toBe(true)
   })
 })

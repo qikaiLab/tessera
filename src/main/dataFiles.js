@@ -76,16 +76,12 @@ export async function findTemporaryFiles(dataDir) {
 }
 
 // Every JSON file of the data directory (relative path + content), except the backups folder.
+// A folder or file that cannot be read fails the whole call: a backup that silently leaves part
+// of the data out would look complete and be useless when it is needed.
 export async function collectJsonFiles(dataDir) {
   const files = []
   async function collect(dir, base = '') {
-    let entries
-    try {
-      entries = await fsp.readdir(dir, { withFileTypes: true })
-    } catch (error) {
-      console.error(`Failed to collect files from ${dir}:`, error)
-      return
-    }
+    const entries = await fsp.readdir(dir, { withFileTypes: true })
     for (const entry of entries) {
       const full = path.join(dir, entry.name)
       const relative = base ? `${base}/${entry.name}` : entry.name

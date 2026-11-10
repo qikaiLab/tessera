@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { useApp } from '../../context/AppContext'
-import { readArchiveJsonEntries, zipFilesToBase64 } from '../../utils/dataArchive'
+import { findInvalidArchiveEntries, readArchiveJsonEntries, zipFilesToBase64 } from '../../utils/dataArchive'
 
 /**
  * Local backups, ZIP export and import of the data directory.
  *
- * Importing restores the JSON files of a ZIP over files with the same name, then reloads what
+ * Importing restores the JSON files of a ZIP over files with the same name, but only when every
+ * file in it is sound (otherwise nothing is written), then reloads what
  * the app keeps in memory, otherwise the next save would write the old sections / charts /
  * favourites back over the imported files.
  */
@@ -89,7 +90,19 @@ export function useBackups() {
       try {
         let count = 0
         const failed = []
-        for (const { path, text } of await readArchiveJsonEntries(read.data)) {
+        const entries = await readArchiveJsonEntries(read.data)
+        if (entries.length === 0) {
+          showToast('压缩包里没有可导入的数据，未做任何改动', 'error', 5000)
+          setImporting(false)
+          return
+        }
+        const invalid = findInvalidArchiveEntries(entries)
+        if (invalid.length > 0) {
+          showToast(`压缩包中有 ${invalid.length} 个文件已损坏或路径不安全（如 ${invalid[0].path}），未导入任何内容，现有数据没有改动`, 'error', 8000)
+          setImporting(false)
+          return
+        }
+        for (const { path, text } of entries) {
           const written = await window.api.fs.writeFile(path, text)
           if (written.ok) count++
           else failed.push(path)

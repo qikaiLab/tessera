@@ -29,6 +29,35 @@ describe('automatic backups', () => {
     await expect(store.recoverTemporary('notes/plans.json')).rejects.toThrow('temporary file')
   })
 
+  it('sets an incomplete temporary file aside instead of replacing the intact original with it', async () => {
+    const { store, directory } = await fixture()
+    await store.write('notes/plans.json', note('original'))
+    const temporary = path.join(directory, 'notes/plans.json.tmp')
+    const cutOff = note('half written').slice(0, 40)
+    await fs.writeFile(temporary, cutOff)
+
+    const result = await store.recoverTemporary('notes/plans.json.tmp')
+
+    expect(result).toEqual({ recovered: false, keptAs: 'notes/plans.json.incomplete' })
+    // The good file is untouched, and the broken one is kept (not deleted) under another name.
+    expect(await fs.readFile(path.join(directory, 'notes/plans.json'), 'utf8')).toBe(note('original'))
+    expect(await fs.readFile(path.join(directory, 'notes/plans.json.incomplete'), 'utf8')).toBe(cutOff)
+    await expect(fs.stat(temporary)).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('treats an empty temporary file as incomplete too, and reports a good one as recovered', async () => {
+    const { store, directory } = await fixture()
+    await store.write('notes/plans.json', note('original'))
+    const temporary = path.join(directory, 'notes/plans.json.tmp')
+    await fs.writeFile(temporary, '')
+    expect((await store.recoverTemporary('notes/plans.json.tmp')).recovered).toBe(false)
+    expect(await fs.readFile(path.join(directory, 'notes/plans.json'), 'utf8')).toBe(note('original'))
+
+    await fs.writeFile(temporary, note('newer'))
+    expect(await store.recoverTemporary('notes/plans.json.tmp')).toEqual({ recovered: true })
+    expect(await fs.readFile(path.join(directory, 'notes/plans.json'), 'utf8')).toBe(note('newer'))
+  })
+
   it('captures a legacy original before the first overwrite and survives restart', async () => {
     const { store, directory } = await fixture()
     await fs.mkdir(path.join(directory, 'notes'))

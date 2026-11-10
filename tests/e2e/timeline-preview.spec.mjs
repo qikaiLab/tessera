@@ -182,7 +182,8 @@ test('a long day is folded to about six lines and opens with its button', async 
     // Folding again returns to exactly six lines.
     await toggle.click()
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await expect.poll(async () => (await geometry()).height, { timeout: 3000 }).toBe(folded.height)
+    // Within a pixel: the folding animation ends on a fractional height that rounds either way.
+    await expect.poll(async () => Math.abs((await geometry()).height - folded.height) <= 1, { timeout: 3000 }).toBe(true)
 
     // Searching opens the days with matches so the highlighted text is not hidden.
     await window.getByPlaceholder('搜索记录内容...').fill('第 29 段')

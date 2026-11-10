@@ -3,15 +3,18 @@ import path from 'node:path'
 import { ipcMain } from 'electron'
 import { appState, automaticBackup, safePath } from '../appState.js'
 import { findTemporaryFiles, readDirOrEmpty, scanDayDates } from '../dataFiles.js'
+import { isPathInside } from '../security.js'
 import { attempt } from './attempt.js'
 
 const fsp = fs.promises
 
-// A temporary file path from the renderer must lie inside the data directory.
-function assertInsideDataDir(tmpPath) {
+// A temporary file path from the renderer must be a .tmp file lying inside the data directory
+// (and never in the automatic history): these calls can delete or replace what they name.
+function assertTemporaryFile(tmpPath) {
+  if (typeof tmpPath !== 'string' || !tmpPath.toLowerCase().endsWith('.tmp')) throw new Error('Not a temporary file')
   const dataDir = path.resolve(appState.dataDir)
   const resolved = path.resolve(tmpPath)
-  if (!resolved.startsWith(dataDir + path.sep)) throw new Error('Path traversal detected')
+  if (resolved === dataDir || !isPathInside(dataDir, resolved)) throw new Error('Path traversal detected')
   return { dataDir, resolved }
 }
 
@@ -52,14 +55,14 @@ export function registerFileIpc() {
   ipcMain.handle('fs:checkTmpFiles', () => findTemporaryFiles(appState.dataDir))
 
   ipcMain.handle('fs:recoverTmp', (_, tmpPath) => attempt(async () => {
-    const { dataDir, resolved } = assertInsideDataDir(tmpPath)
-    await automaticBackup().recoverTemporary(path.relative(dataDir, resolved))
-    return {}
+    const { dataDir, resolved } = assertTemporaryFile(tmpPath)
+    // { recovered } — false when the file was incomplete and has been set aside instead.
+    return automaticBackup().recoverTemporary(path.relative(dataDir, resolved))
   }))
 
   ipcMain.handle('fs:discardTmp', (_, tmpPath) => attempt(async () => {
-    assertInsideDataDir(tmpPath)
-    await fsp.unlink(tmpPath)
+    const { resolved } = assertTemporaryFile(tmpPath)
+    await fsp.unlink(resolved)
     return {}
   }))
 }

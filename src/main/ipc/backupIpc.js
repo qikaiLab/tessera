@@ -3,6 +3,7 @@ import path from 'node:path'
 import { ipcMain } from 'electron'
 import { appState, automaticBackup } from '../appState.js'
 import { backupFileName, collectJsonFiles, ensureDir, listBackups, writeBackupZip } from '../dataFiles.js'
+import { pathGrants } from '../pathGrants.js'
 import { isPathInside } from '../security.js'
 import { attempt } from './attempt.js'
 
@@ -55,13 +56,15 @@ export function registerBackupIpc() {
     return { data: (await fsp.readFile(backupPath)).toString('base64') }
   }))
 
-  // Export and import use paths the user picked in a native dialog.
+  // Export and import use paths the user picked in a native dialog, and nothing else.
   ipcMain.handle('export:writeFile', (_, savePath, base64Data) => attempt(async () => {
+    if (!pathGrants.consume('write', savePath)) throw new Error('Export path was not chosen in a save dialog')
     await fsp.writeFile(savePath, Buffer.from(base64Data, 'base64'))
     return {}
   }))
 
-  ipcMain.handle('import:readFile', (_, filePath) => attempt(async () => ({
-    data: (await fsp.readFile(filePath)).toString('base64')
-  })))
+  ipcMain.handle('import:readFile', (_, filePath) => attempt(async () => {
+    if (!pathGrants.consume('read', filePath)) throw new Error('Import path was not chosen in an open dialog')
+    return { data: (await fsp.readFile(filePath)).toString('base64') }
+  }))
 }

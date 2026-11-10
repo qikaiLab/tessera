@@ -1,7 +1,9 @@
 import { dialog, ipcMain } from 'electron'
 import { appState } from '../appState.js'
+import { pathGrants } from '../pathGrants.js'
 
-// Native dialogs, parented to the main window. A cancelled dialog answers null.
+// Native dialogs, parented to the main window. A cancelled dialog answers null. A path picked in
+// a save / open dialog is remembered so that export and import accept exactly that path.
 export function registerDialogIpc() {
   ipcMain.handle('dialog:openDirectory', async () => {
     const result = await dialog.showOpenDialog(appState.mainWindow, { properties: ['openDirectory'] })
@@ -10,12 +12,16 @@ export function registerDialogIpc() {
 
   ipcMain.handle('dialog:saveFile', async (_, options) => {
     const result = await dialog.showSaveDialog(appState.mainWindow, options)
-    return result.canceled ? null : result.filePath
+    if (result.canceled) return null
+    pathGrants.grant('write', result.filePath)
+    return result.filePath
   })
 
   ipcMain.handle('dialog:openFile', async (_, options) => {
     const result = await dialog.showOpenDialog(appState.mainWindow, options)
-    return result.canceled ? null : result.filePaths[0]
+    if (result.canceled) return null
+    pathGrants.grant('read', result.filePaths[0])
+    return result.filePaths[0]
   })
 
   ipcMain.handle('dialog:confirm', async (_, { message, buttons = ['确定', '取消'], title = '提示' }) => {

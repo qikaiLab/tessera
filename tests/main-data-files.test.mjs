@@ -159,3 +159,9 @@ describe('the data directory at startup', () => {
     expect(soft.dataDir).toBe('/dev/data')
   })
 })
+
+describe('collectJsonFiles failing loudly', () => {
+  it('rejects when the data directory cannot be read, instead of returning a partial backup', async () => {
+    await expect(collectJsonFiles(path.join(root, 'does-not-exist'))).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+})

@@ -7,12 +7,26 @@ export default function CrashRecovery({ files, onDone }) {
 
   const recoverAll = async () => {
     setProcessing(true)
-    let ok = 0
+    let recovered = 0
+    let setAside = 0
+    let failed = 0
     for (const f of files) {
       const result = await window.api.fs.recoverTmp(f)
-      if (result.ok) ok++
+      if (!result.ok) failed++
+      else if (result.recovered) recovered++
+      else setAside++
     }
-    showToast(`已恢复 ${ok} 个文件`, 'success')
+    if (setAside + failed === 0) {
+      showToast(`已恢复 ${recovered} 个文件`, 'success')
+    } else {
+      // An incomplete temporary file is not a newer version: the intact original was kept.
+      showToast(
+        `已恢复 ${recovered} 个文件；${setAside} 个临时文件内容不完整，已改名保存为 .incomplete，原文件未改动` +
+          (failed ? `；${failed} 个处理失败` : ''),
+        'info',
+        8000
+      )
+    }
     setProcessing(false)
     onDone()
   }
