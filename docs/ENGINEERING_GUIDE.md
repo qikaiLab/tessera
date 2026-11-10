@@ -150,6 +150,7 @@ npm run check
 - 数据目录不能由渲染层直接设置：`config:set` 拒绝 `dataDir`、`pendingDataDirChange`；更改只能走 `config:planDataDirChange` / `config:scheduleDataDirChange`，且目录必须是用户刚在 `dialog:openDirectory` 里选过的（`pathGrants` 的 `folder`）。更改只记录为预约，在下次启动时复制、核对后才切换，旧目录永不删除。
 - 自动化测试固定的数据目录（`MOTOTRACE_DATA_DIR`）不会被预约迁移或目录缺失提示改动；迁移启动流程由 `tests/data-directory-startup.test.mjs` 用真实临时目录覆盖，改动它时还应按下一节的开发目录做一次真实两次启动验证。
 - 导入 ZIP 先整体校验（合法 JSON、相对路径），有任何问题就一个文件都不写。
+- 构建出的页面带 Content-Security-Policy（`scripts/contentSecurityPolicy.mjs`，由 Vite 插件只在构建时注入）：脚本只允许应用自带，禁止任何网络连接、框架与插件；样式允许内联，图片允许 `data:`（自选背景）。因此不得再引入远程字体、样式、脚本或图片，也不得在页面里发起网络请求；`tests/content-security-policy.test.mjs` 与 `tests/e2e/security-policy.spec.mjs` 守住这一点。开发服务器不加该策略（热更新需要内联脚本与套接字）。
 
 ### 软件内的使用说明
 

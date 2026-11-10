@@ -2,6 +2,7 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 import { readFileSync } from 'node:fs'
+import { contentSecurityPolicyPlugin } from './scripts/contentSecurityPolicy.mjs'
 
 const packageJson = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8'))
 
@@ -31,7 +32,7 @@ export default defineConfig({
     define: {
       __APP_VERSION__: JSON.stringify(packageJson.version)
     },
-    plugins: [react()],
+    plugins: [react(), contentSecurityPolicyPlugin()],
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),

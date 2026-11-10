@@ -2,8 +2,6 @@
 /* The entry stylesheet. The order of the imports is the cascade order: tokens and interface
  * styles first, then the base rules, then the shared components. */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @import './tokens.css';
 @import './interfaces/linen-study.css';
 @import './interfaces/jade-archive.css';
