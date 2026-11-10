@@ -64,7 +64,13 @@ export function openLinkHref(href, showToast) {
     window.api?.shell?.openExternal?.(target.url)
     return true
   }
-  Promise.resolve(window.api?.shell?.openLocalFile?.(target.path)).then(result => {
+  const openLocalFile = window.api?.shell?.openLocalFile
+  if (typeof openLocalFile !== 'function') {
+    // An app window that was started before this feature existed has no way to open files.
+    showToast?.('当前窗口不支持打开本地文件，请重启应用后再试', 'error')
+    return true
+  }
+  Promise.resolve(openLocalFile(target.path)).then(result => {
     if (!result) return
     if (!result.ok) showToast?.(OPEN_FAILURES[result.error] || OPEN_FAILURES['open-failed'], 'error')
     else if (result.mode === 'revealed') showToast?.('这类文件不会被直接打开，已在文件夹中显示', 'info')

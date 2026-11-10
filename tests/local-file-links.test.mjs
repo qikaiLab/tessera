@@ -121,6 +121,16 @@ describe('following a link', () => {
     expect(openLocalFile).toHaveBeenCalledTimes(1)
   })
 
+  it('tells the user when this window cannot open local files at all', async () => {
+    const showToast = vi.fn()
+    await withApi({ shell: { openExternal: vi.fn() } }, async () => {
+      expect(openLinkHref('file:///C:/a.jpg', showToast)).toBe(true)
+    })
+    expect(showToast).toHaveBeenCalledTimes(1)
+    expect(showToast.mock.calls[0][0]).toContain('重启')
+    expect(showToast.mock.calls[0][1]).toBe('error')
+  })
+
   it('says what went wrong, or what was done instead', async () => {
     const showToast = vi.fn()
     const results = [

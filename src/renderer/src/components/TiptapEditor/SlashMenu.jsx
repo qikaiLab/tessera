@@ -11,24 +11,30 @@ export const SlashMenuView = forwardRef(function SlashMenuView({ items, command 
     itemRefs.current = itemRefs.current.slice(0, items.length)
   }, [items])
 
-  // Bug Fix 1 — scroll selected item into view whenever index changes
+  // Set by the arrow keys only: hovering an item selects it too, and scrolling then would move
+  // the items under the pointer and make the list run away from the mouse.
+  const scrollToSelectionRef = useRef(false)
+
+  // Keep the item chosen with the arrow keys inside the visible part of the list.
   useEffect(() => {
+    if (!scrollToSelectionRef.current) return
+    scrollToSelectionRef.current = false
     const container = containerRef.current
     const item      = itemRefs.current[selectedIndex]
     if (!container || !item) return
 
-    const containerTop    = container.scrollTop
-    const containerBottom = containerTop + container.clientHeight
-    const itemTop         = item.offsetTop
-    const itemBottom      = itemTop + item.offsetHeight
+    // Compare screen rectangles: offsetTop is measured from the nearest positioned ancestor,
+    // which is not this scrolling box, so it drifts as soon as the list has scrolled.
+    // The sticky header covers the top of the box.
+    // The visible area starts inside the border.
+    const box        = container.getBoundingClientRect()
+    const rect       = item.getBoundingClientRect()
+    const header     = container.querySelector('.slash-menu-header')?.offsetHeight || 0
+    const topEdge    = box.top + container.clientTop + header
+    const bottomEdge = box.top + container.clientTop + container.clientHeight
 
-    if (itemTop < containerTop) {
-      // Item is above visible area — scroll up
-      container.scrollTop = itemTop
-    } else if (itemBottom > containerBottom) {
-      // Item is below visible area — scroll down
-      container.scrollTop = itemBottom - container.clientHeight
-    }
+    if (rect.top < topEdge) container.scrollTop -= topEdge - rect.top
+    else if (rect.bottom > bottomEdge) container.scrollTop += rect.bottom - bottomEdge
   }, [selectedIndex])
 
   const selectItem = (index) => {
@@ -42,10 +48,12 @@ export const SlashMenuView = forwardRef(function SlashMenuView({ items, command 
         return false
       }
       if (event.key === 'ArrowUp') {
+        scrollToSelectionRef.current = true
         setSelectedIndex(i => (i + items.length - 1) % items.length)
         return true
       }
       if (event.key === 'ArrowDown') {
+        scrollToSelectionRef.current = true
         setSelectedIndex(i => (i + 1) % items.length)
         return true
       }

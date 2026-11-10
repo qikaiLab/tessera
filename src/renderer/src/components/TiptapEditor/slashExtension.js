@@ -178,13 +178,12 @@ export const SlashExtension = Extension.create({
           props.command({ editor, range })
         },
         items: ({ query }) => {
-          return slashCommands
-            .filter(
-              item =>
-                item.title.toLowerCase().includes(query.toLowerCase()) ||
-                item.description.toLowerCase().includes(query.toLowerCase()),
-            )
-            .slice(0, 10)
+          // Every match is listed: the menu scrolls, and a cap would silently hide the last commands.
+          return slashCommands.filter(
+            item =>
+              item.title.toLowerCase().includes(query.toLowerCase()) ||
+              item.description.toLowerCase().includes(query.toLowerCase()),
+          )
         },
         render: () => {
           let component
