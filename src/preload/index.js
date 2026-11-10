@@ -15,7 +15,10 @@ const api = {
   // Config
   config: {
     getDataDir: () => ipcRenderer.invoke('config:getDataDir'),
-    setDataDir: (dir) => ipcRenderer.invoke('config:setDataDir', dir),
+    planDataDirChange: (target) => ipcRenderer.invoke('config:planDataDirChange', target),
+    scheduleDataDirChange: (target, copy) => ipcRenderer.invoke('config:scheduleDataDirChange', { target, copy }),
+    cancelDataDirChange: () => ipcRenderer.invoke('config:cancelDataDirChange'),
+    takeDataDirNotice: () => ipcRenderer.invoke('config:takeDataDirNotice'),
     get: () => ipcRenderer.invoke('config:get'),
     set: (key, value) => ipcRenderer.invoke('config:set', key, value)
   },

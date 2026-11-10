@@ -20,7 +20,11 @@ export function createPathGrants({ platform = process.platform } = {}) {
       // Old, never-used picks (a dialog answered but the action abandoned) do not pile up.
       while (granted.size > MAX_GRANTS) granted.delete(granted.values().next().value)
     },
-    // True once for a path that was granted for `kind` ('read' or 'write').
+    // Was this path granted for `kind`? (does not use the grant up)
+    has(kind, target) {
+      return typeof target === 'string' && target !== '' && granted.has(keyOf(kind, target))
+    },
+    // True once for a path that was granted for `kind` ('read', 'write' or 'folder').
     consume(kind, target) {
       if (typeof target !== 'string' || !target) return false
       return granted.delete(keyOf(kind, target))

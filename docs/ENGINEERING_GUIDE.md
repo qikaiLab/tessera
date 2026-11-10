@@ -111,6 +111,7 @@ npm run check
 - `index.js` 只做装配：运行时覆盖、单实例锁、应用生命周期。
 - `appState.js` 是各部分共享的进程级状态（窗口、数据目录、是否正在退出）；`window.js` 创建窗口并处理静默测试模式；`externalLinks.js` 判定哪些地址可以在外部打开。
 - `dataFiles.js`、`dataDirectory.js` 是数据文件操作与数据目录解析（纯函数，有测试）；`security.js` 限制可访问路径。
+- `dataDirectoryMigration.js` 规划并执行数据目录的复制迁移（复制、逐文件 SHA-256 核对、不改动旧目录）；`dataDirectoryStartup.js` 在启动、打开任何数据之前决定使用哪个目录：执行预约的迁移，并在已保存目录不存在时拒绝静默新建空目录。
 - `ipc/*Ipc.js` 按主题注册 IPC handler（文件、备份、配置、元数据、对话框、窗口、外观），统一经 `ipc/attempt.js` 包装为 `{ ok, ... }` 结果；`ipc/index.js` 汇总注册。
 - `contextMenu.js`、`contextMenuTemplate.js` 是原生右键菜单的兜底路径；界面里实际使用的是渲染层的自绘菜单（`components/ContextMenu.jsx`）。
 
@@ -146,6 +147,8 @@ npm run check
 - `fs:discardTmp`、`fs:recoverTmp` 只接受数据目录内的 `.tmp` 文件；恢复前先校验 JSON，不完整的文件改名为 `.incomplete` 保留，不能覆盖原文件。
 - `export:writeFile`、`import:readFile` 只接受用户刚在 `dialog:saveFile` / `dialog:openFile` 里选过的路径（`pathGrants.js`，一次有效）。
 - 备份读取数据目录失败必须报错，不能返回残缺的文件列表。
+- 数据目录不能由渲染层直接设置：`config:set` 拒绝 `dataDir`、`pendingDataDirChange`；更改只能走 `config:planDataDirChange` / `config:scheduleDataDirChange`，且目录必须是用户刚在 `dialog:openDirectory` 里选过的（`pathGrants` 的 `folder`）。更改只记录为预约，在下次启动时复制、核对后才切换，旧目录永不删除。
+- 自动化测试固定的数据目录（`MOTOTRACE_DATA_DIR`）不会被预约迁移或目录缺失提示改动；迁移启动流程由 `tests/data-directory-startup.test.mjs` 用真实临时目录覆盖，改动它时还应按下一节的开发目录做一次真实两次启动验证。
 - 导入 ZIP 先整体校验（合法 JSON、相对路径），有任何问题就一个文件都不写。
 
 ### 软件内的使用说明

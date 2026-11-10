@@ -9,6 +9,8 @@ import { resolveSafePath } from './security.js'
 export const appState = {
   mainWindow: null,
   dataDir: '',
+  // What happened to a requested move of the data folder at startup; the renderer takes it once.
+  dataDirNotice: null,
   isQuitting: false,
   isDev: false
 }

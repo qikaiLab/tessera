@@ -1,5 +1,5 @@
 import os from 'node:os'
-import { app } from 'electron'
+import { app, dialog } from 'electron'
 import { appState } from './appState.js'
 import { registerAllIpc } from './ipc/index.js'
 import { resolveRuntimeOverrides, shouldUseDevServer } from './runtimeOverrides.js'
@@ -21,7 +21,13 @@ registerAllIpc()
 // One instance at a time: a second launch just brings the first window forward.
 if (app.requestSingleInstanceLock()) {
   app.on('second-instance', focusMainWindow)
-  app.whenReady().then(() => createWindow({ runtimeOverrides }))
+  app.whenReady().then(() => createWindow({ runtimeOverrides })).catch((error) => {
+    console.error('Startup failed:', error)
+    dialog.showErrorBox('MotoTrace 无法启动', `${error.message}
+
+没有对任何数据做改动。`)
+    app.quit()
+  })
 } else {
   app.quit()
 }

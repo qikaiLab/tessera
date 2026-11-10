@@ -7,7 +7,9 @@ import { pathGrants } from '../pathGrants.js'
 export function registerDialogIpc() {
   ipcMain.handle('dialog:openDirectory', async () => {
     const result = await dialog.showOpenDialog(appState.mainWindow, { properties: ['openDirectory'] })
-    return result.canceled ? null : result.filePaths[0]
+    if (result.canceled) return null
+    pathGrants.grant('folder', result.filePaths[0])
+    return result.filePaths[0]
   })
 
   ipcMain.handle('dialog:saveFile', async (_, options) => {

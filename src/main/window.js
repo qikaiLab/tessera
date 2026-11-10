@@ -1,9 +1,10 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { BrowserWindow, app, dialog } from 'electron'
 import { appState, loadConfig, saveConfig } from './appState.js'
 import { ensureDirSync } from './dataFiles.js'
-import { resolveDataDirectory } from './dataDirectory.js'
+import { resolveStartupDataDirectory } from './dataDirectoryStartup.js'
 import { isAppNavigationUrl, openExternalQuietly } from './externalLinks.js'
 
 // How long the renderer has to confirm that pending edits were saved before the user is told
@@ -70,16 +71,60 @@ function reportWindowState(window) {
   window.on('leave-full-screen', report('normal'))
 }
 
-// Works out the data directory, makes sure it exists, and opens the main window.
-export function createWindow({ runtimeOverrides }) {
+// The saved data folder cannot be used (an unplugged drive, a renamed or deleted folder). Nothing
+// is created in its place: the user quits, or points the app at another folder.
+async function askForAnotherDataFolder({ dir, problem }) {
+  const detail = problem === 'missing'
+    ? '这个文件夹不存在，可能是移动硬盘或网络位置没有连接，或文件夹被改名、删除。'
+    : '这个位置不是可读取的文件夹。'
+  const { response } = await dialog.showMessageBox({
+    type: 'warning',
+    title: '找不到数据文件夹',
+    message: `MotoTrace 的数据文件夹无法使用：
+${dir}`,
+    detail: `${detail}
+
+软件不会自动新建一个空文件夹来代替，以免看起来像数据丢失。建议先退出，连接好磁盘或找回文件夹后再启动；也可以现在选择另一个已有的数据文件夹。`,
+    buttons: ['退出', '选择其他文件夹…'],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true
+  })
+  if (response !== 1) return null
+  const picked = await dialog.showOpenDialog({ title: '选择数据文件夹', properties: ['openDirectory'] })
+  return picked.canceled ? null : { dir: picked.filePaths[0] }
+}
+
+// What happened to a requested data folder change, kept for the renderer to show once.
+function rememberDataDirNotice(notice) {
+  appState.dataDirNotice = notice
+  if (notice) console.warn('Data directory:', JSON.stringify(notice))
+}
+
+// Works out the data directory (carrying out a requested move first), makes sure it exists, and
+// opens the main window.
+export async function createWindow({ runtimeOverrides }) {
   const config = loadConfig()
-  const { dataDir, migratedPath } = resolveDataDirectory({
+  const startup = await resolveStartupDataDirectory({
     config,
     runtimeOverrides,
     userDataDir: app.getPath('userData'),
-    homeDir: os.homedir()
+    homeDir: os.homedir(),
+    chooseWhenUnavailable: askForAnotherDataFolder
   })
-  if (migratedPath) saveConfig({ ...config, dataDir: migratedPath })
+  if (startup.abort) {
+    app.quit()
+    return
+  }
+  if (startup.configChanged) {
+    saveConfig(startup.config)
+    // Older versions kept the folder in this file too; keep it pointing at the folder in use.
+    if (startup.config.dataDir) {
+      try { fs.writeFileSync(path.join(app.getPath('userData'), 'datapath.txt'), startup.config.dataDir, 'utf8') } catch { /* optional */ }
+    }
+  }
+  rememberDataDirNotice(startup.notice)
+  const dataDir = startup.dataDir
   appState.dataDir = dataDir
   ensureDirSync(dataDir)
   ensureDirSync(path.join(dataDir, 'backups'))

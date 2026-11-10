@@ -7,6 +7,7 @@ import { useMetadata } from './useMetadata'
 import { usePendingFlushes } from './usePendingFlushes'
 import { useSections } from './useSections'
 import { useToasts } from './useToasts'
+import { describeDataDirNotice } from '../utils/dataDirChange'
 
 const AppContext = createContext(null)
 
@@ -48,6 +49,8 @@ export function AppProvider({ children }) {
         if (!await loadMetadata()) {
           showToast('图表、倒数日等配置无法读取，已暂用空配置。原文件在被覆盖前会存入自动历史，可在「设置 → 数据与备份 → 查看自动历史」中找回。', 'error', 9000)
         }
+        const notice = describeDataDirNotice(await window.api.config.takeDataDirNotice())
+        if (notice) showToast(notice.message, notice.type, 14000)
         setIsInitialized(true)
       } catch (error) {
         console.error('Init error:', error)

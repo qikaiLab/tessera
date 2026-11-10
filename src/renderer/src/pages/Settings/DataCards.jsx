@@ -1,24 +1,61 @@
+import { useEffect, useState } from 'react'
 import { useApp } from '../../context/AppContext'
+import { describeDataDirPlan } from '../../utils/dataDirChange'
 import { useBackups } from './useBackups'
 import './DataCards.css'
 
-// Where the data lives, and how to rebuild its index.
+// Where the data lives, and how to rebuild its index. Changing the folder only schedules a move:
+// the data is copied and checked at the next start, and the old folder is never touched.
 function StorageCard({ hidden }) {
-  const { dataDir, setDataDir, showToast, refreshDates, confirm } = useApp()
+  const { dataDir, showToast, refreshDates, confirm } = useApp()
+  const [pending, setPending] = useState(null)
+
+  useEffect(() => {
+    window.api.config.get().then(config => setPending(config.pendingDataDirChange || null))
+  }, [])
 
   const pickDataDir = async () => {
     const dir = await window.api.dialog.openDirectory()
     if (!dir) return
-    await window.api.config.setDataDir(dir)
-    setDataDir(dir)
-    const confirmed = await confirm({
-      message: '已更改数据目录，是否立即重启软件以加载新目录的数据？',
-      title: '需要重启',
-      confirmText: '立即重启',
-      cancelText: '稍后重启'
+    const planned = await window.api.config.planDataDirChange(dir)
+    if (!planned.ok) {
+      showToast('无法检查所选文件夹，数据目录没有更改。', 'error')
+      return
+    }
+    const description = describeDataDirPlan(planned.plan, { current: dataDir, target: dir })
+    if (!description.ok) {
+      showToast(description.message, 'error', 8000)
+      return
+    }
+    const accepted = await confirm({
+      message: description.message,
+      title: description.title,
+      confirmText: description.confirmText,
+      cancelText: '取消'
     })
-    if (confirmed) {
-      window.api.window.close() // Close app, expect user to reopen
+    if (!accepted) return
+    const scheduled = await window.api.config.scheduleDataDirChange(dir, description.copy)
+    if (!scheduled.ok) {
+      showToast('没有能够安排这次更改，数据目录没有更改。请重新选择。', 'error', 8000)
+      return
+    }
+    setPending(scheduled.pending)
+    const restart = await confirm({
+      message: '已安排好。下次启动软件时才会执行，现在要关闭软件吗？（关闭前会先保存正在编辑的内容）',
+      title: '下次启动时生效',
+      confirmText: '立即关闭',
+      cancelText: '稍后自己关闭'
+    })
+    if (restart) window.api.window.close() // Close app, expect user to reopen
+  }
+
+  const cancelPending = async () => {
+    const result = await window.api.config.cancelDataDirChange()
+    if (result.ok) {
+      setPending(null)
+      showToast('已取消更改数据目录。', 'info')
+    } else {
+      showToast('取消失败，请重试。', 'error')
     }
   }
 
@@ -40,6 +77,15 @@ function StorageCard({ hidden }) {
         </div>
         <button className="btn btn-ghost btn-sm">更改目录</button>
       </div>
+      {pending && (
+        <div className="settings-row" data-testid="pending-data-dir">
+          <div className="settings-row-text">
+            <span className="settings-row-label">已安排：下次启动时{pending.copy ? '复制数据到' : '改用'}</span>
+            <span className="settings-row-value">{pending.to}</span>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={cancelPending}>取消更改</button>
+        </div>
+      )}
       <div className="settings-row" onClick={() => window.api.shell.showItemInFolder(dataDir)} style={{ cursor: 'pointer' }}>
         <div className="settings-row-text">
           <span className="settings-row-label">在资源管理器中打开</span>
