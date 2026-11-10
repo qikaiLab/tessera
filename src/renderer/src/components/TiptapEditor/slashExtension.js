@@ -3,6 +3,7 @@ import Suggestion from '@tiptap/suggestion'
 import { ReactRenderer } from '@tiptap/react'
 import { SlashMenuView } from './SlashMenu'
 import { insertLocalPathLink } from './editorHelpers'
+import { fixNewTableColumns } from './tableColumnWidths'
 
 export const slashCommands = [
   {
@@ -79,10 +80,17 @@ export const slashCommands = [
   },
   {
     title: '表格',
-    description: '3 × 3 表格，Tab 键切换单元格',
+    description: '3 × 3 表格，Tab 键切换单元格，右键增删行列',
     icon: '▦',
     command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+      // Columns share the editor's width, so the table starts out filling the line.
+      const dom = editor.view.dom
+      const style = window.getComputedStyle(dom)
+      const availableWidth = dom.clientWidth - parseFloat(style.paddingLeft || 0) - parseFloat(style.paddingRight || 0)
+      editor.chain().focus().deleteRange(range)
+        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+        .command(fixNewTableColumns(availableWidth))
+        .run()
     },
   },
   {

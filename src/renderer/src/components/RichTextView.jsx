@@ -39,6 +39,20 @@ function renderChildren(node, highlight, keyPrefix) {
   return (node.content || []).map((child, index) => renderNode(child, highlight, `${keyPrefix}-${index}`))
 }
 
+// The column widths of a resized table (every cell of its first row has them), or null.
+function columnWidths(table) {
+  const firstRow = table.content?.[0]
+  if (!firstRow?.content?.length) return null
+  const widths = []
+  for (const cell of firstRow.content) {
+    const span = cell.attrs?.colspan > 1 ? cell.attrs.colspan : 1
+    const colwidth = cell.attrs?.colwidth
+    if (!Array.isArray(colwidth) || colwidth.length !== span || !colwidth.every(width => width > 0)) return null
+    widths.push(...colwidth)
+  }
+  return widths
+}
+
 function renderNode(node, highlight, key) {
   if (!node || typeof node !== 'object') return null
   const children = () => renderChildren(node, highlight, key)
@@ -75,8 +89,18 @@ function renderNode(node, highlight, key) {
       return <blockquote key={key}>{children()}</blockquote>
     case 'codeBlock':
       return <pre key={key}><code>{(node.content || []).map(child => child.text || '').join('')}</code></pre>
-    case 'table':
-      return <div key={key} className="tableWrapper"><table><tbody>{children()}</tbody></table></div>
+    case 'table': {
+      // A table whose columns were resized keeps those widths, as in the editor.
+      const widths = columnWidths(node)
+      return (
+        <div key={key} className="tableWrapper">
+          <table style={widths ? { width: `${widths.reduce((sum, width) => sum + width, 0)}px` } : undefined}>
+            {widths && <colgroup>{widths.map((width, index) => <col key={index} style={{ width: `${width}px` }} />)}</colgroup>}
+            <tbody>{children()}</tbody>
+          </table>
+        </div>
+      )
+    }
     case 'tableRow':
       return <tr key={key}>{children()}</tr>
     case 'tableHeader':

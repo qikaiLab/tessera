@@ -134,6 +134,10 @@ npm run check
 
 纯逻辑应抽成无 UI、无 Electron 生命周期依赖的小模块，再做单元测试。
 
+### 表格列宽
+
+调整过列宽的表格，每一列都必须有固定宽度（单元格的 `colwidth`）。只有被拖动的那一列有宽度时，其余列会按文字内容自适应，表格被挤进容器后列边框会跟不上鼠标并抽搐。`tableColumnWidths.js` 因此在按下列边框时先给所有列补上当前宽度，新增行列时补上缺的宽度，新建表格时按编辑区宽度等分；从未调整过的表格（例如粘贴进来的）保持随内容自适应。修改表格样式或扩展时，需同步 `tests/table-column-widths.test.mjs` 与 `tests/e2e/table-resize.spec.mjs`。
+
 ### 笔记里的本地文件链接
 
 笔记链接除网页、邮件、电话外，还可以指向本机的文件或文件夹，以 `file:///C:/...` 形式保存（`src/renderer/src/utils/localFileLinks.js`），点击时由主进程 `src/main/localFiles.js` 处理。约束如下，修改时必须同步更新 `tests/main-local-files.test.mjs` 与 `tests/local-file-links.test.mjs`：

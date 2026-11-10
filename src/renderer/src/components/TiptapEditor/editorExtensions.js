@@ -4,6 +4,7 @@ import { Extension } from '@tiptap/core'
 import { SlashExtension } from './slashExtension'
 import { buildContentExtensions } from './contentExtensions'
 import { MarkdownLinkShortcut, MarkdownPaste } from './markdownInput'
+import { TableColumnWidths } from './tableColumnWidths'
 
 /** Remove the character formatting at the cursor / selection and refocus the editor view. */
 export function clearCharacterFormattingFromView(view) {
@@ -97,6 +98,7 @@ export function buildEditorExtensions({ placeholder, onSave }) {
     SlashExtension,
     MarkdownLinkShortcut,
     MarkdownPaste,
+    TableColumnWidths,
     ExitBlockExtension,
     ClearFormattingExtension,
     saveShortcut(onSave)

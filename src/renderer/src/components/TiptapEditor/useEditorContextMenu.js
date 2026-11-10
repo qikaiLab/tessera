@@ -58,6 +58,12 @@ export function useEditorContextMenu(editor) {
       case 'table-delete-column':
         editor.chain().focus().deleteColumn().run()
         break
+      case 'table-merge-cells':
+        editor.chain().focus().mergeCells().run()
+        break
+      case 'table-split-cell':
+        editor.chain().focus().splitCell().run()
+        break
       case 'table-toggle-header-row':
         editor.chain().focus().toggleHeaderRow().run()
         break
@@ -92,6 +98,8 @@ export function useEditorContextMenu(editor) {
         { id: 'table-add-column-after', label: '在右侧插入列', enabled: canRunEditorCommand(editor, 'addColumnAfter') },
         { id: 'table-delete-row', label: '删除当前行', enabled: canRunEditorCommand(editor, 'deleteRow') },
         { id: 'table-delete-column', label: '删除当前列', enabled: canRunEditorCommand(editor, 'deleteColumn') },
+        { id: 'table-merge-cells', label: '合并单元格（先拖选多格）', enabled: canRunEditorCommand(editor, 'mergeCells') },
+        { id: 'table-split-cell', label: '拆分单元格', enabled: canRunEditorCommand(editor, 'splitCell') },
         { id: 'table-toggle-header-row', label: '切换表头行', enabled: canRunEditorCommand(editor, 'toggleHeaderRow') },
         { id: 'table-delete', label: '删除表格', enabled: canRunEditorCommand(editor, 'deleteTable') }
       ] : [])
