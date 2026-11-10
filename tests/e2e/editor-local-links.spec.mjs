@@ -34,6 +34,8 @@ test('a typed path becomes a file link that opens photos and only reveals progra
     const program = path.join(sandbox.root, 'tool.exe')
     await fs.writeFile(photo, 'x')
     await fs.writeFile(program, 'x')
+    // Photos are opened by their resolved path (a CI temp folder may be a short 8.3 name).
+    const openedPhoto = await fs.realpath(photo)
     await recordShellCalls(app)
     const editor = await openEditor(window)
 
@@ -51,10 +53,10 @@ test('a typed path becomes a file link that opens photos and only reveals progra
     await expect(links.nth(0)).toHaveText('照片')
 
     await links.nth(0).click()
-    await expect.poll(() => shellCalls(app)).toEqual([['open', photo]])
+    await expect.poll(() => shellCalls(app)).toEqual([['open', openedPhoto]])
 
     await links.nth(1).click()
-    await expect.poll(() => shellCalls(app)).toEqual([['open', photo], ['reveal', program]])
+    await expect.poll(() => shellCalls(app)).toEqual([['open', openedPhoto], ['reveal', program]])
     await expect(window.locator('.toast, [class*="toast"]').filter({ hasText: '不会被直接打开' }).first()).toBeVisible()
 
     await links.nth(2).click()
@@ -75,6 +77,7 @@ test('the slash menu links a chosen file or folder', async ({ sandbox }) => {
     await fs.mkdir(sandbox.root, { recursive: true })
     const photo = path.join(sandbox.root, '摩托 2026.png')
     await fs.writeFile(photo, 'x')
+    const openedPhoto = await fs.realpath(photo)
     await recordShellCalls(app, photo)
     const editor = await openEditor(window)
 
@@ -85,7 +88,7 @@ test('the slash menu links a chosen file or folder', async ({ sandbox }) => {
     await expect(link).toHaveText('摩托 2026.png')
 
     await link.click()
-    await expect.poll(() => shellCalls(app)).toEqual([['open', photo]])
+    await expect.poll(() => shellCalls(app)).toEqual([['open', openedPhoto]])
 
     // Typing on goes on as plain text.
     await window.keyboard.type('后面的字')
