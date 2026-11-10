@@ -45,7 +45,12 @@ function AppContent() {
     initial: APP_SIDEBAR_DEFAULT
   })
 
-  const openOnboarding = useCallback(() => setShowOnboarding(true), [])
+  // `guideFirstRun`: the guide opened by itself on the first launch, so its button says "开始使用".
+  const [guideFirstRun, setGuideFirstRun] = useState(false)
+  const openOnboarding = useCallback(() => {
+    setGuideFirstRun(false)
+    setShowOnboarding(true)
+  }, [])
   const toggleShortcuts = useCallback(() => setShowShortcuts(prev => !prev), [])
   useGlobalInput({ adjustInterfaceZoom, onOpenGuide: openOnboarding, onToggleShortcuts: toggleShortcuts })
 
@@ -53,7 +58,10 @@ function AppContent() {
     if (!isInitialized) return
     // First run: show the guide.
     window.api.config.get().then(cfg => {
-      if (!cfg.onboardingDone) setShowOnboarding(true)
+      if (!cfg.onboardingDone) {
+        setGuideFirstRun(true)
+        setShowOnboarding(true)
+      }
     })
     // Leftover temporary files mean the last save was interrupted.
     window.api.fs.checkTmpFiles().then(files => {
@@ -98,6 +106,8 @@ function AppContent() {
         <Onboarding
           onDone={handleOnboardingDone}
           onOpenShortcuts={() => setShowShortcuts(true)}
+          firstRun={guideFirstRun}
+          suspended={showShortcuts}
         />
       )}</Presence>
       <Presence>{showShortcuts && <ShortcutsModal stacked={showOnboarding} onClose={() => setShowShortcuts(false)} />}</Presence>

@@ -138,6 +138,10 @@ npm run check
 
 调整过列宽的表格，每一列都必须有固定宽度（单元格的 `colwidth`）。只有被拖动的那一列有宽度时，其余列会按文字内容自适应，表格被挤进容器后列边框会跟不上鼠标并抽搐。`tableColumnWidths.js` 因此在按下列边框时先给所有列补上当前宽度，新增行列时补上缺的宽度，新建表格时按编辑区宽度等分；从未调整过的表格（例如粘贴进来的）保持随内容自适应。修改表格样式或扩展时，需同步 `tests/table-column-widths.test.mjs` 与 `tests/e2e/table-resize.spec.mjs`。
 
+### 软件内的使用说明
+
+「使用说明」（侧栏 💡、`F1`、首次启动）的内容是数据：`src/renderer/src/components/guide/guideTopics.js`，界面在 `Onboarding.jsx` 与 `guide/GuideBlock.jsx`。新增、改名或删除用户可见的功能（页面、按钮、快捷键、斜杠菜单项、设置项）时，在同一个提交里更新对应主题。`tests/guide-content.test.mjs` 会检查说明里用「」引用的界面文字是否仍然出现在应用源码中，改名后忘记更新说明会让测试失败；`tests/e2e/guide.spec.mjs` 检查各主题下的显示、溢出和键盘行为。示例输入用 `{{...}}`（按代码显示，不解析），按键用 `[[Ctrl]]`，加粗用 `**...**`。
+
 ### 笔记里的本地文件链接
 
 笔记链接除网页、邮件、电话外，还可以指向本机的文件或文件夹，以 `file:///C:/...` 形式保存（`src/renderer/src/utils/localFileLinks.js`），点击时由主进程 `src/main/localFiles.js` 处理。约束如下，修改时必须同步更新 `tests/main-local-files.test.mjs` 与 `tests/local-file-links.test.mjs`：

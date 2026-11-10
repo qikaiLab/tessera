@@ -6,9 +6,8 @@ const NAV_LABELS = ['记录', '便签', '时间线', '日历', '数据分析', '
 
 async function finishOnboarding(window) {
   await window.locator('.onboarding-overlay').waitFor()
-  for (let i = 0; i < 5 && (await window.locator('.onboarding-overlay').count()); i += 1) {
-    await window.locator('.onboarding-actions .btn-primary').click()
-  }
+  // The first run opens the guide with a button that says it is time to start.
+  await window.locator('.guide-footer .btn-primary', { hasText: '开始使用' }).click()
   await expect(window.locator('.onboarding-overlay')).toHaveCount(0)
 }
 

@@ -1,84 +1,175 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import GuideBlock from './guide/GuideBlock'
+import { GUIDE_TOPICS, searchTopics } from './guide/guideTopics'
 import './Onboarding.css'
 
-const steps = [
-  {
-    icon: '◈',
-    title: '欢迎使用 MotoTrace',
-    desc: '一款专为自我记录设计的桌面应用。你可以追踪日记、运动、学习、心情等任何你想记录的事物。'
-  },
-  {
-    icon: '◎',
-    title: '今日记录',
-    desc: '在「今日记录」页面记录你的数据。支持文字和数字两种类型，自动实时保存。只要将非必填版块的所有内容清空，刷新后它就会自动隐藏，保持界面清爽。'
-  },
-  {
-    icon: '⌨',
-    title: '快捷键与 Markdown',
-    desc: '文本版块支持 Markdown 实时预览：输入 # 、- 、> 、[文字](网址) 会自动变成标题、列表、引用和链接，直接粘贴 Markdown 文本（含表格）也会自动渲染，想保留原文请用「Ctrl + Shift + V」。输入「/」可调出快捷菜单插入表格、列表或本地文件链接（点击可打开照片等文件，其他文件仅在文件夹中显示），表格内按 Tab 切换单元格、拖动边框调整列宽、右键可增删行列或合并单元格；使用「Ctrl + S」可手动触发保存；在列表、引用块或表格内按「Ctrl + Enter」可快速退出当前块并新建段落。'
-  },
-  {
-    icon: '⊞',
-    title: '自定义数据版块',
-    desc: '在「设置」页面可以自由添加、删除、排序你的数据版块，并为它们设定专属的颜色。设置为「常驻」的版块每天都会固定显示在最前方。'
-  },
-  {
-    icon: '∑',
-    title: '数据分析',
-    desc: '在「数据分析」页面创建自定义图表。折线图与柱状图支持多数据的双 Y 轴对比；热力图支持按星期呈现一整年的频率，颜色会严格跟随你在设置中定义的主题色。'
-  }
-]
+// The in-app guide ("使用说明"): topics on the left, the open topic on the right, and a search
+// that narrows the topics. It opens by itself on the first run and from the 💡 button / F1.
+// `suspended`: another dialog (the shortcut list) is on top, so Esc belongs to that one.
+export default function Onboarding({ onDone, onOpenShortcuts, firstRun = false, suspended = false }) {
+  const [topicId, setTopicId] = useState(GUIDE_TOPICS[0].id)
+  const [query, setQuery] = useState('')
+  const scrollRef = useRef(null)
+  const navRef = useRef(null)
 
-export default function Onboarding({ onDone, onOpenShortcuts }) {
-  const [step, setStep] = useState(0)
-  const isLast = step === steps.length - 1
-  const current = steps[step]
+  const topics = useMemo(() => searchTopics(query), [query])
+  const words = useMemo(() => query.toLowerCase().split(/\s+/).filter(Boolean), [query])
+  const current = topics.find(topic => topic.id === topicId) || topics[0] || null
+  const currentIndex = current ? topics.indexOf(current) : -1
+  const previous = currentIndex > 0 ? topics[currentIndex - 1] : null
+  const next = currentIndex >= 0 && currentIndex < topics.length - 1 ? topics[currentIndex + 1] : null
+
+  // A new topic starts at its top; the pane is focusable so the arrow and page keys scroll it.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 })
+  }, [current?.id])
+  useEffect(() => {
+    scrollRef.current?.focus({ preventScroll: true })
+  }, [])
+
+  useEffect(() => {
+    if (suspended) return undefined
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      // Esc first clears a search, then closes the guide.
+      if (query) setQuery('')
+      else onDone()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onDone, query, suspended])
+
+  const selectTopic = useCallback((id) => setTopicId(id), [])
+
+  const handleNavKeyDown = (event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    event.preventDefault()
+    const step = event.key === 'ArrowDown' ? 1 : -1
+    const target = topics[currentIndex + step]
+    if (!target) return
+    setTopicId(target.id)
+    requestAnimationFrame(() => navRef.current?.querySelector(`[data-topic="${target.id}"]`)?.focus())
+  }
+
+  const actions = useMemo(() => ({ shortcuts: onOpenShortcuts }), [onOpenShortcuts])
 
   return (
     <div className="onboarding-overlay">
-      <div className="onboarding-modal">
-        <div className="onboarding-dots">
-          {steps.map((_, i) => (
-            <div key={i} className={`onboarding-dot ${i === step ? 'active' : ''}`} onClick={() => setStep(i)} />
-          ))}
-        </div>
-        <div className="onboarding-icon" key={step}>{current.icon}</div>
-        <h2 className="onboarding-title">{current.title}</h2>
-        <p className="onboarding-desc">{current.desc}</p>
-        {step === 2 && (
-          <button 
-            className="btn btn-ghost btn-sm onboarding-shortcuts-btn" 
-            onClick={onOpenShortcuts}
-            style={{ 
-              marginTop: '4px',
-              fontSize: '12px',
-              color: 'var(--accent)',
-              border: '1px dashed var(--accent)',
-              borderRadius: 'var(--radius-md)',
-              padding: '6px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
+      <div className="onboarding-modal guide" role="dialog" aria-modal="true" aria-label="使用说明">
+        <aside className="guide-side">
+          <div className="guide-brand">
+            <span className="guide-brand-mark" aria-hidden="true">◈</span>
+            <div>
+              <h2 className="onboarding-title">使用说明</h2>
+              <p className="guide-brand-sub">MotoTrace</p>
+            </div>
+          </div>
+
+          <div className="guide-search">
+            <span className="guide-search-icon" aria-hidden="true">⌕</span>
+            <input
+              className="input guide-search-input"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder="搜索说明，如 表格"
+              aria-label="搜索说明"
+            />
+            {query && (
+              <button type="button" className="guide-search-clear" onClick={() => setQuery('')} title="清空搜索" aria-label="清空搜索">
+                ×
+              </button>
+            )}
+          </div>
+
+          <nav
+            className="guide-nav"
+            role="tablist"
+            aria-orientation="vertical"
+            aria-label="说明主题"
+            ref={navRef}
+            onKeyDown={handleNavKeyDown}
           >
-            ⌨ 查看完整快捷键清单
-          </button>
-        )}
-        <div className="onboarding-actions">
-          {step > 0 && (
-            <button className="btn btn-ghost" onClick={() => setStep(s => s - 1)}>
-              上一步
+            {topics.map(topic => (
+              <button
+                key={topic.id}
+                type="button"
+                role="tab"
+                id={`guide-tab-${topic.id}`}
+                data-topic={topic.id}
+                aria-selected={topic.id === current?.id}
+                aria-controls="guide-panel"
+                tabIndex={topic.id === current?.id ? 0 : -1}
+                className={`guide-nav-item ${topic.id === current?.id ? 'active' : ''}`}
+                onClick={() => selectTopic(topic.id)}
+              >
+                <span className="guide-nav-icon" aria-hidden="true">{topic.icon}</span>
+                <span className="guide-nav-label">{topic.title}</span>
+              </button>
+            ))}
+            {topics.length === 0 && <p className="guide-nav-empty">没有找到相关说明</p>}
+          </nav>
+
+          <p className="guide-side-hint"><kbd className="guide-kbd">F1</kbd> 随时打开本说明</p>
+        </aside>
+
+        <section className="guide-main">
+          <header className="guide-main-head">
+            {current ? (
+              <div className="guide-main-title">
+                <h3 className="onboarding-title guide-topic-title">{current.title}</h3>
+                <p className="guide-topic-blurb">{current.blurb}</p>
+              </div>
+            ) : <div />}
+            <button type="button" className="guide-close" onClick={onDone} title="关闭 (Esc)" aria-label="关闭">✕</button>
+          </header>
+
+          <div
+            className="guide-scroll scrollable"
+            id="guide-panel"
+            role="tabpanel"
+            aria-labelledby={current ? `guide-tab-${current.id}` : undefined}
+            tabIndex={-1}
+            ref={scrollRef}
+          >
+            {current ? (
+              <div className="guide-article" key={current.id}>
+                {current.blocks.map((block, index) => (
+                  <GuideBlock key={index} block={block} words={words} actions={actions} />
+                ))}
+                <div className="guide-pager">
+                  {previous ? (
+                    <button type="button" className="guide-pager-btn" onClick={() => selectTopic(previous.id)}>
+                      <span className="guide-pager-dir">← 上一篇</span>
+                      <span className="guide-pager-title">{previous.title}</span>
+                    </button>
+                  ) : <span />}
+                  {next ? (
+                    <button type="button" className="guide-pager-btn is-next" onClick={() => selectTopic(next.id)}>
+                      <span className="guide-pager-dir">下一篇 →</span>
+                      <span className="guide-pager-title">{next.title}</span>
+                    </button>
+                  ) : <span />}
+                </div>
+              </div>
+            ) : (
+              <div className="guide-empty">
+                <p>没有找到包含「{query}」的说明。</p>
+                <p>换个关键词试试，例如：表格、快捷键、备份、便签。</p>
+                <button type="button" className="guide-action" onClick={() => setQuery('')}>清空搜索</button>
+              </div>
+            )}
+          </div>
+
+          <footer className="guide-footer">
+            <span className="guide-footer-hint">
+              {current ? `${currentIndex + 1} / ${topics.length}` : ''}
+            </span>
+            <button type="button" className="btn btn-primary" onClick={onDone}>
+              {firstRun ? '开始使用' : '关闭'}
             </button>
-          )}
-          <button
-            className="btn btn-primary"
-            onClick={() => isLast ? onDone() : setStep(s => s + 1)}
-          >
-            {isLast ? '开始使用' : '下一步'}
-          </button>
-        </div>
-        <button className="onboarding-skip" onClick={onDone}>跳过</button>
+          </footer>
+        </section>
       </div>
     </div>
   )

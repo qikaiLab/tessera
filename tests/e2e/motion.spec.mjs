@@ -169,9 +169,9 @@ test('the shortcut list opened from the guide adds no second dimming layer', asy
     await expect(window.locator('.onboarding-overlay')).toBeVisible()
     expect(await dimmingLayers()).toBe(1)
 
-    // The shortcut list is offered on the third step of the guide.
-    await window.locator('.onboarding-dot').nth(2).click()
-    await window.getByRole('button', { name: /查看完整快捷键清单/ }).click()
+    // The shortcut list is offered from the shortcuts topic of the guide.
+    await window.getByRole('tab', { name: /快捷键速查/ }).click()
+    await window.getByRole('button', { name: /打开完整快捷键清单/ }).click()
     await expect(window.locator('.shortcuts-overlay')).toBeVisible()
     await window.waitForTimeout(400)
     expect(await dimmingLayers()).toBe(1)
@@ -182,7 +182,7 @@ test('the shortcut list opened from the guide adds no second dimming layer', asy
     expect(await dimmingLayers()).toBe(1)
 
     // Opened on its own, the list dims the page itself.
-    await window.getByRole('button', { name: '跳过' }).click()
+    await window.getByRole('button', { name: '关闭', exact: true }).first().click()
     await expect(window.locator('.onboarding-overlay')).toHaveCount(0)
     await window.keyboard.press('Control+/')
     await expect(window.locator('.shortcuts-overlay')).toBeVisible()
