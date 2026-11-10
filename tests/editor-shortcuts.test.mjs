@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   FULLSCREEN_EDITOR_SHORTCUT_LABEL,
-  isFullscreenEditorShortcut
+  isFullscreenEditorShortcut,
+  isLeaveFullscreenKey
 } from '../src/renderer/src/utils/editorShortcuts.js'
 
 describe('isFullscreenEditorShortcut', () => {
@@ -30,5 +31,27 @@ describe('isFullscreenEditorShortcut', () => {
 
   it('keeps the discoverable Windows shortcut label in sync', () => {
     expect(FULLSCREEN_EDITOR_SHORTCUT_LABEL).toBe('Ctrl+Shift+Enter')
+  })
+})
+
+describe('isLeaveFullscreenKey', () => {
+  const noMenu = { querySelector: () => null }
+  const menuOpen = { querySelector: selector => (selector === '.slash-menu' ? {} : null) }
+
+  it('treats a plain Esc as a request to leave fullscreen', () => {
+    expect(isLeaveFullscreenKey({ key: 'Escape' }, noMenu)).toBe(true)
+  })
+
+  it('leaves Esc to the slash menu while it is open', () => {
+    expect(isLeaveFullscreenKey({ key: 'Escape' }, menuOpen)).toBe(false)
+  })
+
+  it('leaves Esc to the input method while composing', () => {
+    expect(isLeaveFullscreenKey({ key: 'Escape', isComposing: true }, noMenu)).toBe(false)
+    expect(isLeaveFullscreenKey({ key: 'Escape', keyCode: 229 }, noMenu)).toBe(false)
+  })
+
+  it('ignores every other key', () => {
+    expect(isLeaveFullscreenKey({ key: 'Enter' }, noMenu)).toBe(false)
   })
 })

@@ -180,8 +180,9 @@ export const SlashExtension = Extension.create({
     return {
       suggestion: {
         char: '/',
-        // Allow "/" anywhere (not just at line start)
-        allowedPrefixes: null,
+        // Only at the start of a line or after a space: a "/" inside text ("3/3", "有/无", "2026/1")
+        // is ordinary text, and the menu would take over Enter and the arrow keys there.
+        allowedPrefixes: [' ', '\u00A0', '\u3000'],
         command: ({ editor, range, props }) => {
           props.command({ editor, range })
         },

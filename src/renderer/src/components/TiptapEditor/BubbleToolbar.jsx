@@ -85,7 +85,10 @@ export function BubbleToolbar({ editor }) {
       if (!editor?.view) return
 
       const { from, to } = editor.state.selection
-      if (from === to || editor.isActive('codeBlock')) {
+      // A blurred editor keeps its selection: the toolbar belongs to the editor being used, not to
+      // an old selection in another card (clicks and keys elsewhere also reach this handler).
+      const inUse = editor.isFocused || toolbarRef.current?.contains(document.activeElement)
+      if (from === to || !inUse || editor.isActive('codeBlock')) {
         setVisible(false)
         return
       }
@@ -127,16 +130,28 @@ export function BubbleToolbar({ editor }) {
   /* ── event wiring ─────────────────────────────────────────────── */
   useEffect(() => {
     if (!editor) return
+    const hideOnBlur = () => {
+      // Focus moving into the toolbar itself keeps it open; anywhere else closes it.
+      requestAnimationFrame(() => {
+        if (!toolbarRef.current?.contains(document.activeElement)) setVisible(false)
+      })
+    }
+    // The toolbar is positioned in window coordinates, so scrolling would leave it behind.
+    const hideOnScroll = () => setVisible(false)
     editor.on('selectionUpdate', update)
     editor.on('transaction',     update)
+    editor.on('blur',            hideOnBlur)
     // mouseup fires after the browser commits the selection
     document.addEventListener('mouseup', update)
     document.addEventListener('keyup',   update)
+    window.addEventListener('scroll', hideOnScroll, true)
     return () => {
       editor.off('selectionUpdate', update)
       editor.off('transaction',     update)
+      editor.off('blur',            hideOnBlur)
       document.removeEventListener('mouseup', update)
       document.removeEventListener('keyup',   update)
+      window.removeEventListener('scroll', hideOnScroll, true)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [editor, update])

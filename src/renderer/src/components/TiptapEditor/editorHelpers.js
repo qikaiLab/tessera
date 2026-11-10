@@ -1,8 +1,6 @@
 import { TextSelection } from '@tiptap/pm/state'
 import { fileUrlToLocalPath, isLocalFileHref, localPathLabel, localPathToFileUrl } from '../../utils/localFileLinks'
 
-export const EMPTY_DOC = { type: 'doc', content: [{ type: 'paragraph' }] }
-
 /** The link target to open for a clicked href, or null when it is not an openable web / mail / phone link. */
 export function normalizeExternalUrl(url) {
   if (!url) return null
@@ -113,11 +111,25 @@ export function getSelectedEditorText(editor) {
   return editor.state.doc.textBetween(selection.from, selection.to, '\n\n')
 }
 
+// Pasted text as paragraphs, one per line (Windows clipboards use CRLF): raw line breaks must not
+// end up inside a single text node, where only the editor's own styling makes them look like lines.
+export function plainTextToParagraphs(text) {
+  // A line break at the very end (copying a whole line) does not add an empty paragraph.
+  return String(text ?? '').replace(/(\r\n?|\n)$/, '').split(/\r\n?|\n/).map(line => (
+    line ? { type: 'paragraph', content: [{ type: 'text', text: line }] } : { type: 'paragraph' }
+  ))
+}
+
 export function insertPlainText(editor, text) {
   if (!editor) return false
+  const paragraphs = plainTextToParagraphs(text)
+  if (paragraphs.length > 1) return editor.chain().focus().insertContent(paragraphs).run()
+  const single = paragraphs[0].content?.[0]?.text ?? ''
+  // An empty clipboard pastes nothing; it must not delete the selection.
+  if (!single) return false
   return editor.chain().focus().command(({ state, dispatch }) => {
     if (dispatch) {
-      dispatch(state.tr.insertText(String(text ?? ''), state.selection.from, state.selection.to))
+      dispatch(state.tr.insertText(single, state.selection.from, state.selection.to))
     }
     return true
   }).run()

@@ -3,23 +3,17 @@ import TiptapEditor from '../../components/TiptapEditor'
 import { collapseDurationMs } from '../../utils/collapseMotion'
 import { EDITOR_FONT_SIZE_MAX, EDITOR_FONT_SIZE_MIN, useEditorFontSize } from '../../utils/editorFontSize'
 import { FULLSCREEN_EDITOR_SHORTCUT_LABEL } from '../../utils/editorShortcuts'
+import { parseStoredDocument, plainTextDocument } from '../../utils/richText'
 import { getSectionPreview } from '../../utils/sectionPreview'
 import { useFullscreenPresence } from '../../utils/useFullscreenPresence'
 import FavoriteButton from './FavoriteButton'
 import SectionTypeBadge from './SectionTypeBadge'
 
-// The stored value is a serialized Tiptap document; older data may be plain text.
+// The stored value is a serialized Tiptap document; older data may be plain text (including text
+// that happens to be valid JSON, like "2024").
 function parseDocument(value) {
   if (!value) return null
-  if (typeof value === 'object') return value
-  try {
-    return JSON.parse(value)
-  } catch {
-    return {
-      type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: value }] }]
-    }
-  }
+  return parseStoredDocument(value) ?? plainTextDocument(typeof value === 'string' ? value : '')
 }
 
 // While the editor is fullscreen it leaves the card's flow: remember how tall the card's body

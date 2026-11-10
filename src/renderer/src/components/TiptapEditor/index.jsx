@@ -4,7 +4,6 @@ import { BubbleToolbar } from './BubbleToolbar'
 import FullscreenHeader from './FullscreenHeader'
 import { buildEditorExtensions, clearCharacterFormattingFromView } from './editorExtensions'
 import {
-  EMPTY_DOC,
   countChars,
   formatCssLetterSpacing,
   formatCssWidth,
@@ -16,6 +15,7 @@ import { useEditorContextMenu } from './useEditorContextMenu'
 import { useFullscreenEditor } from './useFullscreenEditor'
 import { useApp } from '../../context/AppContext'
 import { isClearFormattingShortcut, isFullscreenEditorShortcut } from '../../utils/editorShortcuts'
+import { prepareDocument } from '../../utils/documentSanitizer'
 import { replaceEditorDocument } from '../../utils/editorDocumentState'
 // Order matters: later files override earlier ones.
 import './TiptapEditor.css'
@@ -65,9 +65,20 @@ const TiptapEditor = forwardRef(function TiptapEditor(
     ? formatCssWidth(fullscreenWideWidth, '1000px')
     : formatCssWidth(fullscreenStandardWidth, '700px')
 
+  // A document this version cannot open as it is (unknown node or mark types) is opened with its text
+  // kept, and the user is told: see utils/documentSanitizer.
+  const warnRepairedRef = useRef(null)
+  warnRepairedRef.current = () => showToast(
+    '这段内容含有当前版本不支持的格式，已按文字显示。原始内容在你修改之前不会被覆盖，之后也可在自动历史中找回。',
+    'info',
+    8000
+  )
+  const initialContentRef = useRef(null)
+  if (initialContentRef.current === null) initialContentRef.current = prepareDocument(value)
+
   const editor = useEditor({
     extensions: buildEditorExtensions({ placeholder, onSave: () => onSaveRef.current?.() }),
-    content: value || EMPTY_DOC,
+    content: initialContentRef.current.doc,
     onUpdate: ({ editor }) => {
       if (isExternalUpdateRef.current) return
       onChangeRef.current?.(editor.getJSON())
@@ -92,10 +103,16 @@ const TiptapEditor = forwardRef(function TiptapEditor(
 
   // Replace the document without reporting it as an edit.
   const loadDocument = useCallback((content) => {
+    const { doc, repaired } = prepareDocument(content)
     isExternalUpdateRef.current = true
-    replaceEditorDocument(editor, content || EMPTY_DOC)
+    replaceEditorDocument(editor, doc)
     isExternalUpdateRef.current = false
+    if (repaired) warnRepairedRef.current?.()
   }, [editor])
+
+  useEffect(() => {
+    if (initialContentRef.current?.repaired) warnRepairedRef.current?.()
+  }, [])
 
   useImperativeHandle(ref, () => ({
     focus: () => editor?.commands.focus(),
@@ -110,8 +127,8 @@ const TiptapEditor = forwardRef(function TiptapEditor(
   // same document, which must not be loaded again or the cursor would jump.
   useEffect(() => {
     if (!editor) return
-    const nextContent = value || EMPTY_DOC
-    if (JSON.stringify(editor.getJSON()) !== JSON.stringify(nextContent)) loadDocument(nextContent)
+    const nextContent = prepareDocument(value).doc
+    if (JSON.stringify(editor.getJSON()) !== JSON.stringify(nextContent)) loadDocument(value)
   }, [value, editor, loadDocument])
 
   useFullscreenEditor({ isFullScreen, fullScreenLeaving, onToggleFullScreen })

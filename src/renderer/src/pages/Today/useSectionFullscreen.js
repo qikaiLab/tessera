@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { isLeaveFullscreenKey } from '../../utils/editorShortcuts'
 
 /**
  * Which section's editor is fullscreen. Fullscreen ends when the day changes and on Escape,
@@ -14,15 +15,15 @@ export function useSectionFullscreen(dateStr) {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key !== 'Escape' || !fullScreenSectionId) return
+      if (!fullScreenSectionId || !isLeaveFullscreenKey(event)) return
       setFullScreenSectionId(null)
       refocusTimerRef.current = setTimeout(() => {
         document.querySelector('.section-card:not(.fullscreen-active-parent) .ProseMirror')?.focus()
       }, 50)
     }
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keydown', handleKeyDown, true)
       clearTimeout(refocusTimerRef.current)
       refocusTimerRef.current = null
     }

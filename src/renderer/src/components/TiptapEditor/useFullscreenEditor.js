@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { isFullscreenEditorShortcut } from '../../utils/editorShortcuts'
+import { isFullscreenEditorShortcut, isLeaveFullscreenKey } from '../../utils/editorShortcuts'
 
 function useBodyClass(className, active) {
   useEffect(() => {
@@ -21,13 +21,21 @@ export function useFullscreenEditor({ isFullScreen, fullScreenLeaving, onToggleF
 
   useEffect(() => {
     if (!isFullScreen || fullScreenLeaving || !onToggleFullScreen) return undefined
-    const handleKey = (event) => {
-      if (event.key === 'Escape' || (!event.defaultPrevented && isFullscreenEditorShortcut(event))) {
+    // Esc is looked at before the editor handles it (capture), see isLeaveFullscreenKey.
+    const handleEscape = (event) => {
+      if (isLeaveFullscreenKey(event)) onToggleFullScreen()
+    }
+    const handleShortcut = (event) => {
+      if (!event.defaultPrevented && isFullscreenEditorShortcut(event)) {
         event.preventDefault()
         onToggleFullScreen()
       }
     }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
+    window.addEventListener('keydown', handleEscape, true)
+    window.addEventListener('keydown', handleShortcut)
+    return () => {
+      window.removeEventListener('keydown', handleEscape, true)
+      window.removeEventListener('keydown', handleShortcut)
+    }
   }, [isFullScreen, fullScreenLeaving, onToggleFullScreen])
 }

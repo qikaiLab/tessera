@@ -16,6 +16,10 @@ const ExternalLink = Link.extend({ inclusive: false })
 export function buildContentExtensions() {
   return [
     StarterKit.configure({
+      // Link and Underline come with the StarterKit; the versions below replace them, so they must
+      // not be registered twice (a second link plugin also opened links on its own).
+      link: false,
+      underline: false,
       bulletList: { keepMarks: true, keepAttributes: false },
       orderedList: { keepMarks: true, keepAttributes: false },
       hardBreak: { keepMarks: true }
