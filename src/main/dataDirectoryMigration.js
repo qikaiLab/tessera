@@ -61,10 +61,24 @@ export async function summarizeDirectory(dir) {
 // Does this folder look like a MotoTrace data folder? (days are <year>/<month>/<day>.json)
 async function looksLikeData(dir) {
   const entries = (await listEntries(dir)) || []
-  return entries.some(entry =>
-    (entry.isFile() && (entry.name === 'sections.json' || entry.name === 'metadata.json')) ||
-    (entry.isDirectory() && (entry.name === 'notes' || /^\d{4}$/.test(entry.name)))
-  )
+  if (entries.some(entry => entry.isFile() && (entry.name === 'sections.json' || entry.name === 'metadata.json'))) return true
+  if (entries.some(entry => entry.isDirectory() && entry.name === 'notes')) {
+    const notes = (await listEntries(path.join(dir, 'notes'))) || []
+    if (notes.some(entry => entry.isFile() && entry.name === 'index.json')) return true
+  }
+  return hasDayFile(dir, entries)
+}
+
+// Is there a day file (<year>/<month>/<day>.json) in this folder?
+async function hasDayFile(dir, entries) {
+  for (const year of entries.filter(entry => entry.isDirectory() && /^\d{4}$/.test(entry.name))) {
+    const months = ((await listEntries(path.join(dir, year.name))) || []).filter(entry => entry.isDirectory() && /^\d{2}$/.test(entry.name))
+    for (const month of months) {
+      const days = (await listEntries(path.join(dir, year.name, month.name))) || []
+      if (days.some(entry => entry.isFile() && /^\d{2}\.json$/.test(entry.name))) return true
+    }
+  }
+  return false
 }
 
 async function canWrite(dir) {

@@ -90,6 +90,27 @@ describe('planning a data folder change', () => {
     expect(await planDataDirectoryChange({ current: source, target })).toMatchObject({ kind: 'existing', files: 2 })
   })
 
+  it('does not mistake an ordinary folder for a data folder', async () => {
+    const documents = at('documents')
+    await write(path.join(documents, '2024', 'Trip', 'a.json'), '{}')
+    await write(path.join(documents, '2024', 'vacation.jpg'), 'x')
+    await write(path.join(documents, 'notes', 'todo.txt'), 'x')
+    expect((await planDataDirectoryChange({ current: source, target: documents })).kind).toBe('foreign')
+
+    const onlyNotes = at('only-notes')
+    await fs.mkdir(path.join(onlyNotes, 'notes'), { recursive: true })
+    expect((await planDataDirectoryChange({ current: source, target: onlyNotes })).kind).toBe('foreign')
+  })
+
+  it('recognises real data by its own files or by day files', async () => {
+    const byNotes = at('by-notes')
+    await write(path.join(byNotes, 'notes', 'index.json'), '[]')
+    expect((await planDataDirectoryChange({ current: source, target: byNotes })).kind).toBe('existing')
+    const byDays = at('by-days')
+    await write(path.join(byDays, '2025', '03', '07.json'), '{}')
+    expect((await planDataDirectoryChange({ current: source, target: byDays })).kind).toBe('existing')
+  })
+
   it('recognises a folder left behind by an interrupted copy', async () => {
     const target = at('target')
     await write(path.join(target, MIGRATION_MARKER), 'x')

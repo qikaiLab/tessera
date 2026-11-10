@@ -56,6 +56,15 @@ describe('scanning the data directory', () => {
     expect(found).toEqual(['2026/10/13.json.tmp', 'notes/a.json.tmp'])
   })
 
+  it('does not offer the backups folder (ZIP files, automatic history) for recovery', async () => {
+    write('2026/10/13.json.tmp')
+    write('backups/automatic/index.json.tmp')
+    write('backups/automatic/blobs/abc.gz.tmp')
+    write('Backups/other.tmp')
+    const found = (await findTemporaryFiles(root)).map(file => path.relative(root, file).split(path.sep).join('/'))
+    expect(found).toEqual(['2026/10/13.json.tmp'])
+  })
+
   it('reads a missing folder as empty', async () => {
     expect(await readDirOrEmpty(path.join(root, 'nothing'))).toEqual([])
     write('notes/a.json')

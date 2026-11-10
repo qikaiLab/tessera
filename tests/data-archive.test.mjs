@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findInvalidArchiveEntries, readArchiveJsonEntries, zipFilesToBase64 } from '../src/renderer/src/utils/dataArchive.js'
+import { findInvalidArchiveEntries, isBackupsFolderEntry, readArchiveJsonEntries, zipFilesToBase64 } from '../src/renderer/src/utils/dataArchive.js'
 import { NUMBER_DEFAULT_MODE, getNumberDefaultMode, normalizeNumberDefaultMode } from '../src/renderer/src/utils/sectionDefaults.js'
 
 describe('data archive', () => {
@@ -21,6 +21,22 @@ describe('data archive', () => {
     ])
     const entries = await readArchiveJsonEntries(base64)
     expect(entries.map(entry => entry.path)).toEqual(['notes/index.json'])
+  })
+
+  it('treats the backups folder as one folder however Windows would spell it', async () => {
+    const base64 = await zipFilesToBase64([
+      { path: 'Backups/Automatic/index.json', content: '[]' },
+      { path: 'BACKUPS/automatic/blobs/x.json', content: '{}' },
+      { path: 'backups./automatic/index.json', content: '[]' },
+      { path: 'backups\\automatic\\index.json', content: '[]' },
+      { path: 'notes/index.json', content: '[]' },
+      { path: 'my-backups/readme.json', content: '{}' }
+    ])
+    const paths = (await readArchiveJsonEntries(base64)).map(entry => entry.path).sort()
+    expect(paths).toEqual(['my-backups/readme.json', 'notes/index.json'])
+    expect(isBackupsFolderEntry('Backups/x.json')).toBe(true)
+    expect(isBackupsFolderEntry('./backups/x.json')).toBe(true)
+    expect(isBackupsFolderEntry('2026/10/13.json')).toBe(false)
   })
 })
 

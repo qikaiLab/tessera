@@ -175,4 +175,43 @@ describe('automatic backups', () => {
     for (let i = 0; i < 20; i++) expect(retained.some(entry => entry.id === String(i))).toBe(true)
     expect(retained.some(entry => now - entry.capturedAt > 86400000)).toBe(true)
   })
+
+  it('keeps the history folder read-only however its name is spelled', async () => {
+    const { store, directory } = await fixture()
+    await store.write('2026/10/13.json', '{"diary":{"value":"x"}}')
+    const before = await fs.readFile(path.join(directory, 'backups/automatic/index.json'), 'utf8')
+    for (const name of [
+      'Backups/Automatic/index.json',
+      'BACKUPS/automatic/index.json',
+      'backups/AUTOMATIC/blobs/x.json',
+      'backups./automatic/index.json',
+      'backups /automatic /index.json',
+      'backups\\automatic\\index.json'
+    ]) {
+      await expect(store.write(name, '[]'), name).rejects.toThrow('read-only')
+      await expect(store.delete(name), name).rejects.toThrow('read-only')
+    }
+    expect(await fs.readFile(path.join(directory, 'backups/automatic/index.json'), 'utf8')).toBe(before)
+  })
+
+  it('does not checkpoint files of the backups folder, in any spelling', async () => {
+    const { store, directory } = await fixture()
+    await store.write('Backups/notes.json', '{}')
+    await store.write('2026/10/13.json', '{}')
+    const index = JSON.parse(await fs.readFile(path.join(directory, 'backups/automatic/index.json'), 'utf8'))
+    expect(index.map(entry => entry.path)).not.toContain('Backups/notes.json')
+  })
+
+  it('sweeps the temporary files a crash left in the history folder', async () => {
+    const { store, directory } = await fixture()
+    await store.write('2026/10/13.json', '{"diary":{"value":"x"}}')
+    const history = path.join(directory, 'backups/automatic')
+    await fs.writeFile(path.join(history, 'index.json.tmp'), '[{"half')
+    await fs.writeFile(path.join(history, 'blobs', 'abc.gz.tmp'), 'x')
+    const fresh = createAutomaticBackupStore(directory)
+    await fresh.write('2026/10/14.json', '{"diary":{"value":"y"}}')
+    await expect(fs.stat(path.join(history, 'index.json.tmp'))).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(fs.stat(path.join(history, 'blobs', 'abc.gz.tmp'))).rejects.toMatchObject({ code: 'ENOENT' })
+    expect(await fresh.list('2026/10/13.json')).toHaveLength(1)
+  })
 })

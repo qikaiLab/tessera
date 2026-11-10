@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { useApp } from '../../context/AppContext'
 import { findInvalidArchiveEntries, readArchiveJsonEntries, zipFilesToBase64 } from '../../utils/dataArchive'
+import { NOTES_INDEX_PATH } from '../../utils/notes'
 
 /**
  * Local backups, ZIP export and import of the data directory.
@@ -33,40 +34,52 @@ export function useBackups() {
 
   const createBackup = async () => {
     setBackingUp(true)
-    showToast('正在备份...', 'info')
-    const archive = await collectArchive()
-    if (archive) {
-      const saved = await window.api.backup.writeZip(archive.backupPath, archive.content)
-      if (saved.ok) {
-        showToast('备份成功', 'success')
-        await loadBackups()
+    try {
+      showToast('正在备份...', 'info')
+      const archive = await collectArchive()
+      if (archive) {
+        const saved = await window.api.backup.writeZip(archive.backupPath, archive.content)
+        if (saved.ok) {
+          showToast('备份成功', 'success')
+          await loadBackups()
+        } else {
+          showToast('写入备份文件失败', 'error')
+        }
       } else {
-        showToast('写入备份文件失败', 'error')
+        showToast('获取文件失败或无文件', 'error')
       }
-    } else {
-      showToast('获取文件失败或无文件', 'error')
+    } catch (error) {
+      showToast(`备份失败：${error.message}`, 'error', 6000)
+    } finally {
+      setBackingUp(false)
     }
-    setBackingUp(false)
   }
 
   const exportData = async () => {
     setExporting(true)
-    const timestamp = format(new Date(), 'yyyyMMdd-HHmmss')
-    const savePath = await window.api.dialog.saveFile({
-      title: '导出 MotoTrace 数据',
-      defaultPath: `MotoTrace-Export-${timestamp}.zip`,
-      filters: [{ name: 'ZIP Archives', extensions: ['zip'] }]
-    })
+    try {
+      const timestamp = format(new Date(), 'yyyyMMdd-HHmmss')
+      const savePath = await window.api.dialog.saveFile({
+        title: '导出 MotoTrace 数据',
+        defaultPath: `MotoTrace-Export-${timestamp}.zip`,
+        filters: [{ name: 'ZIP Archives', extensions: ['zip'] }]
+      })
 
-    if (savePath) {
-      showToast('正在导出...', 'info')
-      const archive = await collectArchive()
-      if (archive) {
-        const written = await window.api.export.writeFile(savePath, archive.content)
-        showToast(written.ok ? '导出成功' : '导出失败', written.ok ? 'success' : 'error')
+      if (savePath) {
+        showToast('正在导出...', 'info')
+        const archive = await collectArchive()
+        if (archive) {
+          const written = await window.api.export.writeFile(savePath, archive.content)
+          showToast(written.ok ? '导出成功' : '导出失败', written.ok ? 'success' : 'error')
+        } else {
+          showToast('读取数据文件失败或没有可导出的数据，没有生成导出文件', 'error', 6000)
+        }
       }
+    } catch (error) {
+      showToast(`导出失败：${error.message}`, 'error', 6000)
+    } finally {
+      setExporting(false)
     }
-    setExporting(false)
   }
 
   const importData = async () => {
@@ -102,7 +115,14 @@ export function useBackups() {
           setImporting(false)
           return
         }
-        for (const { path, text } of entries) {
+        // The notes index goes last, and only when every note file of the archive was written: an
+        // index listing notes whose files are missing would show them as blank notes.
+        const ordered = [...entries.filter(entry => entry.path !== NOTES_INDEX_PATH), ...entries.filter(entry => entry.path === NOTES_INDEX_PATH)]
+        for (const { path, text } of ordered) {
+          if (path === NOTES_INDEX_PATH && failed.some(name => name.startsWith('notes/'))) {
+            failed.push(path)
+            continue
+          }
           const written = await window.api.fs.writeFile(path, text)
           if (written.ok) count++
           else failed.push(path)

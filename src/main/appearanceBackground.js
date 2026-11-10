@@ -63,14 +63,16 @@ async function importBackgroundImage(sourcePath, userDataDirectory) {
   const targetPath = path.join(directory, `${BACKGROUND_BASENAME}${imageType.extension}`)
   const temporaryPath = `${targetPath}.tmp`
   await fsp.mkdir(directory, { recursive: true })
-  await fsp.writeFile(temporaryPath, source)
-  await removeManagedBackgrounds(userDataDirectory, targetPath)
   try {
-    await fsp.unlink(targetPath)
+    await fsp.writeFile(temporaryPath, source)
+    // The new picture replaces the same-named old one in a single step; a failure keeps what was there.
+    await fsp.rename(temporaryPath, targetPath)
   } catch (error) {
-    if (error.code !== 'ENOENT') throw error
+    await fsp.unlink(temporaryPath).catch(() => {})
+    throw error
   }
-  await fsp.rename(temporaryPath, targetPath)
+  // Only now are the pictures of the other types (a PNG replaced by a JPEG) removed.
+  await removeManagedBackgrounds(userDataDirectory, targetPath)
 
   return {
     path: targetPath,

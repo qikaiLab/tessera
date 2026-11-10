@@ -13,8 +13,14 @@ const fsp = fs.promises
 // the IPC channel as an array of numbers). The renderer builds and reads the ZIP itself.
 export function registerBackupIpc() {
   const backupsDir = () => path.join(appState.dataDir, 'backups')
+  // A backup is a ZIP lying directly in the backups folder; the automatic history below it (and any
+  // other file) is never reachable through these calls.
   const assertInBackups = (backupPath) => {
-    if (!isPathInside(backupsDir(), backupPath)) throw new Error('Backup path is outside the backups folder')
+    if (typeof backupPath !== 'string' || !isPathInside(backupsDir(), backupPath)) throw new Error('Backup path is outside the backups folder')
+    const resolved = path.resolve(backupPath)
+    if (path.dirname(resolved).toLowerCase() !== path.resolve(backupsDir()).toLowerCase() || !resolved.toLowerCase().endsWith('.zip')) {
+      throw new Error('Backup path must be a ZIP file in the backups folder')
+    }
   }
 
   // The automatic history of a file: its versions, reading one, restoring one.

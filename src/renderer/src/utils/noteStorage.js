@@ -27,12 +27,16 @@ export async function loadNotesFromDisk({ onIndexCorrupt } = {}) {
       onIndexCorrupt?.()
     }
   }
-  if (!indexUsable) {
-    const listing = await window.api.fs.listDir('notes')
-    if (listing.ok) {
-      metas = listing.data
-        .filter(name => name.endsWith('.json') && name !== 'index.json')
-        .map(name => ({ id: name.slice(0, -'.json'.length) }))
+  // The note files are the notes. A usable index only supplies their order and metadata: a file
+  // it does not list (an import of an older index, a recovered temporary file, a crash between the
+  // note's write and the index's) is adopted rather than left invisible on disk.
+  const listing = await window.api.fs.listDir('notes')
+  if (listing.ok) {
+    const listed = new Set(indexUsable ? metas.map(meta => meta?.id) : [])
+    for (const name of listing.data) {
+      if (!name.endsWith('.json') || name === 'index.json') continue
+      const id = name.slice(0, -'.json'.length)
+      if (!listed.has(id)) metas.push({ id })
     }
   }
 

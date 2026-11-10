@@ -54,7 +54,9 @@ export async function scanDayDates(dataDir) {
   return dates
 }
 
-// Temporary files a crash left behind (a write is a .tmp file replaced atomically).
+// Temporary files a crash left behind (a write is a .tmp file replaced atomically). The backups
+// folder is not scanned: it holds ZIP files and the automatic history, whose own leftovers are
+// swept by the history store and can never be "recovered" as data.
 export async function findTemporaryFiles(dataDir) {
   const found = []
   async function scan(dir) {
@@ -67,8 +69,10 @@ export async function findTemporaryFiles(dataDir) {
     }
     for (const entry of entries) {
       const full = path.join(dir, entry.name)
-      if (entry.isDirectory()) await scan(full)
-      else if (entry.name.endsWith('.tmp')) found.push(full)
+      if (entry.isDirectory()) {
+        if (dir === dataDir && entry.name.toLowerCase() === 'backups') continue
+        await scan(full)
+      } else if (entry.name.endsWith('.tmp')) found.push(full)
     }
   }
   await scan(dataDir)

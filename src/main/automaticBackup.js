@@ -11,6 +11,16 @@ const HISTORY_PATH = 'backups/automatic'
 const MAX_BYTES = 200 * 1024 * 1024
 const hash = value => createHash('sha256').update(value).digest('hex')
 
+// The history folder must stay read-only to every write path. Windows ignores case and drops
+// trailing dots and spaces from folder names, so "Backups/Automatic" and "backups./automatic " name
+// the same folder: compare segment by segment after removing those differences.
+const guardSegments = relative => relative.split(/[\\/]+/).filter(Boolean).map(segment => segment.replace(/[. ]+$/, '').toLowerCase())
+export const isHistoryPath = relative => {
+  const [first, second] = guardSegments(relative)
+  return first === 'backups' && second === 'automatic'
+}
+const isBackupsPath = relative => guardSegments(relative)[0] === 'backups'
+
 function canonical(value, omitUpdatedAt) {
   if (Array.isArray(value)) return value.map(item => canonical(item, omitUpdatedAt))
   if (!value || typeof value !== 'object') return value
@@ -74,7 +84,7 @@ export function createAutomaticBackupStore(dataDirectory, {
   function sourcePath(filePath) {
     const full = resolveSafePath(directory, filePath)
     const relative = path.relative(directory, full).split(path.sep).join('/')
-    if (relative === HISTORY_PATH || relative.startsWith(`${HISTORY_PATH}/`)) {
+    if (isHistoryPath(relative)) {
       throw new Error('Automatic history is read-only')
     }
     return { full, relative }
@@ -98,8 +108,22 @@ export function createAutomaticBackupStore(dataDirectory, {
     await io.rename(temporary, full)
   }
 
+  // A crash between writing and renaming leaves a .tmp next to the history files. The committed
+  // index and blobs are authoritative, so these are garbage; removing them keeps the crash-recovery
+  // prompt (which cannot recover history files) from appearing at every start.
+  async function sweepStaleTemporaries() {
+    for (const folder of [historyDir, blobsDir]) {
+      let names
+      try { names = await io.readdir(folder) } catch { continue }
+      for (const name of names) {
+        if (name.endsWith('.tmp')) await io.unlink(path.join(folder, name)).catch(() => {})
+      }
+    }
+  }
+
   async function loadManifest() {
     if (manifest) return
+    await sweepStaleTemporaries()
     const raw = await optionalRead(path.join(historyDir, 'index.json'))
     const parsed = raw === null ? [] : JSON.parse(raw)
     if (!Array.isArray(parsed) || parsed.some(entry =>
@@ -110,7 +134,7 @@ export function createAutomaticBackupStore(dataDirectory, {
   }
 
   async function capture(filePath, content, reason) {
-    if (content === null || !filePath.endsWith('.json') || filePath.startsWith('backups/')) return
+    if (content === null || !filePath.endsWith('.json') || isBackupsPath(filePath)) return
     await loadManifest()
     const digest = contentHash(filePath, content)
     const latest = manifest.filter(entry => entry.path === filePath).at(-1)

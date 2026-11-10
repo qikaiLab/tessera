@@ -167,3 +167,70 @@ test('rebuilding the index picks up a day file added outside the app', async ({ 
     await app.close()
   }
 })
+
+// ─── Recovery must not be overwritten by what was already on screen ────────
+
+test('after a recovery the app reloads, shows the recovered text, and editing keeps it', async ({ sandbox }) => {
+  const now = new Date()
+  const pad = value => String(value).padStart(2, '0')
+  const todayFile = `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())}.json`
+  const entry = text => JSON.stringify({
+    diary: {
+      value: JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] }),
+      updatedAt: '2026-05-01T00:00:00.000Z'
+    }
+  })
+  await seed(sandbox, {
+    'sections.json': JSON.stringify([{ id: 'diary', name: '日记', type: 'text', unit: '', resident: true, order: 0 }]),
+    [todayFile]: entry('old text on disk'),
+    [`${todayFile}.tmp`]: entry('recovered text from the interrupted save')
+  })
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    const editor = window.locator('.sections-grid .ProseMirror').first()
+    // The day was loaded before the prompt: it still shows the old text.
+    await expect(editor).toContainText('old text on disk')
+    await window.getByRole('button', { name: '恢复数据' }).click()
+    await expect(window.getByText('软件需要重新载入')).toBeVisible()
+    await window.getByRole('button', { name: '重新载入' }).click()
+
+    await window.waitForSelector('.sidebar')
+    await expect(editor).toContainText('recovered text from the interrupted save')
+    await editor.click()
+    await window.keyboard.press('End')
+    await window.keyboard.type(' plus more')
+    await expect.poll(async () => fs.readFile(path.join(sandbox.dataDir, todayFile), 'utf8')).toContain('plus more')
+    const saved = await fs.readFile(path.join(sandbox.dataDir, todayFile), 'utf8')
+    expect(saved).toContain('recovered text from the interrupted save')
+    expect(saved).not.toContain('old text on disk')
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
+// ─── The backups folder is for backup ZIP files only ───────────────────────
+
+test('backup calls refuse the automatic history and anything that is not a ZIP in backups', async ({ sandbox }) => {
+  await seed(sandbox, { '2026/05/01.json': GOOD })
+  const { app, window } = await openApp(sandbox)
+  try {
+    const historyIndex = path.join(sandbox.dataDir, 'backups', 'automatic', 'index.json')
+    const results = await window.evaluate(async (paths) => ({
+      history: await window.api.backup.writeZip(paths.history, 'AAAA'),
+      readHistory: await window.api.backup.readZip(paths.history),
+      notZip: await window.api.backup.writeZip(paths.notZip, 'AAAA'),
+      nested: await window.api.backup.writeZip(paths.nested, 'AAAA'),
+      upDir: await window.api.backup.writeZip(paths.upDir, 'AAAA')
+    }), {
+      history: historyIndex,
+      notZip: path.join(sandbox.dataDir, 'backups', 'notes.json'),
+      nested: path.join(sandbox.dataDir, 'backups', 'automatic', 'backup-x.zip'),
+      upDir: path.join(sandbox.dataDir, '2026', 'backup-x.zip')
+    })
+    for (const [name, result] of Object.entries(results)) expect(result.ok, name).toBe(false)
+    expect(await exists(path.join(sandbox.dataDir, 'backups', 'notes.json'))).toBe(false)
+  } finally {
+    await app.close()
+  }
+})

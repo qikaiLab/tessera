@@ -9,12 +9,20 @@ export async function zipFilesToBase64(files) {
   return zip.generateAsync({ type: 'base64' })
 }
 
+// Is this entry inside the app's own backups folder? Windows treats "Backups", "BACKUPS/" and
+// "backups./" as that same folder, so a case-sensitive test would let such an entry through to the
+// automatic history it must never touch.
+export function isBackupsFolderEntry(path) {
+  const first = path.split(/[\\/]+/).filter(segment => segment && segment !== '.')[0] || ''
+  return first.replace(/[. ]+$/, '').toLowerCase() === 'backups'
+}
+
 // The JSON files an import should restore: everything except the app's own backup folder.
 export async function readArchiveJsonEntries(base64Data) {
   const zip = await JSZip.loadAsync(base64Data, { base64: true })
   const entries = []
   for (const [path, file] of Object.entries(zip.files)) {
-    if (file.dir || !path.endsWith('.json') || path.startsWith('backups/')) continue
+    if (file.dir || !path.endsWith('.json') || isBackupsFolderEntry(path)) continue
     entries.push({ path, text: await file.async('string') })
   }
   return entries
