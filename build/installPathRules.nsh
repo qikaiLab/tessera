@@ -12,6 +12,26 @@
 
 Var PathsError
 
+; WriteDataPathFile: Push the file's path, Push the data folder, Call. Writes datapath.txt as UTF-16 LE
+; with a byte order mark: NSIS's plain FileWrite would store a folder such as D:\日记 in the ANSI code
+; page, which the app (UTF-8) reads back as garbage. The app and the uninstaller read this form.
+Function WriteDataPathFile
+  Exch $1
+  Exch
+  Exch $0
+  Push $2
+  ClearErrors
+  FileOpen $2 $0 w
+  IfErrors write_done
+  FileWriteWord $2 65279
+  FileWriteUTF16LE $2 $1
+  FileClose $2
+  write_done:
+  Pop $2
+  Pop $0
+  Pop $1
+FunctionEnd
+
 Function CheckInstallPaths
   Push $0
   Push $1

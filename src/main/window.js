@@ -6,7 +6,7 @@ import { ensureDirSync } from './dataFiles.js'
 import { syncDataPathFile } from './dataDirectory.js'
 import { resolveStartupDataDirectory } from './dataDirectoryStartup.js'
 import { isAppNavigationUrl, openExternalQuietly } from './externalLinks.js'
-import { isBlockedShortcut } from './shortcuts.js'
+import { isBlockedShortcut, isFullScreenShortcut } from './shortcuts.js'
 
 // How long the renderer has to confirm that pending edits were saved before the user is told
 // the close was cancelled.
@@ -76,9 +76,20 @@ function restrictNavigation(window) {
   })
 }
 
+// The packaged app has no menu (see createWindow), so the shortcuts the default menu used to provide
+// that are worth keeping are handled here.
+const hasNoMenu = () => app.isPackaged && process.platform !== 'darwin'
+
 function blockReloadShortcuts(window) {
   window.webContents.on('before-input-event', (event, input) => {
-    if (!appState.isDev && isBlockedShortcut(input)) event.preventDefault()
+    if (!appState.isDev && isBlockedShortcut(input)) {
+      event.preventDefault()
+      return
+    }
+    if (hasNoMenu() && isFullScreenShortcut(input)) {
+      event.preventDefault()
+      window.setFullScreen(!window.isFullScreen())
+    }
   })
 }
 
@@ -153,7 +164,7 @@ export async function createWindow({ runtimeOverrides }) {
 
   // The default menu would give a packaged app reload and developer-tools shortcuts: reloading
   // would drop edits that have not been saved yet. Packaged builds have no menu bar to show anyway.
-  if (app.isPackaged && process.platform !== 'darwin') Menu.setApplicationMenu(null)
+  if (hasNoMenu()) Menu.setApplicationMenu(null)
 
   const window = new BrowserWindow({
     icon: path.join(__dirname, '../../logo.ico'),
@@ -169,7 +180,8 @@ export async function createWindow({ runtimeOverrides }) {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      // The page runs in the operating system's renderer sandbox; the preload only bridges IPC.
+      sandbox: true,
       devTools: !app.isPackaged,
       backgroundThrottling: !quietWindow
     },

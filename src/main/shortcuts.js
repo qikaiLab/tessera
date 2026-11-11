@@ -8,3 +8,11 @@ export function isBlockedShortcut(input) {
   if (!modifier) return false
   return key === 'r' || (Boolean(input.shift) && key === 'i')
 }
+
+// F11 toggles the window's full screen. The packaged app has no menu (that is how the reload and
+// developer-tools shortcuts are gone), and the default menu is what used to provide this one.
+export function isFullScreenShortcut(input) {
+  if (!input || input.type !== 'keyDown') return false
+  if (String(input.key).toLowerCase() !== 'f11') return false
+  return !input.control && !input.meta && !input.alt && !input.shift
+}

@@ -1,4 +1,6 @@
-const { contextBridge, ipcRenderer, clipboard, webFrame } = require('electron')
+// The renderer is sandboxed (see src/main/window.js): this script may only use the few Electron
+// modules a sandboxed preload has, so anything else goes through the main process.
+const { contextBridge, ipcRenderer, webFrame } = require('electron')
 
 const api = {
   // Window
@@ -80,8 +82,8 @@ const api = {
     openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url)
   },
   clipboard: {
-    readText: () => clipboard.readText(),
-    writeText: (text) => clipboard.writeText(String(text ?? ''))
+    readText: () => ipcRenderer.sendSync('clipboard:readText'),
+    writeText: (text) => ipcRenderer.sendSync('clipboard:writeText', String(text ?? ''))
   },
   contextMenu: {
     show: (payload) => ipcRenderer.invoke('context-menu:show', payload),

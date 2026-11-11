@@ -243,9 +243,9 @@ FunctionEnd
       ; The app never creates a data folder the user chose by itself, so it has to exist.
       CreateDirectory "$StateDataDir"
       CreateDirectory "$APPDATA\MotoTrace"
-      FileOpen $0 "$APPDATA\MotoTrace\datapath.txt" w
-      FileWrite $0 "$StateDataDir"
-      FileClose $0
+      Push "$APPDATA\MotoTrace\datapath.txt"
+      Push "$StateDataDir"
+      Call WriteDataPathFile
     ${EndIf}
   ${EndIf}
   ${If} $installMode == "all"
@@ -282,13 +282,9 @@ Function un.ResolveDataDir
     SetShellVarContext current
   ${EndIf}
 
-  StrCpy $UnDataDir ""
-  ClearErrors
-  FileOpen $0 "$APPDATA\MotoTrace\datapath.txt" r
-  ${IfNot} ${Errors}
-    FileRead $0 $UnDataDir
-    FileClose $0
-  ${EndIf}
+  Push "$APPDATA\MotoTrace\datapath.txt"
+  Call un.ReadDataPathFile
+  Pop $UnDataDir
 
   ; Cleans the line up and decides "default" or "custom" (see dataPathRules.nsh).
   StrCpy $UnDefaultDir "$PROFILE\MotoTrace\data"

@@ -32,9 +32,13 @@ function findMakensis() {
 const literal = value => `"${value.replace(/\r/g, '$\\r').replace(/\n/g, '$\\n')}"`
 
 // Compiles and runs one check program; `body` fills the Section, `result` is what it wrote.
-function runProgram(makensis, work, name, header, body) {
+// With `utf16` the program writes its answers as UTF-16 LE (FileWriteUTF16LE, after a byte order mark)
+// and the script is saved with a byte order mark, so that non-ASCII text survives both ways.
+function runProgram(makensis, work, name, header, body, { utf16 = false } = {}) {
   const exe = path.join(work, `${name}.exe`)
   const script = [
+    // electron-builder builds Unicode installers; the file rules depend on that (FileWriteUTF16LE).
+    'Unicode true',
     `Name "${name}"`,
     `OutFile "${exe}"`,
     'RequestExecutionLevel user',
@@ -42,16 +46,19 @@ function runProgram(makensis, work, name, header, body) {
     ...header,
     'Section',
     `  FileOpen $0 "$EXEDIR\\${name}.txt" w`,
+    ...(utf16 ? ['  FileWriteWord $0 65279'] : []),
     ...body,
     '  FileClose $0',
     'SectionEnd',
     ''
   ].join('\n')
   const scriptFile = path.join(work, `${name}.nsi`)
-  fs.writeFileSync(scriptFile, script)
+  fs.writeFileSync(scriptFile, utf16 ? `﻿${script}` : script)
   execFileSync(makensis, ['/V2', scriptFile], { stdio: 'inherit' })
   execFileSync(exe, [], { stdio: 'inherit' })
-  return fs.readFileSync(path.join(work, `${name}.txt`), 'utf8').split(/\r?\n/).filter(line => line !== '')
+  const raw = fs.readFileSync(path.join(work, `${name}.txt`))
+  const text = utf16 ? raw.subarray(2).toString('utf16le') : raw.toString('utf8')
+  return text.split(/\r?\n/).filter(line => line !== '')
 }
 
 let failed = 0
@@ -114,6 +121,28 @@ const classifyCases = [
   [win(defaultDir, 'sub'), win(defaultDir, 'sub'), 'custom']
 ]
 
+// ── datapath.txt: written by the installer and the app, read by the uninstaller ──
+// Folder names with characters outside the ANSI code page must survive both ways.
+const writeCases = [
+  win('D:', 'Journal'),
+  win('D:', '日记'),
+  win('C:', 'Users', '张三', 'MotoTrace', 'data'),
+  win('E:', '日記', 'データ'),
+  win('D:', 'My Data (2026)'),
+  win('D:', 'notes📓')
+]
+const utf16File = text => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')])
+// Files the uninstaller may meet: [name, bytes (null = no file), expected first line]
+const readCases = [
+  ['ascii-utf8', Buffer.from(win('D:', 'Journal'), 'utf8'), win('D:', 'Journal')],
+  ['ascii-utf8-crlf', Buffer.from(`${win('D:', 'Journal')}\r\n`, 'utf8'), win('D:', 'Journal')],
+  ['utf16', utf16File(win('D:', '日记')), win('D:', '日记')],
+  ['utf16-crlf', utf16File(`${win('D:', '日记')}\r\n`), win('D:', '日记')],
+  ['utf16-ascii', utf16File(win('D:', 'Journal')), win('D:', 'Journal')],
+  ['empty', Buffer.alloc(0), ''],
+  ['missing', null, '']
+]
+
 const makensis = findMakensis()
 if (!makensis) {
   console.error('makensis.exe not found. Run `npm run dist` once (electron-builder downloads NSIS), or set MAKENSIS.')
@@ -125,12 +154,17 @@ try {
   console.log('Install wizard folders')
   const installResults = runProgram(makensis, work, 'install-rules',
     ['Var StateDataDir', `!include "${path.join(root, 'build', 'installPathRules.nsh')}"`],
-    installCases.flatMap(([program, data]) => [
+    [
+      // The data file writer is referenced once too, so the program compiles without warnings.
+      '  Push "$EXEDIR\\unused-write.txt"',
+      '  Push "x"',
+      '  Call WriteDataPathFile'
+    ].concat(installCases.flatMap(([program, data]) => [
       `  StrCpy $INSTDIR ${literal(program)}`,
       `  StrCpy $StateDataDir ${literal(data)}`,
       '  Call CheckInstallPaths',
       '  FileWrite $0 "$INSTDIR|$PathsError$\\r$\\n"'
-    ]))
+    ])))
   report(installCases, installResults, ([program, data, expectedProgram, expectedError], answer = '|') => {
     const [gotProgram, gotError] = answer.split('|')
     const ok = gotProgram === expectedProgram && gotError === expectedError
@@ -143,12 +177,17 @@ try {
   console.log('\nUninstaller data folder')
   const classifyResults = runProgram(makensis, work, 'classify-rules',
     ['Var UnDataDir', 'Var UnDataKind', 'Var UnDefaultDir', `!include "${path.join(root, 'build', 'dataPathRules.nsh')}"`, '!insertmacro DataPathRules ""'],
-    classifyCases.flatMap(([line]) => [
+    [
+      // The file reader is referenced once too (nothing to read: the file does not exist).
+      '  Push "$EXEDIR\\unused-read.txt"',
+      '  Call ReadDataPathFile',
+      '  Pop $1'
+    ].concat(classifyCases.flatMap(([line]) => [
       `  StrCpy $UnDefaultDir ${literal(defaultDir)}`,
       `  StrCpy $UnDataDir ${literal(line)}`,
       '  Call ClassifyDataDir',
       '  FileWrite $0 "$UnDataDir|$UnDataKind$\\r$\\n"'
-    ]))
+    ])))
   report(classifyCases, classifyResults, ([line, expectedDir, expectedKind], answer = '|') => {
     const [gotDir, gotKind] = answer.split('|')
     const ok = gotDir === expectedDir && gotKind === expectedKind
@@ -158,7 +197,69 @@ try {
     }
   })
 
-  const total = installCases.length + classifyCases.length
+  console.log('\ndatapath.txt, written and read back')
+  const stripLine = line => line.replace(/[\r\n]+$/, '')
+  const dataPathHeader = [
+    'Var StateDataDir', 'Var UnDataDir', 'Var UnDataKind', 'Var UnDefaultDir',
+    `!include "${path.join(root, 'build', 'installPathRules.nsh')}"`,
+    `!include "${path.join(root, 'build', 'dataPathRules.nsh')}"`,
+    '!insertmacro DataPathRules ""'
+  ]
+  // The other rules are called once as well, so the program compiles without "unused function" warnings.
+  const touchOtherRules = [
+    '  StrCpy $INSTDIR "D:\\Apps\\MotoTrace"',
+    '  StrCpy $StateDataDir "E:\\Journal"',
+    '  Call CheckInstallPaths',
+    '  StrCpy $UnDefaultDir "C:\\x"',
+    '  StrCpy $UnDataDir "C:\\x"',
+    '  Call ClassifyDataDir'
+  ]
+  const writeResults = runProgram(makensis, work, 'datapath-write', dataPathHeader, [
+    ...touchOtherRules,
+    ...writeCases.flatMap((text, index) => [
+      `  Push "$EXEDIR\\written-${index}.txt"`,
+      `  Push ${literal(text)}`,
+      '  Call WriteDataPathFile',
+      `  Push "$EXEDIR\\written-${index}.txt"`,
+      '  Call ReadDataPathFile',
+      '  Pop $1',
+      '  FileWriteUTF16LE $0 "<<$1>>$\\r$\\n"'
+    ])
+  ], { utf16: true })
+  const writeAnswers = [...writeResults.join('\n').matchAll(/<<([\s\S]*?)>>/g)].map(match => stripLine(match[1]))
+  report(writeCases, writeAnswers, (text, got = '') => {
+    const file = path.join(work, `written-${writeCases.indexOf(text)}.txt`)
+    const bytes = fs.existsSync(file) ? fs.readFileSync(file) : Buffer.alloc(0)
+    const onDisk = bytes.equals(utf16File(text))
+    return {
+      ok: onDisk && got === text,
+      line: `write ${JSON.stringify(text)} -> file ${onDisk ? 'UTF-16 LE with mark' : `WRONG BYTES ${bytes.toString('hex')}`}, read back ${JSON.stringify(got)}`
+    }
+  })
+
+  for (const [name, bytes] of readCases) {
+    if (bytes) fs.writeFileSync(path.join(work, `read-${name}.txt`), bytes)
+  }
+  const readResults = runProgram(makensis, work, 'datapath-read', dataPathHeader, [
+    ...touchOtherRules,
+    '  Push "$EXEDIR\\unused.txt"',
+    '  Push "x"',
+    '  Call WriteDataPathFile',
+    ...readCases.flatMap(([name]) => [
+      `  Push "$EXEDIR\\read-${name}.txt"`,
+      '  Call ReadDataPathFile',
+      '  Pop $1',
+      '  FileWriteUTF16LE $0 "<<$1>>$\\r$\\n"'
+    ])
+  ], { utf16: true })
+  // Each answer sits between << and >>, because a line read from a file keeps its own line break.
+  const readAnswers = [...readResults.join('\n').matchAll(/<<([\s\S]*?)>>/g)].map(match => stripLine(match[1]))
+  report(readCases, readAnswers, ([name, , expected], got = '') => {
+    const ok = got === expected
+    return { ok, line: `read ${name} -> ${JSON.stringify(got)}${ok ? '' : `  expected ${JSON.stringify(expected)}`}` }
+  })
+
+  const total = installCases.length + classifyCases.length + writeCases.length + readCases.length
   console.log(failed === 0 ? `\nAll ${total} cases pass.` : `\n${failed} problem(s).`)
   process.exitCode = failed === 0 ? 0 : 1
 } finally {

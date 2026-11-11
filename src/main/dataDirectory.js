@@ -7,6 +7,22 @@ export function getDefaultDataDir(homeDir = os.homedir()) {
 }
 
 /**
+ * Reads `datapath.txt`. Two encodings occur: plain UTF-8 (what older versions wrote; identical to
+ * ANSI for a path of ASCII characters) and UTF-16 LE with a byte order mark, which the installer
+ * writes and the uninstaller reads, because that is the only form NSIS can read and write without
+ * losing the characters of a folder such as `D:\日记`. Returns { text, utf16 }.
+ */
+export function readDataPathFile(file) {
+  const bytes = fs.readFileSync(file)
+  const utf16 = bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe
+  const text = utf16 ? bytes.subarray(2).toString('utf16le') : bytes.toString('utf8').replace(/^\uFEFF/, '')
+  return { text: text.trim(), utf16 }
+}
+
+const UTF16_LE_BOM = Buffer.from([0xff, 0xfe])
+const isAscii = text => /^[\x00-\x7f]*$/.test(text)
+
+/**
  * Where the data lives at startup.
  *
  * Automated and development runs pin their own directory (`runtimeOverrides.fixedDataDir`);
@@ -23,7 +39,7 @@ export function resolveDataDirectory({ config, runtimeOverrides, userDataDir, ho
     try {
       const legacyFile = path.join(userDataDir, 'datapath.txt')
       if (fs.existsSync(legacyFile)) {
-        const customPath = fs.readFileSync(legacyFile, 'utf8').trim()
+        const customPath = readDataPathFile(legacyFile).text
         if (customPath) {
           dataDir = customPath
           migratedPath = customPath
@@ -44,7 +60,9 @@ export function resolveDataDirectory({ config, runtimeOverrides, userDataDir, ho
  * Keeps `datapath.txt` (in the app's own settings folder) naming the folder in use. The uninstaller
  * cannot read config.json, so this file is how it learns where the data is; the installer writes it
  * too, and a later move in Settings must not leave it pointing at the old place. Rewritten only
- * when it differs. Returns whether anything was written.
+ * when it differs. A path with non-ASCII characters is written as UTF-16 LE with a byte order mark
+ * (the form the uninstaller can read, see `readDataPathFile`), any other as plain UTF-8, which is
+ * what every version has always written for it. Returns whether anything was written.
  */
 export function syncDataPathFile(userDataDir, dataDir) {
   if (!userDataDir || !dataDir) return false
@@ -52,13 +70,15 @@ export function syncDataPathFile(userDataDir, dataDir) {
   try {
     let current = null
     try {
-      current = fs.readFileSync(file, 'utf8').trim()
+      current = readDataPathFile(file)
     } catch (error) {
       if (error.code !== 'ENOENT') throw error
     }
-    if (current === dataDir) return false
+    const ascii = isAscii(dataDir)
+    // Already naming this folder, in a form the uninstaller reads correctly.
+    if (current && current.text === dataDir && (ascii || current.utf16)) return false
     fs.mkdirSync(userDataDir, { recursive: true })
-    fs.writeFileSync(file, dataDir, 'utf8')
+    fs.writeFileSync(file, ascii ? Buffer.from(dataDir, 'utf8') : Buffer.concat([UTF16_LE_BOM, Buffer.from(dataDir, 'utf16le')]))
     return true
   } catch (error) {
     console.error('Failed to write datapath.txt:', error)

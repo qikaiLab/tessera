@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBlockedShortcut } from '../src/main/shortcuts.js'
+import { isBlockedShortcut, isFullScreenShortcut } from '../src/main/shortcuts.js'
 
 const key = (name, extra = {}) => ({ type: 'keyDown', key: name, control: false, meta: false, shift: false, alt: false, ...extra })
 
@@ -24,6 +24,18 @@ describe('blocked shortcuts in the packaged app', () => {
     expect(isBlockedShortcut(key('c', { control: true }))).toBe(false)
     expect(isBlockedShortcut(key('z', { control: true }))).toBe(false)
     expect(isBlockedShortcut(key('F2'))).toBe(false)
+  })
+
+  it('keeps F11 for the full screen the default menu used to provide', () => {
+    expect(isFullScreenShortcut(key('F11'))).toBe(true)
+    expect(isFullScreenShortcut(key('f11'))).toBe(true)
+    expect(isFullScreenShortcut(key('F11', { shift: true }))).toBe(false)
+    expect(isFullScreenShortcut(key('F11', { alt: true }))).toBe(false)
+    expect(isFullScreenShortcut(key('F11', { type: 'keyUp' }))).toBe(false)
+    expect(isFullScreenShortcut(key('F10'))).toBe(false)
+    expect(isFullScreenShortcut(undefined)).toBe(false)
+    // It is not one of the blocked ones.
+    expect(isBlockedShortcut(key('F11'))).toBe(false)
   })
 
   it('only reacts to key presses, not releases', () => {

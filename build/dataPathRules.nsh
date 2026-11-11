@@ -10,7 +10,41 @@
 ;         $UnDataKind     "default" (that dedicated folder) or "custom" (a folder the user chose,
 ;                         which may hold other files: the uninstaller never empties it)
 
+; ${P}ReadDataPathFile: Push the file's path, Call, Pop the first line of it ("" when it cannot be
+; read). The app writes the file as UTF-8 for a path of ASCII characters (the same bytes as ANSI) and
+; as UTF-16 LE with a byte order mark otherwise, so a folder like D:\日记 survives; the installer
+; always writes the second form. A file without the mark is read as ANSI, as before.
+
 !macro DataPathRules P
+  Function ${P}ReadDataPathFile
+    Exch $0
+    Push $1
+    Push $2
+    StrCpy $2 ""
+    ClearErrors
+    FileOpen $1 $0 r
+    IfErrors read_done
+    ClearErrors
+    FileReadWord $1 $0
+    IfErrors read_ansi
+    StrCmp $0 65279 read_utf16 read_ansi
+    read_utf16:
+      ClearErrors
+      FileReadUTF16LE $1 $2
+      Goto read_close
+    read_ansi:
+      FileSeek $1 0 SET
+      ClearErrors
+      FileRead $1 $2
+    read_close:
+      FileClose $1
+    read_done:
+    StrCpy $0 $2
+    Pop $2
+    Pop $1
+    Exch $0
+  FunctionEnd
+
   Function ${P}ClassifyDataDir
     Push $1
 
