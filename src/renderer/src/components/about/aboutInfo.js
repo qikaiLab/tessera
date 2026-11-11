@@ -1,11 +1,11 @@
 // Everything the "关于" dialog shows that is not computed: names, links, the group number and the
 // third-party list. One place, so renaming the app or moving the repository is a one-file change.
-// An empty `authorName`, `authorBio` or `email` is simply left out of the dialog until it is filled in.
+// An empty `authorBio` or `email` is simply left out of the dialog until it is filled in.
 
 export const ABOUT_INFO = Object.freeze({
   appName: 'Tessera',
   tagline: '完全本地的自我记录软件',
-  authorName: '',
+  authorName: '7k',
   authorBio: '',
   email: '',
   qqGroup: '1132171117',
@@ -16,11 +16,12 @@ export const ABOUT_INFO = Object.freeze({
   licenseUrl: 'https://polyformproject.org/licenses/noncommercial/1.0.0'
 })
 
+// `icon` names a drawing in AboutIcon.jsx.
 export const ABOUT_LINKS = Object.freeze([
-  { id: 'homepage', label: '作者主页', url: ABOUT_INFO.homepage },
-  { id: 'repository', label: 'GitHub 仓库', url: ABOUT_INFO.repository },
-  { id: 'issues', label: '反馈问题', url: `${ABOUT_INFO.repository}/issues` },
-  { id: 'support', label: '爱发电支持', url: ABOUT_INFO.support }
+  { id: 'homepage', label: '作者主页', icon: 'home', url: ABOUT_INFO.homepage },
+  { id: 'repository', label: 'GitHub', icon: 'repository', url: ABOUT_INFO.repository },
+  { id: 'issues', label: '反馈问题', icon: 'feedback', url: `${ABOUT_INFO.repository}/issues` },
+  { id: 'support', label: '爱发电', icon: 'support', url: ABOUT_INFO.support }
 ])
 
 // The libraries bundled into the app and the licence each is distributed under.

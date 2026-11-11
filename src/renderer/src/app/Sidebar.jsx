@@ -99,13 +99,12 @@ export default function Sidebar({ width, onResizeStart, onOpenOnboarding, onOpen
           {theme === 'dark' ? '○' : '●'}
         </button>
         <button
-          className="sidebar-version"
+          className="sidebar-about btn btn-ghost btn-icon"
           onClick={onOpenAbout}
-          title="关于、作者与许可"
-          aria-label={`关于，版本 ${__APP_VERSION__}`}
+          title="关于、版本与作者"
+          aria-label="关于"
         >
-          <span className="sidebar-version-mark" aria-hidden="true">ⓘ</span>
-          v{__APP_VERSION__}
+          ⓘ
         </button>
       </div>
       <div

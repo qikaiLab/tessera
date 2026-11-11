@@ -433,35 +433,8 @@ body.is-resizing {
   margin-top: var(--spacing-2);
 }
 
-.sidebar-version {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 var(--spacing-2);
-  border: none;
-  border-radius: var(--radius-md);
-  background: none;
-  font-family: inherit;
-  font-size: var(--text-xs);
-  line-height: 1;
-  color: var(--text-muted);
-  font-weight: 500;
-  cursor: pointer;
-  transform: translateY(1px);
-  transition: color var(--transition-base), background var(--transition-base);
-}
-
-.sidebar-version:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.sidebar-version-mark {
-  font-size: 13px;
-}
-
-.theme-toggle {
+.theme-toggle,
+.sidebar-about {
   color: var(--text-tertiary);
   font-size: 16px;
 }

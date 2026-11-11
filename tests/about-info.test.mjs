@@ -22,7 +22,16 @@ describe('about dialog content', () => {
     }
   })
 
+  it('gives every link a label and an icon for its tile', () => {
+    for (const link of ABOUT_LINKS) {
+      expect(link.label).toBeTruthy()
+      expect(link.icon).toBeTruthy()
+    }
+    expect(new Set(ABOUT_LINKS.map(link => link.id)).size).toBe(ABOUT_LINKS.length)
+  })
+
   it('shows the group number, the homepage and the support page the author gave', () => {
+    expect(ABOUT_INFO.authorName).toBe('7k')
     expect(ABOUT_INFO.qqGroup).toBe('1132171117')
     expect(ABOUT_LINKS.find(link => link.id === 'homepage').url).toBe('https://qikailab.github.io')
     expect(ABOUT_LINKS.find(link => link.id === 'support').url).toBe('https://ifdian.net/a/7klab')

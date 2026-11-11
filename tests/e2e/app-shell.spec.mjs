@@ -158,20 +158,33 @@ test('the text field menu acts on the field: select all, and disabled entries st
   }
 })
 
-test('the version button opens the about dialog with the version, links and licences', async ({ sandbox }) => {
+test('the about button opens a tabbed dialog with the version, author, links and licences', async ({ sandbox }) => {
   const { app, window, problems } = await openApp(sandbox)
   try {
-    const version = await window.locator('.sidebar-version').innerText()
-    expect(version).toMatch(/v\d+\.\d+\.\d+/)
-    await window.locator('.sidebar-version').click()
+    // The sidebar footer carries no version number; it is in the dialog.
+    await expect(window.locator('.sidebar-footer')).not.toContainText(/v\d+\.\d+\.\d+/)
+    await window.locator('.sidebar-about').click()
 
     const dialog = window.locator('.about-modal')
     await expect(dialog).toBeVisible()
+    await expect(dialog.locator('.about-version')).toHaveText(/^v\d+\.\d+\.\d+$/)
+
+    // The first tab: the author with the avatar, the four link tiles and the group number.
+    await expect(dialog.getByRole('tab', { name: '作者与链接' })).toHaveAttribute('aria-selected', 'true')
+    await expect(dialog.locator('.about-author-name')).toHaveText('7k')
+    await expect.poll(() => dialog.locator('.about-avatar').evaluate(img => img.naturalWidth)).toBeGreaterThan(0)
     await expect(dialog).toContainText('1132171117')
-    // The repository and the issue page are buttons whose address is their tooltip.
-    await expect(dialog.locator('.about-link[title*="qikaiLab"]')).toHaveCount(2)
-    await expect(dialog.locator('.about-link')).toHaveCount(4)
+    // The repository and the issue page are tiles whose address is their tooltip.
+    await expect(dialog.locator('.about-tile')).toHaveCount(4)
+    await expect(dialog.locator('.about-tile[title*="qikaiLab"]')).toHaveCount(2)
+
+    // The second tab holds the licence and the thanks; arrow keys move between the tabs.
+    await dialog.getByRole('tab', { name: '许可与致谢' }).click()
+    await expect(dialog.locator('.about-tile')).toHaveCount(0)
     await expect(dialog.locator('.about-third-party li').first()).toBeVisible()
+    await window.keyboard.press('ArrowLeft')
+    await expect(dialog.getByRole('tab', { name: '作者与链接' })).toHaveAttribute('aria-selected', 'true')
+    await expect(dialog.locator('.about-tile')).toHaveCount(4)
 
     // Esc closes it and the keyboard goes back to the page.
     await window.keyboard.press('Escape')
