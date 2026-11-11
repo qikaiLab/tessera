@@ -23,7 +23,7 @@ if (app.requestSingleInstanceLock()) {
   app.on('second-instance', focusMainWindow)
   app.whenReady().then(() => createWindow({ runtimeOverrides })).catch((error) => {
     console.error('Startup failed:', error)
-    dialog.showErrorBox('MotoTrace 无法启动', `${error.message}
+    dialog.showErrorBox('Tessera 无法启动', `${error.message}
 
 没有对任何数据做改动。`)
     app.quit()

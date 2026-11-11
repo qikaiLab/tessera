@@ -10,8 +10,8 @@ import path from 'node:path'
 
 // Present in a target folder from the first copied byte until the copy has been verified, so an
 // interrupted copy is never mistaken for a folder that holds all the data.
-export const MIGRATION_MARKER = '.mototrace-migration-incomplete'
-const PROBE_FILE = '.mototrace-write-test'
+export const MIGRATION_MARKER = '.tessera-migration-incomplete'
+const PROBE_FILE = '.tessera-write-test'
 // Files a file manager adds on its own; they do not make a folder "non-empty".
 const IGNORED_NAMES = new Set(['desktop.ini', 'thumbs.db', '.ds_store'])
 
@@ -58,7 +58,7 @@ export async function summarizeDirectory(dir) {
   return { files: files.length, bytes: files.reduce((sum, file) => sum + file.size, 0) }
 }
 
-// Does this folder look like a MotoTrace data folder? (days are <year>/<month>/<day>.json)
+// Does this folder look like a Tessera data folder? (days are <year>/<month>/<day>.json)
 async function looksLikeData(dir) {
   const entries = (await listEntries(dir)) || []
   if (entries.some(entry => entry.isFile() && (entry.name === 'sections.json' || entry.name === 'metadata.json'))) return true
@@ -98,10 +98,10 @@ async function canWrite(dir) {
  *   same        the folder in use already
  *   nested      one folder lies inside the other (copying would loop, or mix two data sets)
  *   unusable    not a folder, or not writable
- *   foreign     holds other files: not a MotoTrace folder and not empty
+ *   foreign     holds other files: not a Tessera folder and not empty
  *   empty       an empty folder: the current data would be copied into it
  *   resume      a folder an earlier, unfinished copy started: copied again from the start
- *   existing    already holds MotoTrace data: it would be used as it is (nothing copied or merged)
+ *   existing    already holds Tessera data: it would be used as it is (nothing copied or merged)
  */
 export async function planDataDirectoryChange({ current, target, platform = process.platform }) {
   if (!target || typeof target !== 'string' || !path.isAbsolute(target)) return { kind: 'unusable', reason: 'not-absolute' }
@@ -195,7 +195,7 @@ export async function applyPendingDataDirChange({ pending, currentDir, platform 
       if (plan.kind !== 'empty' && plan.kind !== 'resume') return fail(`Target folder is not ready to copy into (${plan.kind})`, plan.kind)
       return { status: 'switched', from: currentDir, to, copied: await copyDataDirectory(currentDir, to) }
     }
-    if (plan.kind !== 'existing') return fail(`Target folder holds no MotoTrace data (${plan.kind})`, plan.kind)
+    if (plan.kind !== 'existing') return fail(`Target folder holds no Tessera data (${plan.kind})`, plan.kind)
     return { status: 'switched', from: currentDir, to, copied: null }
   } catch (error) {
     return fail(error.message)

@@ -7,7 +7,7 @@ import { createAutomaticBackupStore, retainRevisions } from '../src/main/automat
 const directories = []
 const note = (text, updatedAt = '2026-01-01') => JSON.stringify({ id: 'plans', title: 'Plans', updatedAt, content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] } })
 async function fixture(options = {}) {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'mototrace-history-'))
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'tessera-history-'))
   directories.push(directory)
   return { directory, store: createAutomaticBackupStore(directory, options) }
 }

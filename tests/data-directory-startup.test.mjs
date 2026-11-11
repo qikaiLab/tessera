@@ -10,7 +10,7 @@ let userData
 const at = (...parts) => path.join(root, ...parts)
 
 beforeEach(async () => {
-  root = await fs.mkdtemp(path.join(os.tmpdir(), 'mototrace-startup-'))
+  root = await fs.mkdtemp(path.join(os.tmpdir(), 'tessera-startup-'))
   home = at('home')
   userData = at('user-data')
   await fs.mkdir(home, { recursive: true })
@@ -42,7 +42,7 @@ describe('starting with a saved data folder', () => {
   it('creates the default folder on a first launch', async () => {
     const result = await start({})
     expect(result.abort).toBe(false)
-    expect(result.dataDir).toBe(path.join(home, 'MotoTrace', 'data'))
+    expect(result.dataDir).toBe(path.join(home, 'Tessera', 'data'))
   })
 
   it('moves the old datapath.txt into the config', async () => {
@@ -57,7 +57,7 @@ describe('starting with a saved data folder', () => {
 
 describe('a saved folder that is gone', () => {
   it('is not quietly recreated empty: the user is asked, and quitting changes nothing', async () => {
-    const dir = at('unplugged-drive', 'MotoTraceData')
+    const dir = at('unplugged-drive', 'TesseraData')
     const asked = []
     const config = { dataDir: dir }
     const result = await start(config, { chooseWhenUnavailable: async (info) => { asked.push(info); return null } })

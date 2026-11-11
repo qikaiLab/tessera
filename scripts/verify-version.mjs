@@ -30,7 +30,7 @@ if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
 if (packageLock.version !== version || packageLock.packages?.['']?.version !== version) {
   fail('package-lock.json does not match package.json')
 }
-if (packageJson.build?.artifactName !== 'MotoTrace-Setup-${version}.${ext}') {
+if (packageJson.build?.artifactName !== 'Tessera-Setup-${version}.${ext}') {
   fail('release artifact name must stay aligned with latest.yml')
 }
 if (!readme.includes(`version-${version}-blue`)) {
@@ -39,8 +39,9 @@ if (!readme.includes(`version-${version}-blue`)) {
 if (!readme.includes(`### ${expectedTag}`)) {
   fail(`README changelog has no ${expectedTag} section`)
 }
-if (!releaseNotes.startsWith(`# MotoTrace ${expectedTag}`)) {
-  fail(`RELEASE_NOTES.md does not start with MotoTrace ${expectedTag}`)
+// v0.4.0 and earlier were released as MotoTrace; the notes of those releases keep their title.
+if (!new RegExp(`^# (Tessera|MotoTrace) ${expectedTag}`).test(releaseNotes)) {
+  fail(`RELEASE_NOTES.md does not start with the product name and ${expectedTag}`)
 }
 if (!electronViteConfig.includes('__APP_VERSION__: JSON.stringify(packageJson.version)')) {
   fail('electron-vite config does not inject package.json version into the renderer')

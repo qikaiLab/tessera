@@ -1,10 +1,10 @@
 import path from 'node:path'
 
-const USER_DATA_ENV = 'MOTOTRACE_USER_DATA_DIR'
-const DATA_DIR_ENV = 'MOTOTRACE_DATA_DIR'
-const USE_REAL_DATA_ENV = 'MOTOTRACE_USE_REAL_DATA'
-const DEV_USER_DATA_NAME = 'mototrace-dev'
-const DEV_DATA_ROOT_NAME = 'MotoTrace-dev'
+const USER_DATA_ENV = 'TESSERA_USER_DATA_DIR'
+const DATA_DIR_ENV = 'TESSERA_DATA_DIR'
+const USE_REAL_DATA_ENV = 'TESSERA_USE_REAL_DATA'
+const DEV_USER_DATA_NAME = 'tessera-dev'
+const DEV_DATA_ROOT_NAME = 'Tessera-dev'
 
 function readDirectory(env, name) {
   const value = env[name]
@@ -16,10 +16,10 @@ function readDirectory(env, name) {
 }
 
 // Decides where an unpackaged or automated run keeps its data so it can never touch
-// the records of an installed MotoTrace:
+// the records of an installed Tessera:
 // - explicit overrides (automated tests) must give both directories and they are fixed;
-// - a plain unpackaged run (npm run dev) gets its own "mototrace-dev" userData and a
-//   "MotoTrace-dev" data directory, unless MOTOTRACE_USE_REAL_DATA=1 opts out;
+// - a plain unpackaged run (npm run dev) gets its own "tessera-dev" userData and a
+//   "Tessera-dev" data directory, unless TESSERA_USE_REAL_DATA=1 opts out;
 // - a packaged app returns null and keeps its normal locations.
 function resolveRuntimeOverrides(env = process.env, { isPackaged = true, appDataDir = '', homeDir = '' } = {}) {
   const userDataDir = readDirectory(env, USER_DATA_ENV)

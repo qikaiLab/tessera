@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { readDataPathFile, resolveDataDirectory, syncDataPathFile } from '../src/main/dataDirectory.js'
 
 let root
-beforeEach(async () => { root = await fs.mkdtemp(path.join(os.tmpdir(), 'mototrace-datapath-')) })
+beforeEach(async () => { root = await fs.mkdtemp(path.join(os.tmpdir(), 'tessera-datapath-')) })
 afterEach(async () => { await fs.rm(root, { recursive: true, force: true }) })
 
 const read = () => fs.readFile(path.join(root, 'datapath.txt'), 'utf8')
@@ -18,7 +18,7 @@ describe('datapath.txt, the way the uninstaller finds the data folder', () => {
   })
 
   it('follows a move made in Settings instead of keeping the installer-time value', async () => {
-    await fs.writeFile(path.join(root, 'datapath.txt'), 'C:/Users/me/MotoTrace/data')
+    await fs.writeFile(path.join(root, 'datapath.txt'), 'C:/Users/me/Tessera/data')
     expect(syncDataPathFile(root, 'D:/Journal')).toBe(true)
     expect(await read()).toBe('D:/Journal')
   })

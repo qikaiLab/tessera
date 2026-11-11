@@ -125,7 +125,7 @@ test('a page cannot point the data somewhere itself', async ({ sandbox }) => {
     const config = await readConfig(sandbox)
     expect(config.dataDir).toBeUndefined()
     expect(config.pendingDataDirChange).toBeUndefined()
-    expect(await exists(path.join(stranger, '.mototrace-write-test'))).toBe(false)
+    expect(await exists(path.join(stranger, '.tessera-write-test'))).toBe(false)
   } finally {
     await app.close()
   }

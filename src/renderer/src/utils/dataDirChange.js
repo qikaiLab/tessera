@@ -29,7 +29,7 @@ export function describeDataDirPlan(plan, { current, target }) {
     case 'unusable':
       return { ok: false, message: UNUSABLE[plan.reason] || '无法使用这个文件夹，请换一个位置。' }
     case 'foreign':
-      return { ok: false, message: '所选文件夹里已有其他文件，又不是 MotoTrace 的数据目录。为避免弄混，请选择一个空文件夹，或新建一个文件夹。' }
+      return { ok: false, message: '所选文件夹里已有其他文件，又不是 Tessera 的数据目录。为避免弄混，请选择一个空文件夹，或新建一个文件夹。' }
     case 'empty':
     case 'resume': {
       const size = formatBytes(plan.bytes)
@@ -55,7 +55,7 @@ export function describeDataDirPlan(plan, { current, target }) {
         title: '改用已有的数据目录',
         confirmText: '下次启动时改用',
         message: [
-          `所选文件夹已有 MotoTrace 数据（${plan.files} 个文件）：`,
+          `所选文件夹已有 Tessera 数据（${plan.files} 个文件）：`,
           target,
           '',
           '下次启动时将直接使用它，不会复制，也不会与当前数据合并。',

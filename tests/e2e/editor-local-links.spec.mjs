@@ -43,7 +43,7 @@ test('a typed path becomes a file link that opens photos and only reveals progra
     await window.keyboard.type(' ')
     await window.keyboard.type(`[程序](<${program}>)`)
     await window.keyboard.type(' ')
-    await window.keyboard.type('[丢失](<C:\\no-such-folder-mototrace\\gone.jpg>)')
+    await window.keyboard.type('[丢失](<C:\\no-such-folder-tessera\\gone.jpg>)')
     await window.keyboard.type(' ')
     // A network share is never turned into a link.
     await window.keyboard.type('[共享](<\\\\server\\share\\a.jpg>)')

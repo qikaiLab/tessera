@@ -147,7 +147,7 @@ describe('openLocalPath', () => {
 })
 
 describe('window navigation in a packaged app', () => {
-  const appIndexUrl = 'file:///C:/Program%20Files/MotoTrace/resources/app.asar/out/renderer/index.html'
+  const appIndexUrl = 'file:///C:/Program%20Files/Tessera/resources/app.asar/out/renderer/index.html'
 
   it('stays on the app page, with or without a route hash', () => {
     expect(isAppNavigationUrl(appIndexUrl, { isDev: false, appIndexUrl })).toBe(true)

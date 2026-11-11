@@ -84,7 +84,7 @@ const ClearFormattingExtension = Extension.create({
   }
 })
 
-/** The extensions of every MotoTrace editor. `onSave` runs on Ctrl+S / Cmd+S. */
+/** The extensions of every Tessera editor. `onSave` runs on Ctrl+S / Cmd+S. */
 export function buildEditorExtensions({ placeholder, onSave }) {
   return [
     ...buildContentExtensions(),

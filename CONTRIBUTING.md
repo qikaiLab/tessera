@@ -1,4 +1,4 @@
-# MotoTrace 贡献与开发规范
+# Tessera 贡献与开发规范
 
 本项目采用短生命周期分支、自动质量门禁和不可变版本标签。项目目前由单人维护，流程以“守住数据安全与发布可靠性”为目标，避免“本地能运行、发布才失败”。
 
@@ -67,7 +67,7 @@ npm run check
 git add package.json package-lock.json README.md RELEASE_NOTES.md
 git commit -m "chore(release): vX.Y.Z"
 git push origin main
-git tag -a vX.Y.Z -m "MotoTrace vX.Y.Z"
+git tag -a vX.Y.Z -m "Tessera vX.Y.Z"
 git push origin vX.Y.Z
 ```
 

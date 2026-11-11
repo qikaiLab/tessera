@@ -7,7 +7,7 @@ import { readConfigFile, writeConfigFile } from '../src/main/configStore.js'
 const created = []
 
 function makeConfigPath() {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'mototrace-config-'))
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tessera-config-'))
   created.push(directory)
   return path.join(directory, 'config.json')
 }

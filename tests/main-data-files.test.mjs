@@ -24,7 +24,7 @@ function write(relativePath, content = '{}') {
 }
 
 beforeEach(() => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), 'mototrace-main-'))
+  root = fs.mkdtempSync(path.join(os.tmpdir(), 'tessera-main-'))
 })
 
 afterEach(() => {

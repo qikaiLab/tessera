@@ -5,7 +5,7 @@
 ;
 ; Input : $UnDataDir      the first line of datapath.txt (may be empty, may end in a line break,
 ;                         spaces or a backslash)
-;         $UnDefaultDir   the folder MotoTrace creates for itself, dedicated to it
+;         $UnDefaultDir   the folder Tessera creates for itself, dedicated to it
 ; Output: $UnDataDir      cleaned up; $UnDefaultDir when the file named nothing
 ;         $UnDataKind     "default" (that dedicated folder) or "custom" (a folder the user chose,
 ;                         which may hold other files: the uninstaller never empties it)

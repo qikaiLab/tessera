@@ -1,4 +1,4 @@
-# MotoTrace
+# Tessera
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/ci.yml?branch=main&label=CI)](https://github.com/qikaiLab/tessera/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/qikaiLab/tessera?include_prereleases)](https://github.com/qikaiLab/tessera/releases)
 
-**MotoTrace** 是一款专为追求极致记录体验的用户打造的 Windows 桌面端自我追踪与分析软件。  
+**Tessera** 是一款专为追求极致记录体验的用户打造的 Windows 桌面端自我追踪与分析软件。  
 它不仅是一个记录工具，更是一个高度可自定义的个人数据中心。
 
 [📦 立即下载](https://github.com/qikaiLab/tessera/releases/latest) · [📝 查看更新日志](#-更新日志) · [🛠️ 开发者指南](#-开发者指南)
@@ -19,7 +19,7 @@
 
 ## 🌟 核心价值
 
-在信息碎片化的时代，MotoTrace 旨在帮助你建立**结构化的自我认知**。无论是日记心情、健身数据、学习进度还是财务状况，MotoTrace 都能通过高度灵活的「数据版块」系统，将零散的记录转化为直观的历史趋势与深度分析。
+在信息碎片化的时代，Tessera 旨在帮助你建立**结构化的自我认知**。无论是日记心情、健身数据、学习进度还是财务状况，Tessera 都能通过高度灵活的「数据版块」系统，将零散的记录转化为直观的历史趋势与深度分析。
 
 与其他记录应用的关键区别在于：
 - 🔒 **完全本地化** — 数据永远不会离开你的设备，无需账号，无需联网。
@@ -82,7 +82,7 @@
 
 ## 🛠️ 技术架构
 
-MotoTrace 采用现代化的桌面端技术栈，确保流畅的交互与稳健的性能：
+Tessera 采用现代化的桌面端技术栈，确保流畅的交互与稳健的性能：
 
 ```
 Electron (electron-vite)
@@ -179,7 +179,7 @@ git commit -m "chore(release): vX.Y.Z"
 git push origin main
 
 # 2. 确认 main 的 CI 成功后创建附注标签
-git tag -a vX.Y.Z -m "MotoTrace vX.Y.Z"
+git tag -a vX.Y.Z -m "Tessera vX.Y.Z"
 
 # 3. 只推送本次标签
 git push origin vX.Y.Z
@@ -192,7 +192,7 @@ git push origin vX.Y.Z
 
 ## 🛡️ 数据安全与备份策略
 
-MotoTrace 将数据安全视为头等大事，采用三层防护：
+Tessera 将数据安全视为头等大事，采用三层防护：
 
 1. **原子化写入** — 写入前先生成 `.tmp` 临时文件，成功后再通过重命名原子覆盖正式文件。即使在写入过程中发生断电或崩溃，正式数据文件也不会损坏。
 
@@ -351,10 +351,10 @@ MotoTrace 将数据安全视为头等大事，采用三层防护：
 ## ❓ 常见问题
 
 **Q: 我的数据存储在哪里？**  
-A: 默认存储在 `%APPDATA%/mototrace/data/` 目录下。你可以在「设置」页中更改为任意自定义路径（如云同步盘）。
+A: 默认存储在 `%USERPROFILE%\Tessera\data` 目录下。你可以在「设置」页中更改为任意自定义路径（如云同步盘）。
 
 **Q: 可以备份/迁移数据吗？**  
-A: 可以。在「设置」页一键导出 ZIP 备份，在新设备上解压后，于「设置」中选择该文件夹即可（含 MotoTrace 数据的文件夹会被直接使用）。
+A: 可以。在「设置」页一键导出 ZIP 备份，在新设备上解压后，于「设置」中选择该文件夹即可（含 Tessera 数据的文件夹会被直接使用）。
 
 **Q: 为什么删除版块时提示无法删除？**  
 A: 该版块已有历史数据，系统会阻止误删。如果你确定不再需要该版块，请先将其设为「非常驻」状态隐藏，历史数据将被保留但不会出现在记录页面。
@@ -366,6 +366,6 @@ A: 当前版本仅支持 Windows。未来版本考虑扩展多平台支持。
 
 ## 📄 许可证
 
-MotoTrace 以 [PolyForm Noncommercial License 1.0.0](LICENSE) 发布：**源码公开，个人学习、研究、爱好项目，以及教育、公益等非营利机构均可免费使用、修改与分发；商业用途需另行取得作者许可。** 这不是 OSI 定义的「开源」许可证，而是源码可见（source-available）许可证。
+Tessera 以 [PolyForm Noncommercial License 1.0.0](LICENSE) 发布：**源码公开，个人学习、研究、爱好项目，以及教育、公益等非营利机构均可免费使用、修改与分发；商业用途需另行取得作者许可。** 这不是 OSI 定义的「开源」许可证，而是源码可见（source-available）许可证。
 
 © 2026 qikaiLab. Built with ❤️ using Electron + React.

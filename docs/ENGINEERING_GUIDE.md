@@ -1,4 +1,4 @@
-# MotoTrace 工程化管理指南
+# Tessera 工程化管理指南
 
 ## 1. 管理目标
 
@@ -57,7 +57,7 @@ npm run check
 - 主题背景和预览使用 WebP（质量 90）而不是 PNG；单个图片资源不应超过 600 KB。
 - 页面按路由拆分（记录页立即加载，其余页面首次打开时才加载），时间线分批渲染长历史。
 
-验证打包产物：`npm run dist` 后，可用 `MOTOTRACE_E2E_EXECUTABLE=release/win-unpacked/MotoTrace.exe npx playwright test` 对打包后的应用运行同一套 Electron 测试。不要直接运行安装程序做测试，它会覆盖本机已安装的版本。
+验证打包产物：`npm run dist` 后，可用 `TESSERA_E2E_EXECUTABLE=release/win-unpacked/Tessera.exe npx playwright test` 对打包后的应用运行同一套 Electron 测试。不要直接运行安装程序做测试，它会覆盖本机已安装的版本。
 
 `SEED_DAYS=1100 npm run seed:dev` 可生成三年的示例历史，用于观察大数据量下的速度和内存。
 
@@ -148,7 +148,7 @@ npm run check
 - `export:writeFile`、`import:readFile` 只接受用户刚在 `dialog:saveFile` / `dialog:openFile` 里选过的路径（`pathGrants.js`，一次有效）。
 - 备份读取数据目录失败必须报错，不能返回残缺的文件列表。
 - 数据目录不能由渲染层直接设置：`config:set` 拒绝 `dataDir`、`pendingDataDirChange`；更改只能走 `config:planDataDirChange` / `config:scheduleDataDirChange`，且目录必须是用户刚在 `dialog:openDirectory` 里选过的（`pathGrants` 的 `folder`）。更改只记录为预约，在下次启动时复制、核对后才切换，旧目录永不删除。
-- 自动化测试固定的数据目录（`MOTOTRACE_DATA_DIR`）不会被预约迁移或目录缺失提示改动；迁移启动流程由 `tests/data-directory-startup.test.mjs` 用真实临时目录覆盖，改动它时还应按下一节的开发目录做一次真实两次启动验证。
+- 自动化测试固定的数据目录（`TESSERA_DATA_DIR`）不会被预约迁移或目录缺失提示改动；迁移启动流程由 `tests/data-directory-startup.test.mjs` 用真实临时目录覆盖，改动它时还应按下一节的开发目录做一次真实两次启动验证。
 - 导入 ZIP 先整体校验（合法 JSON、相对路径），有任何问题就一个文件都不写。
 - 渲染进程运行在系统沙箱里（`window.js` 的 `sandbox: true`，同时 `contextIsolation`、无 Node 集成）。沙箱里的预加载脚本只能使用 `contextBridge`、`ipcRenderer`、`webFrame` 等少数模块，因此预加载里不要 `require` 其他 Electron 模块或 Node 模块：剪贴板这类能力放在主进程（`ipc/clipboardIpc.js`），预加载通过 IPC 调用；`tests/e2e/security-policy.spec.mjs` 会检查沙箱仍然开启。
 - 构建出的页面带 Content-Security-Policy（`scripts/contentSecurityPolicy.mjs`，由 Vite 插件只在构建时注入）：脚本只允许应用自带，禁止任何网络连接、框架与插件；样式允许内联，图片允许 `data:`（自选背景）。因此不得再引入远程字体、样式、脚本或图片，也不得在页面里发起网络请求；`tests/content-security-policy.test.mjs` 与 `tests/e2e/security-policy.spec.mjs` 守住这一点。开发服务器不加该策略（热更新需要内联脚本与套接字）。
@@ -199,21 +199,21 @@ npx playwright test   # 已有最新构建时直接运行
 
 测试通过环境变量隔离数据，应用不会碰真实记录：
 
-- `MOTOTRACE_USER_DATA_DIR`：覆盖 Electron `userData` 目录（配置、背景图、单实例锁）。
-- `MOTOTRACE_DATA_DIR`：覆盖记录数据目录。
+- `TESSERA_USER_DATA_DIR`：覆盖 Electron `userData` 目录（配置、背景图、单实例锁）。
+- `TESSERA_DATA_DIR`：覆盖记录数据目录。
 
 两个变量必须同时设置且为绝对路径，否则主进程启动即报错，避免隔离不完整而回落到真实数据目录。测试夹具为每个用例创建临时目录并在结束后删除。手工做实机验证时也应使用这两个变量。
 
-测试窗口默认「静默」运行：夹具设置 `MOTOTRACE_E2E_QUIET=1`，主进程把窗口放在屏幕外 (-12000, -12000) 并用 `showInactive()` 显示，页面照常渲染、动画照常运行，但不会抢走开发者当前的焦点。想亲眼看测试时设 `MOTOTRACE_E2E_VISIBLE=1`。手写的临时探测脚本同样应带上 `MOTOTRACE_E2E_QUIET=1`。
+测试窗口默认「静默」运行：夹具设置 `TESSERA_E2E_QUIET=1`，主进程把窗口放在屏幕外 (-12000, -12000) 并用 `showInactive()` 显示，页面照常渲染、动画照常运行，但不会抢走开发者当前的焦点。想亲眼看测试时设 `TESSERA_E2E_VISIBLE=1`。手写的临时探测脚本同样应带上 `TESSERA_E2E_QUIET=1`。
 
 ### 开发进程与已安装版本隔离
 
 未打包的启动（`npm run dev`、`electron .`）默认使用独立目录，不会碰已安装版本的配置和记录：
 
-- 配置目录：`%APPDATA%\mototrace-dev`（已安装版本为 `%APPDATA%\mototrace`）；
-- 数据目录：`~/MotoTrace-dev/data`（已安装版本为 `~/MotoTrace/data`）。
+- 配置目录：`%APPDATA%\tessera-dev`（已安装版本为 `%APPDATA%\tessera`）；
+- 数据目录：`~/Tessera-dev/data`（已安装版本为 `~/Tessera/data`）。
 
-`npm run seed:dev` 会向开发数据目录写入示例数据（约 150 天记录、便签、倒数日和图表，含一个极端值用于测试热力图），可重复运行；脚本拒绝覆盖非空且不是它创建的目录，也拒绝触碰真实数据目录。确需用开发版读写真实数据时，才设置 `MOTOTRACE_USE_REAL_DATA=1`，并先备份。显式的 `MOTOTRACE_USER_DATA_DIR` / `MOTOTRACE_DATA_DIR` 优先于以上默认值。
+`npm run seed:dev` 会向开发数据目录写入示例数据（约 150 天记录、便签、倒数日和图表，含一个极端值用于测试热力图），可重复运行；脚本拒绝覆盖非空且不是它创建的目录，也拒绝触碰真实数据目录。确需用开发版读写真实数据时，才设置 `TESSERA_USE_REAL_DATA=1`，并先备份。显式的 `TESSERA_USER_DATA_DIR` / `TESSERA_DATA_DIR` 优先于以上默认值。
 
 未设置 `ELECTRON_RENDERER_URL`（仅 `electron-vite dev` 会注入）时，未打包的启动会加载构建产物而不是开发服务器。CI 在 `npm run check` 之后运行冒烟测试；它们不属于 `npm run check`，改动主进程、预加载桥接、编辑器保存或窗口生命周期时请在本地运行。
 
@@ -221,10 +221,10 @@ npx playwright test   # 已有最新构建时直接运行
 
 安装向导的路径规则和卸载程序对数据目录的处理直接决定会不会误删用户文件，因此约定如下：
 
-- **永远不运行构建出的安装程序或卸载程序来测试**：本机若装有正式版，它会覆盖或卸载真实安装。改动 `build/` 下的脚本后，用 `npx electron-builder --win nsis --config.directories.output=release/installer-check` 只做编译检查（NSIS 把警告当错误，未声明变量、函数名错误都会在这里暴露），再运行 `node scripts/check-installer-rules.mjs`：它把纯字符串规则（`installPathRules.nsh`：程序目录自动补 `MotoTrace` 子目录、拒绝磁盘根目录、拒绝把数据目录放进会被清空的程序目录；`dataPathRules.nsh`：解析 `datapath.txt` 并判断是默认目录还是自定义目录）编译成临时小程序逐条验证，不安装、不碰注册表和用户目录。这个脚本需要 electron-builder 缓存的 NSIS，不属于 `npm run check`。它编译的程序和真实安装程序一样是 Unicode 版（`Unicode true`），文件读写规则依赖这一点。
-- 卸载时勾选「删除所有用户数据」只递归删除**默认数据目录** `%USERPROFILE%\MotoTrace\data`（专属于本软件）；用户自选的数据目录永远不会被清空，只提示其位置，由用户自行处理。
-- 程序目录在升级和卸载时会被整体清空，所以向导拒绝磁盘根目录，并自动补上 `MotoTrace` 子目录；数据目录不得位于程序目录之内。
-- `datapath.txt` 位于当前用户的 `%APPDATA%\MotoTrace`（即使是为所有用户安装），软件每次启动都会按实际使用的数据目录刷新它，所以卸载程序读到的总是最新值。软件拒绝重建丢失的自定义数据目录，所以安装程序要先创建好用户选的目录。
+- **永远不运行构建出的安装程序或卸载程序来测试**：本机若装有正式版，它会覆盖或卸载真实安装。改动 `build/` 下的脚本后，用 `npx electron-builder --win nsis --config.directories.output=release/installer-check` 只做编译检查（NSIS 把警告当错误，未声明变量、函数名错误都会在这里暴露），再运行 `node scripts/check-installer-rules.mjs`：它把纯字符串规则（`installPathRules.nsh`：程序目录自动补 `Tessera` 子目录、拒绝磁盘根目录、拒绝把数据目录放进会被清空的程序目录；`dataPathRules.nsh`：解析 `datapath.txt` 并判断是默认目录还是自定义目录）编译成临时小程序逐条验证，不安装、不碰注册表和用户目录。这个脚本需要 electron-builder 缓存的 NSIS，不属于 `npm run check`。它编译的程序和真实安装程序一样是 Unicode 版（`Unicode true`），文件读写规则依赖这一点。
+- 卸载时勾选「删除所有用户数据」只递归删除**默认数据目录** `%USERPROFILE%\Tessera\data`（专属于本软件）；用户自选的数据目录永远不会被清空，只提示其位置，由用户自行处理。
+- 程序目录在升级和卸载时会被整体清空，所以向导拒绝磁盘根目录，并自动补上 `Tessera` 子目录；数据目录不得位于程序目录之内。
+- `datapath.txt` 位于当前用户的 `%APPDATA%\Tessera`（即使是为所有用户安装），软件每次启动都会按实际使用的数据目录刷新它，所以卸载程序读到的总是最新值。软件拒绝重建丢失的自定义数据目录，所以安装程序要先创建好用户选的目录。
 - `datapath.txt` 的编码：NSIS 的 `FileWrite`/`FileRead` 用系统 ANSI 代码页，而软件读写 UTF-8，含中文等非 ASCII 的文件夹（如 `D:\日记`）会对不上。所以安装程序一律写「UTF-16 LE + BOM」（`WriteDataPathFile`），卸载程序先看 BOM 再决定用 `FileReadUTF16LE` 还是 ANSI（`ReadDataPathFile`），软件（`dataDirectory.js` 的 `readDataPathFile` / `syncDataPathFile`）两种都能读；路径含非 ASCII 时写 UTF-16 LE + BOM，纯 ASCII 时仍写 UTF-8（字节与历来完全相同）。这些函数在 `scripts/check-installer-rules.mjs` 里用中日文、emoji 路径做了写入再读回的往返验证。
 - 升级时旧版卸载程序也会运行：它不得删除快捷方式或弹出「确认卸载」提示，这些只在真正卸载时执行。
 - 修改上述行为后，发布前在虚拟机或干净账户里手动走一遍全新安装、升级安装、勾选和不勾选「删除所有用户数据」的卸载。
@@ -244,10 +244,10 @@ npx playwright test   # 已有最新构建时直接运行
 3. 更新 README 当前版本、更新日志与 RELEASE_NOTES。
 4. 执行 `npm run check`。
 5. 提交并推送版本提交，等待 CI 成功。
-6. 创建统一的附注标签：`git tag -a vX.Y.Z -m "MotoTrace vX.Y.Z"`。
+6. 创建统一的附注标签：`git tag -a vX.Y.Z -m "Tessera vX.Y.Z"`。
 7. 推送单个标签，等待发布工作流完成，并下载验证安装包。
 
-发布工作流会在打包前拒绝不在 `main` 上的标签，并依次运行 `npm run check`、完整的 Electron 冒烟测试、打包，再对打包出的 `release/win-unpacked/MotoTrace.exe` 运行 `smoke.spec.mjs`，全部通过才发布。
+发布工作流会在打包前拒绝不在 `main` 上的标签，并依次运行 `npm run check`、完整的 Electron 冒烟测试、打包，再对打包出的 `release/win-unpacked/Tessera.exe` 运行 `smoke.spec.mjs`，全部通过才发布。
 
 标签是不可变发布记录。已推送标签不得重打；失败时修复并增加 patch 版本。不要使用 `git push --tags`，避免误推本地旧标签。
 

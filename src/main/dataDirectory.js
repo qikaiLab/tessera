@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 export function getDefaultDataDir(homeDir = os.homedir()) {
-  return path.join(homeDir, 'MotoTrace', 'data')
+  return path.join(homeDir, 'Tessera', 'data')
 }
 
 /**

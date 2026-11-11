@@ -29,7 +29,7 @@ describe('about dialog content', () => {
   })
 
   it('reads the runtime versions from the user agent and builds a bug-report text', () => {
-    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) MotoTrace/0.4.0 Chrome/150.0.1.2 Electron/43.8.7 Safari/537.36'
+    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Tessera/0.4.0 Chrome/150.0.1.2 Electron/43.8.7 Safari/537.36'
     const runtime = readRuntimeVersions(userAgent)
     expect(runtime).toEqual({ electron: '43.8.7', chromium: '150.0.1.2' })
     expect(buildVersionReport({ version: '0.4.0', runtime, platform: 'Win32' }))

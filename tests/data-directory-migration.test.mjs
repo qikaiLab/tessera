@@ -26,7 +26,7 @@ async function snapshot(dir, base = '') {
 }
 
 beforeEach(async () => {
-  root = await fs.mkdtemp(path.join(os.tmpdir(), 'mototrace-migration-'))
+  root = await fs.mkdtemp(path.join(os.tmpdir(), 'tessera-migration-'))
   source = at('source')
   await write(path.join(source, 'sections.json'), '[{"id":"diary"}]')
   await write(path.join(source, '2026', '10', '13.json'), '{"diary":{"value":"今天"}}')
@@ -83,7 +83,7 @@ describe('planning a data folder change', () => {
     expect((await planDataDirectoryChange({ current: source, target })).kind).toBe('foreign')
   })
 
-  it('uses a folder that already holds MotoTrace data as it is', async () => {
+  it('uses a folder that already holds Tessera data as it is', async () => {
     const target = at('target')
     await write(path.join(target, 'sections.json'), '[]')
     await write(path.join(target, '2025', '01', '01.json'), '{}')

@@ -52,7 +52,7 @@ Var CustomDialog
   Var TimerCounter
 
   Var StateUnData
-  ; Where the data is (from datapath.txt) and whether that is the folder MotoTrace itself creates
+  ; Where the data is (from datapath.txt) and whether that is the folder Tessera itself creates
   ; ("default", dedicated to it) or one the user chose ("custom", which may hold other files too).
   Var UnDataDir
   Var UnDataKind
@@ -120,7 +120,7 @@ Function PagePaths
   Pop $LabelDataDir
 
   ; 6. Data Path textbox (disabled by default)
-  ${NSD_CreateText} 0 59u 80% 12u "$PROFILE\MotoTrace\data"
+  ${NSD_CreateText} 0 59u 80% 12u "$PROFILE\Tessera\data"
   Pop $TextDataDir
   EnableWindow $TextDataDir 0
 
@@ -144,7 +144,7 @@ FunctionEnd
 
 Function OnBrowseDataDir
   Pop $0
-  nsDialogs::SelectFolderDialog "选择数据存储文件夹" "$PROFILE\MotoTrace\data"
+  nsDialogs::SelectFolderDialog "选择数据存储文件夹" "$PROFILE\Tessera\data"
   Pop $1
   ${If} $1 != "error"
     ${NSD_SetText} $TextDataDir $1
@@ -157,7 +157,7 @@ Function OnCheckboxDefaultDataClick
   ${If} $1 == ${BST_CHECKED}
     EnableWindow $TextDataDir 0
     EnableWindow $ButtonDataDir 0
-    ${NSD_SetText} $TextDataDir "$PROFILE\MotoTrace\data"
+    ${NSD_SetText} $TextDataDir "$PROFILE\Tessera\data"
   ${Else}
     EnableWindow $TextDataDir 1
     EnableWindow $ButtonDataDir 1
@@ -170,7 +170,7 @@ Function PagePathsLeave
   ${NSD_GetText} $TextDataDir $StateDataDir
 
   ; The program folder is emptied as a whole on upgrade and uninstall: it must be a folder of its own
-  ; (MotoTrace is appended when needed) and the diary data must not live inside it.
+  ; (Tessera is appended when needed) and the diary data must not live inside it.
   Call CheckInstallPaths
   ${If} $PathsError == "root"
     MessageBox MB_OK|MB_ICONEXCLAMATION "请选择一个文件夹来安装程序，不能直接使用磁盘根目录。"
@@ -217,17 +217,17 @@ FunctionEnd
 !macro customInstall
   ; 1. Desktop shortcut
   ${If} $StateDesktop == ${BST_CHECKED}
-    CreateShortCut "$DESKTOP\MotoTrace.lnk" "$INSTDIR\MotoTrace.exe"
+    CreateShortCut "$DESKTOP\Tessera.lnk" "$INSTDIR\Tessera.exe"
   ${EndIf}
 
   ; 2. Start Menu shortcut
   ${If} $StateStartMenu == ${BST_CHECKED}
-    CreateShortCut "$SMPROGRAMS\MotoTrace.lnk" "$INSTDIR\MotoTrace.exe"
+    CreateShortCut "$SMPROGRAMS\Tessera.lnk" "$INSTDIR\Tessera.exe"
   ${EndIf}
 
   ; 3. Autostart on boot shortcut
   ${If} $StateAutostart == ${BST_CHECKED}
-    CreateShortCut "$SMSTARTUP\MotoTrace.lnk" "$INSTDIR\MotoTrace.exe"
+    CreateShortCut "$SMSTARTUP\Tessera.lnk" "$INSTDIR\Tessera.exe"
   ${EndIf}
 
   ; 4. Data directory path synchronization. The app's settings always live in the current user's own
@@ -239,11 +239,11 @@ FunctionEnd
   ${EndIf}
   ${If} $StateDataDir != ""
     ${If} $StateDefaultData != ${BST_CHECKED}
-    ${OrIfNot} ${FileExists} "$APPDATA\MotoTrace\datapath.txt"
+    ${OrIfNot} ${FileExists} "$APPDATA\Tessera\datapath.txt"
       ; The app never creates a data folder the user chose by itself, so it has to exist.
       CreateDirectory "$StateDataDir"
-      CreateDirectory "$APPDATA\MotoTrace"
-      Push "$APPDATA\MotoTrace\datapath.txt"
+      CreateDirectory "$APPDATA\Tessera"
+      Push "$APPDATA\Tessera\datapath.txt"
       Push "$StateDataDir"
       Call WriteDataPathFile
     ${EndIf}
@@ -269,7 +269,7 @@ FunctionEnd
 !macro customUnInit
   StrCpy $UnInstallMode $installMode
   ${IfNot} ${Silent}
-    MessageBox MB_YESNO|MB_ICONQUESTION "确定要从您的电脑中移除 MotoTrace 吗？" /SD IDYES IDYES continue_un
+    MessageBox MB_YESNO|MB_ICONQUESTION "确定要从您的电脑中移除 Tessera 吗？" /SD IDYES IDYES continue_un
     Abort
   ${EndIf}
 continue_un:
@@ -282,12 +282,12 @@ Function un.ResolveDataDir
     SetShellVarContext current
   ${EndIf}
 
-  Push "$APPDATA\MotoTrace\datapath.txt"
+  Push "$APPDATA\Tessera\datapath.txt"
   Call un.ReadDataPathFile
   Pop $UnDataDir
 
   ; Cleans the line up and decides "default" or "custom" (see dataPathRules.nsh).
-  StrCpy $UnDefaultDir "$PROFILE\MotoTrace\data"
+  StrCpy $UnDefaultDir "$PROFILE\Tessera\data"
   Call un.ClassifyDataDir
 
   ${If} $UnInstallMode == "all"
@@ -296,7 +296,7 @@ Function un.ResolveDataDir
 FunctionEnd
 
 Function un.PageUnOptions
-  !insertmacro MUI_HEADER_TEXT "解除安装 MotoTrace" "选择卸载时的附加选项"
+  !insertmacro MUI_HEADER_TEXT "解除安装 Tessera" "选择卸载时的附加选项"
 
   nsDialogs::Create 1018
   Pop $CustomDialog
@@ -327,7 +327,7 @@ Function un.PageUnConfirm
     Abort
   ${EndIf}
 
-  ; Name the folder that is affected. Only the folder MotoTrace creates for itself is ever emptied: a
+  ; Name the folder that is affected. Only the folder Tessera creates for itself is ever emptied: a
   ; folder the user chose may hold other files, so it is left alone and the user is told so.
   Call un.ResolveDataDir
   ${If} $UnDataKind == "default"
@@ -391,9 +391,9 @@ FunctionEnd
   ; Remove the shortcuts only when really uninstalling: an upgrade runs this old uninstaller too, and
   ; the new installer cannot know which of them (autostart in particular) the user had chosen.
   ${IfNot} ${isUpdated}
-    Delete "$DESKTOP\MotoTrace.lnk"
-    Delete "$SMPROGRAMS\MotoTrace.lnk"
-    Delete "$SMSTARTUP\MotoTrace.lnk"
+    Delete "$DESKTOP\Tessera.lnk"
+    Delete "$SMPROGRAMS\Tessera.lnk"
+    Delete "$SMSTARTUP\Tessera.lnk"
   ${EndIf}
 
   ; Clean data if they checked "Delete all user data" AND completed the confirmation page
@@ -406,12 +406,12 @@ FunctionEnd
     ${EndIf}
 
     ${If} $UnDataKind == "default"
-      ; The folder MotoTrace creates for itself: dedicated to it, so it goes with everything in it.
+      ; The folder Tessera creates for itself: dedicated to it, so it goes with everything in it.
       RMDir /r "$UnDataDir"
       ; The folder around it, only if nothing else is in it (RMDir without /r never removes content).
-      RMDir "$PROFILE\MotoTrace"
+      RMDir "$PROFILE\Tessera"
       ; Settings, including datapath.txt.
-      RMDir /r "$APPDATA\MotoTrace"
+      RMDir /r "$APPDATA\Tessera"
     ${Else}
       ; A folder the user chose can hold anything: it is never emptied. The settings stay as well, so
       ; that installing again finds the data where it is.

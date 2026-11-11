@@ -7,7 +7,7 @@
 ; the diary.
 ;
 ; Input : $INSTDIR (program folder as typed), $StateDataDir (data folder as typed or chosen)
-; Output: $INSTDIR normalised (no trailing backslash, ending in \MotoTrace)
+; Output: $INSTDIR normalised (no trailing backslash, ending in \Tessera)
 ;         $PathsError  "" when fine, "root" (no usable program folder), "datainside"
 
 Var PathsError
@@ -54,11 +54,11 @@ Function CheckInstallPaths
     Goto done
   program_checked:
 
-  ; A folder named MotoTrace, appended when the chosen one is not (electron-builder does the same on
+  ; A folder named Tessera, appended when the chosen one is not (electron-builder does the same on
   ; its own directory page, which this installer does not show).
-  StrCpy $0 $INSTDIR 10 -10
-  StrCmp $0 "\MotoTrace" program_named 0
-  StrCpy $INSTDIR "$INSTDIR\MotoTrace"
+  StrCpy $0 $INSTDIR 8 -8
+  StrCmp $0 "\Tessera" program_named 0
+  StrCpy $INSTDIR "$INSTDIR\Tessera"
   program_named:
 
   ; The data folder, likewise without trailing backslashes.
@@ -72,7 +72,7 @@ Function CheckInstallPaths
   StrCmp $1 "" done 0
 
   ; Inside the program folder (or the program folder itself)? Compare the leading part, then make
-  ; sure the next character ends the name ("...\MotoTrace2" is a different folder).
+  ; sure the next character ends the name ("...\Tessera2" is a different folder).
   StrLen $0 $INSTDIR
   StrCpy $2 $1 $0
   StrCmp $2 $INSTDIR 0 done

@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { isThemeToggleAvailable } from '../theme/appearanceRegistry'
 import { APPEARANCE_MESSAGE_KEYS, appearanceText } from '../theme/appearanceMessages'
+import BrandMark from '../components/BrandMark'
 
 const NAV_ITEMS = [
   { to: '/today', icon: '✎', label: '记录' },
@@ -52,8 +53,8 @@ export default function Sidebar({ width, onResizeStart, onOpenOnboarding, onOpen
   return (
     <aside className="sidebar" style={{ width }}>
       <div className="sidebar-brand">
-        <span className="brand-icon">◈</span>
-        <span className="brand-name">MotoTrace</span>
+        <BrandMark size={20} className="brand-icon" />
+        <span className="brand-name">Tessera</span>
       </div>
       <nav className="sidebar-nav" ref={navRef}>
         {indicatorBox && (

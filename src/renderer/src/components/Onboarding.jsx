@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useModalA11y } from '../utils/useModalA11y'
 import GuideBlock from './guide/GuideBlock'
+import BrandMark from './BrandMark'
 import { GUIDE_TOPICS, searchTopics } from './guide/guideTopics'
 import './Onboarding.css'
 
@@ -53,10 +54,10 @@ export default function Onboarding({ onDone, onOpenShortcuts, firstRun = false }
       <div ref={dialogRef} className="onboarding-modal guide" role="dialog" aria-modal="true" aria-label="使用说明">
         <aside className="guide-side">
           <div className="guide-brand">
-            <span className="guide-brand-mark" aria-hidden="true">◈</span>
+            <BrandMark size={28} className="guide-brand-mark" />
             <div>
               <h2 className="onboarding-title">使用说明</h2>
-              <p className="guide-brand-sub">MotoTrace</p>
+              <p className="guide-brand-sub">Tessera</p>
             </div>
           </div>
 

@@ -55,7 +55,7 @@ jobs:
         shell: pwsh
         run: |
           # The files that are about to be published, not the build output the suite above used.
-          $env:MOTOTRACE_E2E_EXECUTABLE = (Resolve-Path 'release/win-unpacked/MotoTrace.exe').Path
+          $env:TESSERA_E2E_EXECUTABLE = (Resolve-Path 'release/win-unpacked/Tessera.exe').Path
           npx playwright test tests/e2e/smoke.spec.mjs
 
       - name: Generate SHA-256 checksums

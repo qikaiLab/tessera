@@ -7,6 +7,7 @@ import { syncDataPathFile } from './dataDirectory.js'
 import { resolveStartupDataDirectory } from './dataDirectoryStartup.js'
 import { isAppNavigationUrl, openExternalQuietly } from './externalLinks.js'
 import { isBlockedShortcut, isFullScreenShortcut } from './shortcuts.js'
+import { resolveWindowBackground } from './windowBackground.js'
 
 // How long the renderer has to confirm that pending edits were saved before the user is told
 // the close was cancelled.
@@ -110,7 +111,7 @@ async function askForAnotherDataFolder({ dir, problem }) {
   const { response } = await dialog.showMessageBox({
     type: 'warning',
     title: '找不到数据文件夹',
-    message: `MotoTrace 的数据文件夹无法使用：
+    message: `Tessera 的数据文件夹无法使用：
 ${dir}`,
     detail: `${detail}
 
@@ -158,9 +159,9 @@ export async function createWindow({ runtimeOverrides }) {
   ensureDirSync(dataDir)
   ensureDirSync(path.join(dataDir, 'backups'))
 
-  // Automated runs set MOTOTRACE_E2E_QUIET so the test window opens far off-screen and never
+  // Automated runs set TESSERA_E2E_QUIET so the test window opens far off-screen and never
   // takes focus from whatever the developer is doing; the page itself still renders and runs.
-  const quietWindow = process.env.MOTOTRACE_E2E_QUIET === '1'
+  const quietWindow = process.env.TESSERA_E2E_QUIET === '1'
 
   // The default menu would give a packaged app reload and developer-tools shortcuts: reloading
   // would drop edits that have not been saved yet. Packaged builds have no menu bar to show anyway.
@@ -174,7 +175,7 @@ export async function createWindow({ runtimeOverrides }) {
     minWidth: 900,
     minHeight: 600,
     frame: false,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: resolveWindowBackground(startup.config),
     titleBarStyle: 'hidden',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),

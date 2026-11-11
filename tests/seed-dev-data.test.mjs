@@ -12,7 +12,7 @@ function run(directory) {
 }
 
 function makeTempDir() {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'mototrace-seed-'))
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tessera-seed-'))
   created.push(directory)
   return directory
 }
@@ -47,7 +47,7 @@ describe('seed-dev-data script', () => {
   })
 
   it('refuses the real default data directory', () => {
-    const result = run(path.join(os.homedir(), 'MotoTrace', 'data'))
+    const result = run(path.join(os.homedir(), 'Tessera', 'data'))
     expect(result.status).not.toBe(0)
     expect(result.stderr).toContain('real data directory')
   })

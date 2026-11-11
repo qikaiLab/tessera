@@ -3,7 +3,7 @@
 // An empty `authorName`, `authorBio` or `email` is simply left out of the dialog until it is filled in.
 
 export const ABOUT_INFO = Object.freeze({
-  appName: 'MotoTrace',
+  appName: 'Tessera',
   tagline: '完全本地的自我记录软件',
   authorName: '',
   authorBio: '',

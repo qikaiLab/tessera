@@ -7,6 +7,7 @@ import Onboarding from './components/Onboarding'
 import ShortcutsModal from './components/ShortcutsModal'
 import CrashRecovery from './components/CrashRecovery'
 import AboutDialog from './components/about/AboutDialog'
+import BrandMark from './components/BrandMark'
 import ContextMenu from './components/ContextMenu'
 import Presence from './components/Presence'
 import Today from './pages/Today'
@@ -26,8 +27,8 @@ function AppLoading() {
   return (
     <div className="app-loading">
       <div className="loading-logo">
-        <span className="loading-icon">◎</span>
-        <span className="loading-text">MotoTrace</span>
+        <BrandMark size={32} className="loading-icon" />
+        <span className="loading-text">Tessera</span>
       </div>
       <div className="loading-spinner" />
     </div>

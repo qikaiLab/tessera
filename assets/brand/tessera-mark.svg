@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="44 48 168 168" width="168" height="168" role="img" aria-label="Tessera">
+  <rect x="54" y="58" width="44" height="44" rx="9" fill="#2F6B5E"/>
+  <rect x="106" y="58" width="44" height="44" rx="9" fill="#4E9484"/>
+  <rect x="158" y="58" width="44" height="44" rx="9" fill="#1F4A41"/>
+  <rect x="106" y="110" width="44" height="44" rx="9" fill="#3A7A6A"/>
+  <rect x="106" y="162" width="44" height="44" rx="9" fill="#D9774A" transform="rotate(4 128 184)"/>
+</svg>

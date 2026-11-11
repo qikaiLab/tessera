@@ -18,7 +18,7 @@ afterEach(() => {
 })
 
 function makeTemporaryDirectory() {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'mototrace-background-'))
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tessera-background-'))
   temporaryDirectories.push(directory)
   return directory
 }

@@ -60,8 +60,8 @@ export function useBackups() {
     try {
       const timestamp = format(new Date(), 'yyyyMMdd-HHmmss')
       const savePath = await window.api.dialog.saveFile({
-        title: '导出 MotoTrace 数据',
-        defaultPath: `MotoTrace-Export-${timestamp}.zip`,
+        title: '导出 Tessera 数据',
+        defaultPath: `Tessera-Export-${timestamp}.zip`,
         filters: [{ name: 'ZIP Archives', extensions: ['zip'] }]
       })
 
@@ -84,7 +84,7 @@ export function useBackups() {
 
   const importData = async () => {
     const filePath = await window.api.dialog.openFile({
-      title: '导入 MotoTrace 数据',
+      title: '导入 Tessera 数据',
       filters: [{ name: 'ZIP Archives', extensions: ['zip'] }]
     })
     if (!filePath) return

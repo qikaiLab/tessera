@@ -7,18 +7,18 @@ import { fileURLToPath } from 'node:url'
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 
 export async function launchApp(sandbox) {
-  // MOTOTRACE_E2E_EXECUTABLE points the suite at a packaged build (release/win-unpacked)
+  // TESSERA_E2E_EXECUTABLE points the suite at a packaged build (release/win-unpacked)
   // instead of the built output, to verify what actually ships.
-  const executablePath = process.env.MOTOTRACE_E2E_EXECUTABLE
+  const executablePath = process.env.TESSERA_E2E_EXECUTABLE
   const app = await electron.launch({
     ...(executablePath ? { executablePath } : { args: [projectRoot] }),
     env: {
       ...process.env,
       ELECTRON_RENDERER_URL: '',
-      // Keep the test window off-screen and unfocused (MOTOTRACE_E2E_VISIBLE=1 to watch it).
-      MOTOTRACE_E2E_QUIET: process.env.MOTOTRACE_E2E_VISIBLE === '1' ? '' : '1',
-      MOTOTRACE_USER_DATA_DIR: sandbox.userDataDir,
-      MOTOTRACE_DATA_DIR: sandbox.dataDir
+      // Keep the test window off-screen and unfocused (TESSERA_E2E_VISIBLE=1 to watch it).
+      TESSERA_E2E_QUIET: process.env.TESSERA_E2E_VISIBLE === '1' ? '' : '1',
+      TESSERA_USER_DATA_DIR: sandbox.userDataDir,
+      TESSERA_DATA_DIR: sandbox.dataDir
     }
   })
   const window = await app.firstWindow()
@@ -34,7 +34,7 @@ export async function launchApp(sandbox) {
 export const test = base.extend({
   // Throwaway userData + data directories, so no run can touch real user records.
   sandbox: async ({}, use) => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'mototrace-e2e-'))
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tessera-e2e-'))
     const sandbox = {
       root,
       userDataDir: path.join(root, 'user-data'),

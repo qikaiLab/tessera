@@ -128,7 +128,7 @@ function FrostedBackgroundPanel() {
           draggable="false"
         />
         <span className="appearance-background-glass-sample" aria-hidden="true">
-          MotoTrace
+          Tessera
         </span>
       </div>
       <div className="appearance-background-content">

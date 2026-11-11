@@ -18,7 +18,7 @@ export const CONTENT_SECURITY_POLICY = [
 // socket for hot reload, so it is left alone.
 export function contentSecurityPolicyPlugin() {
   return {
-    name: 'mototrace-content-security-policy',
+    name: 'tessera-content-security-policy',
     apply: 'build',
     transformIndexHtml: () => [{
       tag: 'meta',

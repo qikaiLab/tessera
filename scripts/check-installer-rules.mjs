@@ -77,31 +77,31 @@ function report(cases, results, describe) {
 // ── The install wizard: program folder and data folder ───────────────────────
 // [program folder typed, data folder typed, expected program folder, expected error]
 const installCases = [
-  [win('D:', 'Apps'), win('C:', 'Users', 'me', 'MotoTrace', 'data'), win('D:', 'Apps', 'MotoTrace'), ''],
-  [win('D:', 'Apps', 'MotoTrace'), win('C:', 'Users', 'me', 'MotoTrace', 'data'), win('D:', 'Apps', 'MotoTrace'), ''],
-  [win('D:', 'Apps', 'MotoTrace', ''), win('E:', 'Journal'), win('D:', 'Apps', 'MotoTrace'), ''],
-  [win('d:', 'apps', 'mototrace'), win('E:', 'Journal'), win('d:', 'apps', 'mototrace'), ''],
-  [win('C:', 'Users', 'me', 'AppData', 'Local', 'Programs', 'MotoTrace'), win('C:', 'Users', 'me', 'MotoTrace', 'data'), win('C:', 'Users', 'me', 'AppData', 'Local', 'Programs', 'MotoTrace'), ''],
+  [win('D:', 'Apps'), win('C:', 'Users', 'me', 'Tessera', 'data'), win('D:', 'Apps', 'Tessera'), ''],
+  [win('D:', 'Apps', 'Tessera'), win('C:', 'Users', 'me', 'Tessera', 'data'), win('D:', 'Apps', 'Tessera'), ''],
+  [win('D:', 'Apps', 'Tessera', ''), win('E:', 'Journal'), win('D:', 'Apps', 'Tessera'), ''],
+  [win('d:', 'apps', 'tessera'), win('E:', 'Journal'), win('d:', 'apps', 'tessera'), ''],
+  [win('C:', 'Users', 'me', 'AppData', 'Local', 'Programs', 'Tessera'), win('C:', 'Users', 'me', 'Tessera', 'data'), win('C:', 'Users', 'me', 'AppData', 'Local', 'Programs', 'Tessera'), ''],
   // Not a usable program folder.
   [win('D:', ''), win('E:', 'Journal'), 'D:', 'root'],
   ['D:', win('E:', 'Journal'), 'D:', 'root'],
   ['', win('E:', 'Journal'), '', 'root'],
   // The data folder would live inside the folder that is emptied on upgrade and uninstall.
-  [win('C:', 'Users', 'me', 'MotoTrace'), win('C:', 'Users', 'me', 'MotoTrace', 'data'), win('C:', 'Users', 'me', 'MotoTrace'), 'datainside'],
-  [win('D:', 'Apps', 'MotoTrace'), win('D:', 'Apps', 'MotoTrace', ''), win('D:', 'Apps', 'MotoTrace'), 'datainside'],
-  [win('D:', 'Apps', 'MotoTrace'), win('D:', 'Apps', 'MotoTrace'), win('D:', 'Apps', 'MotoTrace'), 'datainside'],
-  [win('D:', 'Apps'), win('D:', 'Apps', 'MotoTrace', 'data'), win('D:', 'Apps', 'MotoTrace'), 'datainside'],
-  [win('C:', 'Users', 'me', 'MotoTrace'), win('c:', 'users', 'me', 'mototrace', 'DATA'), win('C:', 'Users', 'me', 'MotoTrace'), 'datainside'],
+  [win('C:', 'Users', 'me', 'Tessera'), win('C:', 'Users', 'me', 'Tessera', 'data'), win('C:', 'Users', 'me', 'Tessera'), 'datainside'],
+  [win('D:', 'Apps', 'Tessera'), win('D:', 'Apps', 'Tessera', ''), win('D:', 'Apps', 'Tessera'), 'datainside'],
+  [win('D:', 'Apps', 'Tessera'), win('D:', 'Apps', 'Tessera'), win('D:', 'Apps', 'Tessera'), 'datainside'],
+  [win('D:', 'Apps'), win('D:', 'Apps', 'Tessera', 'data'), win('D:', 'Apps', 'Tessera'), 'datainside'],
+  [win('C:', 'Users', 'me', 'Tessera'), win('c:', 'users', 'me', 'tessera', 'DATA'), win('C:', 'Users', 'me', 'Tessera'), 'datainside'],
   // Different folders that merely share a prefix or sit around the program folder are fine.
-  [win('D:', 'Apps', 'MotoTrace'), win('D:', 'Apps', 'MotoTrace2', 'data'), win('D:', 'Apps', 'MotoTrace'), ''],
-  [win('D:', 'Apps', 'MotoTrace'), win('D:', 'Apps'), win('D:', 'Apps', 'MotoTrace'), ''],
-  [win('D:', 'Apps'), win('D:', 'Apps', 'data'), win('D:', 'Apps', 'MotoTrace'), ''],
-  [win('D:', 'Apps', 'MotoTrace'), '', win('D:', 'Apps', 'MotoTrace'), '']
+  [win('D:', 'Apps', 'Tessera'), win('D:', 'Apps', 'Tessera2', 'data'), win('D:', 'Apps', 'Tessera'), ''],
+  [win('D:', 'Apps', 'Tessera'), win('D:', 'Apps'), win('D:', 'Apps', 'Tessera'), ''],
+  [win('D:', 'Apps'), win('D:', 'Apps', 'data'), win('D:', 'Apps', 'Tessera'), ''],
+  [win('D:', 'Apps', 'Tessera'), '', win('D:', 'Apps', 'Tessera'), '']
 ]
 
 // ── The uninstaller: which folder datapath.txt names and whether it may be emptied ──
 const home = win('C:', 'Users', 'me')
-const defaultDir = win(home, 'MotoTrace', 'data')
+const defaultDir = win(home, 'Tessera', 'data')
 // [first line of datapath.txt, expected folder, expected kind]
 const classifyCases = [
   ['', defaultDir, 'default'],
@@ -110,13 +110,13 @@ const classifyCases = [
   [`${defaultDir}\r\n`, defaultDir, 'default'],
   [`${defaultDir}${B}`, defaultDir, 'default'],
   // Windows paths ignore case: the same folder in another spelling is still the default one.
-  [win('c:', 'users', 'ME', 'mototrace', 'DATA'), defaultDir, 'default'],
+  [win('c:', 'users', 'ME', 'tessera', 'DATA'), defaultDir, 'default'],
   [win('D:', 'Journal'), win('D:', 'Journal'), 'custom'],
   [`${win('D:', 'Journal')}\r\n`, win('D:', 'Journal'), 'custom'],
   [win('D:', 'Journal', ''), win('D:', 'Journal'), 'custom'],
   [`${win('D:', 'Journal')}  `, win('D:', 'Journal'), 'custom'],
   [win(home, 'Documents'), win(home, 'Documents'), 'custom'],
-  [win(home, 'MotoTrace'), win(home, 'MotoTrace'), 'custom'],
+  [win(home, 'Tessera'), win(home, 'Tessera'), 'custom'],
   [`${defaultDir}2`, `${defaultDir}2`, 'custom'],
   [win(defaultDir, 'sub'), win(defaultDir, 'sub'), 'custom']
 ]
@@ -126,7 +126,7 @@ const classifyCases = [
 const writeCases = [
   win('D:', 'Journal'),
   win('D:', '日记'),
-  win('C:', 'Users', '张三', 'MotoTrace', 'data'),
+  win('C:', 'Users', '张三', 'Tessera', 'data'),
   win('E:', '日記', 'データ'),
   win('D:', 'My Data (2026)'),
   win('D:', 'notes📓')
@@ -149,7 +149,7 @@ if (!makensis) {
   process.exit(2)
 }
 
-const work = fs.mkdtempSync(path.join(os.tmpdir(), 'mototrace-nsis-'))
+const work = fs.mkdtempSync(path.join(os.tmpdir(), 'tessera-nsis-'))
 try {
   console.log('Install wizard folders')
   const installResults = runProgram(makensis, work, 'install-rules',
@@ -207,7 +207,7 @@ try {
   ]
   // The other rules are called once as well, so the program compiles without "unused function" warnings.
   const touchOtherRules = [
-    '  StrCpy $INSTDIR "D:\\Apps\\MotoTrace"',
+    '  StrCpy $INSTDIR "D:\\Apps\\Tessera"',
     '  StrCpy $StateDataDir "E:\\Journal"',
     '  Call CheckInstallPaths',
     '  StrCpy $UnDefaultDir "C:\\x"',

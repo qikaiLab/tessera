@@ -1,9 +1,9 @@
 {
-  "name": "mototrace",
+  "name": "tessera",
   "version": "0.4.0",
-  "description": "MotoTrace - A self-tracking desktop application",
+  "description": "Tessera - A self-tracking desktop application",
   "main": "out/main/index.js",
-  "author": "MotoTrace",
+  "author": "qikaiLab",
   "license": "PolyForm-Noncommercial-1.0.0",
   "private": true,
   "scripts": {
@@ -68,9 +68,9 @@
     "vitest": "^4.1.10"
   },
   "build": {
-    "appId": "com.mototrace.app",
-    "productName": "MotoTrace",
-    "artifactName": "MotoTrace-Setup-${version}.${ext}",
+    "appId": "com.tessera.app",
+    "productName": "Tessera",
+    "artifactName": "Tessera-Setup-${version}.${ext}",
     "directories": {
       "output": "release"
     },

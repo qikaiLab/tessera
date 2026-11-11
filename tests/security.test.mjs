@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveSafePath, isAllowedExternalUrl, isAppNavigationUrl, isPathInside } from '../src/main/security.js'
 
 describe('resolveSafePath', () => {
-  const baseDir = path.resolve('C:/MotoTrace/data')
+  const baseDir = path.resolve('C:/Tessera/data')
 
   it('resolves files inside the data directory', () => {
     expect(resolveSafePath(baseDir, 'notes/example.json')).toBe(
@@ -48,7 +48,7 @@ describe('isAppNavigationUrl', () => {
 })
 
 describe('isPathInside', () => {
-  const parent = path.resolve('C:/MotoTrace/data/backups')
+  const parent = path.resolve('C:/Tessera/data/backups')
 
   it('accepts the folder itself and anything below it', () => {
     expect(isPathInside(parent, parent)).toBe(true)
@@ -57,8 +57,8 @@ describe('isPathInside', () => {
   })
 
   it('rejects siblings, parents, traversal and bad input', () => {
-    expect(isPathInside(parent, path.resolve('C:/MotoTrace/data/notes.json'))).toBe(false)
-    expect(isPathInside(parent, path.resolve('C:/MotoTrace/data'))).toBe(false)
+    expect(isPathInside(parent, path.resolve('C:/Tessera/data/notes.json'))).toBe(false)
+    expect(isPathInside(parent, path.resolve('C:/Tessera/data'))).toBe(false)
     expect(isPathInside(parent, path.join(parent, '..', 'secret.zip'))).toBe(false)
     expect(isPathInside(parent, path.resolve('D:/elsewhere/a.zip'))).toBe(false)
     expect(isPathInside(parent, undefined)).toBe(false)
