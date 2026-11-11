@@ -32,6 +32,9 @@ describe('blocked shortcuts in the packaged app', () => {
     expect(isFullScreenShortcut(key('F11', { shift: true }))).toBe(false)
     expect(isFullScreenShortcut(key('F11', { alt: true }))).toBe(false)
     expect(isFullScreenShortcut(key('F11', { type: 'keyUp' }))).toBe(false)
+    // Holding the key repeats the press: only the first one toggles.
+    expect(isFullScreenShortcut(key('F11', { isAutoRepeat: false }))).toBe(true)
+    expect(isFullScreenShortcut(key('F11', { isAutoRepeat: true }))).toBe(false)
     expect(isFullScreenShortcut(key('F10'))).toBe(false)
     expect(isFullScreenShortcut(undefined)).toBe(false)
     // It is not one of the blocked ones.

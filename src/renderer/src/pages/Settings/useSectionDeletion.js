@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { hasStoredValue } from '../../utils/dayEntries'
 
-const NO_REQUEST = { isOpen: false, sec: null, hasData: false, unreadable: 0, checking: false }
+const NO_REQUEST = { isOpen: false, sec: null, hasData: false, unreadable: [], checking: false }
 // How many days are read at once while checking the history.
 const CHECK_CHUNK = 24
 
@@ -23,18 +23,19 @@ export function useSectionDeletion() {
     if (!sec) return
     const check = checkRef.current + 1
     checkRef.current = check
-    setRequest({ isOpen: true, sec, hasData: false, unreadable: 0, checking: true })
+    setRequest({ isOpen: true, sec, hasData: false, unreadable: [], checking: true })
     let hasData = false
-    let unreadable = 0
+    const unreadable = []
     for (let start = 0; start < datesWithData.length && !hasData; start += CHECK_CHUNK) {
       // A day that cannot be read is not an empty day (null, not {}).
-      const days = await Promise.all(datesWithData.slice(start, start + CHECK_CHUNK).map(dateStr => readDayDataStrict(dateStr).catch(() => null)))
+      const chunk = datesWithData.slice(start, start + CHECK_CHUNK)
+      const days = await Promise.all(chunk.map(dateStr => readDayDataStrict(dateStr).catch(() => null)))
       if (checkRef.current !== check) return
-      unreadable += days.filter(day => day === null).length
+      days.forEach((day, index) => { if (day === null) unreadable.push(chunk[index]) })
       hasData = days.some(day => day !== null && hasStoredValue(day[id]))
     }
     if (checkRef.current !== check) return
-    setRequest({ isOpen: true, sec, hasData, unreadable: hasData ? 0 : unreadable, checking: false })
+    setRequest({ isOpen: true, sec, hasData, unreadable: hasData ? [] : unreadable, checking: false })
   }
 
   const cancel = () => {

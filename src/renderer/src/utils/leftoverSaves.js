@@ -17,6 +17,12 @@ export function markWritten(key) {
   lastWrite.set(key, ++counter)
 }
 
+// Call after the user deliberately deleted `key` (a note, a whole day): a copy that failed to be written
+// is then the very content they removed, and must neither come back in the list nor be written again at close.
+export function discardLeftover(key) {
+  outstanding.get(key)?.forget()
+}
+
 // Newer content of the same day / note was written since this copy was made (or adopted by a page,
 // which then wrote on top of it, or by this hand-over's own write): writing the copy now would put
 // older content back.

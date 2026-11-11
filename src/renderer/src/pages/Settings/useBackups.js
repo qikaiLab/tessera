@@ -13,7 +13,7 @@ import { NOTES_INDEX_PATH } from '../../utils/notes'
  * favourites back over the imported files.
  */
 export function useBackups() {
-  const { showToast, confirm, refreshDates, loadSections, reloadMetadata } = useApp()
+  const { showToast, confirm, refreshDates, loadSections, reloadMetadata, flushPendingSaves } = useApp()
   const [backups, setBackups] = useState([])
   const [backingUp, setBackingUp] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -95,6 +95,14 @@ export function useBackups() {
       confirmText: '继续导入'
     })
     if (!confirmed) return
+
+    // An unsaved edit (one that could not be written when its page was left) is written first: the import
+    // then lands on top of it, and the older content is kept in the automatic history. Left unwritten, it
+    // would be put back over the imported file later.
+    if (!await flushPendingSaves()) {
+      showToast('有未保存的改动没能写入磁盘，请先重试保存再导入，这次没有导入任何内容', 'error', 6000)
+      return
+    }
 
     setImporting(true)
     showToast('正在读取...', 'info')

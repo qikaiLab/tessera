@@ -67,7 +67,7 @@ export default function Timeline() {
     () => buildTimelineCards({ datesWithData, loadedDates, sections, filters: filterState.filters, favoriteLookup }),
     [datesWithData, loadedDates, sections, filterState.filters, favoriteLookup]
   )
-  const manage = useTimelineManage({ cards, filterSections: filterState.filterSections, loadedDates, setLoading })
+  const manage = useTimelineManage({ cards, filterSections: filterState.filterSections, setLoading })
 
   const listSignature = `${cards.length}:${cards[0]?.dateStr ?? ''}:${cards[cards.length - 1]?.dateStr ?? ''}`
   const cardList = useIncrementalList(cards, TIMELINE_PAGE_SIZE, listSignature)

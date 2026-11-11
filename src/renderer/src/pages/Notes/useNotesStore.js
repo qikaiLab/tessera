@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
+import { discardLeftover } from '../../utils/leftoverSaves'
 import { createNoteOperationBarrier } from '../../utils/noteOperations'
 import { loadNotesFromDisk } from '../../utils/noteStorage'
 import {
@@ -155,6 +156,8 @@ export function useNotesStore({ showArchived, onSelectionReset, onFocusTitle }) 
         showToast('便签文件删除失败', 'error')
         return
       }
+      // A copy of this note that could not be written earlier must not bring it back.
+      discardLeftover(`note:${noteId}`)
 
       // Deleting the open note opens the next one of the list being viewed.
       const nextOpen = currentNote?.id === noteId

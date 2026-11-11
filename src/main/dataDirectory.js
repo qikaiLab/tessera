@@ -10,13 +10,16 @@ export function getDefaultDataDir(homeDir = os.homedir()) {
  * Reads `datapath.txt`. Two encodings occur: plain UTF-8 (what older versions wrote; identical to
  * ANSI for a path of ASCII characters) and UTF-16 LE with a byte order mark, which the installer
  * writes and the uninstaller reads, because that is the only form NSIS can read and write without
- * losing the characters of a folder such as `D:\日记`. Returns { text, utf16 }.
+ * losing the characters of a folder such as `D:\日记`. Returns { text, utf16, bom8 }; `bom8` is a UTF-8
+ * file that starts with a byte order mark (a hand edit with some editors): the app reads it, but the
+ * uninstaller would take the three bytes for part of the path.
  */
 export function readDataPathFile(file) {
   const bytes = fs.readFileSync(file)
   const utf16 = bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe
+  const bom8 = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf
   const text = utf16 ? bytes.subarray(2).toString('utf16le') : bytes.toString('utf8').replace(/^\uFEFF/, '')
-  return { text: text.trim(), utf16 }
+  return { text: text.trim(), utf16, bom8 }
 }
 
 const UTF16_LE_BOM = Buffer.from([0xff, 0xfe])
@@ -76,7 +79,7 @@ export function syncDataPathFile(userDataDir, dataDir) {
     }
     const ascii = isAscii(dataDir)
     // Already naming this folder, in a form the uninstaller reads correctly.
-    if (current && current.text === dataDir && (ascii || current.utf16)) return false
+    if (current && current.text === dataDir && !current.bom8 && (ascii || current.utf16)) return false
     fs.mkdirSync(userDataDir, { recursive: true })
     fs.writeFileSync(file, ascii ? Buffer.from(dataDir, 'utf8') : Buffer.concat([UTF16_LE_BOM, Buffer.from(dataDir, 'utf16le')]))
     return true

@@ -49,7 +49,17 @@ describe('datapath.txt with characters outside ASCII', () => {
     expect(syncDataPathFile(root, folder)).toBe(true)
     const file = path.join(root, 'datapath.txt')
     expect((await fs.readFile(file)).equals(utf16File(folder))).toBe(true)
-    expect(readDataPathFile(file)).toEqual({ text: folder, utf16: true })
+    expect(readDataPathFile(file)).toEqual({ text: folder, utf16: true, bom8: false })
+  })
+
+  it('rewrites a UTF-8 file that starts with a byte order mark, which the uninstaller would misread', async () => {
+    const file = path.join(root, 'datapath.txt')
+    await fs.writeFile(file, Buffer.from('\uFEFFD:/Journal', 'utf8'))
+    expect(readDataPathFile(file)).toEqual({ text: 'D:/Journal', utf16: false, bom8: true })
+    expect(syncDataPathFile(root, 'D:/Journal')).toBe(true)
+    expect((await fs.readFile(file)).equals(Buffer.from('D:/Journal', 'utf8'))).toBe(true)
+    // Once clean it is left alone.
+    expect(syncDataPathFile(root, 'D:/Journal')).toBe(false)
   })
 
   it('keeps a plain path as plain UTF-8, the same bytes every version has written', async () => {

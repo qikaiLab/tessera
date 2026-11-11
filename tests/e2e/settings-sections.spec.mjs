@@ -134,6 +134,10 @@ test('a section is kept while a day cannot be read, since that day may hold data
     await window.locator('.settings-section-item', { hasText: '步数' }).getByRole('button', { name: /删除版块/ }).click()
     const dialog = window.locator('.modal')
     await expect(dialog).toContainText('暂时无法删除此版块')
+    // It names the day that cannot be read, and the ways out: try again later, or take the section off the day page.
+    await expect(dialog).toContainText(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`)
+    await expect(dialog).toContainText('稍后再点一次删除')
+    await expect(dialog).toContainText('取消常驻')
     await expect(dialog.getByRole('button', { name: '确定删除' })).toHaveCount(0)
     await dialog.getByRole('button', { name: '知道了' }).click()
     expect((await readSections(sandbox)).some(section => section.id === 'steps')).toBe(true)

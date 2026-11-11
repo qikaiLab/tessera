@@ -10,8 +10,8 @@ const dayFile = (dateStr) => {
  * Management mode of the list view: pick days and delete them (whole days, or only the sections
  * selected in the filter). Deleting asks first; what is removed is kept in the automatic history.
  */
-export function useTimelineManage({ cards, filterSections, loadedDates, setLoading }) {
-  const { sections, writeDayData, refreshDates, confirm, showToast } = useApp()
+export function useTimelineManage({ cards, filterSections, setLoading }) {
+  const { sections, writeDayData, readDayDataStrict, refreshDates, flushPendingSaves, confirm, showToast } = useApp()
   const [isManageMode, setIsManageMode] = useState(false)
   const [selectedDates, setSelectedDates] = useState(() => new Set())
 
@@ -69,15 +69,27 @@ export function useTimelineManage({ cards, filterSections, loadedDates, setLoadi
 
     setLoading(true)
     try {
+      // An edit of a day that could not be written when its page was left is retried first, so the file
+      // is up to date before it is deleted or rewritten, and the unsaved copy cannot come back afterwards.
+      if (!await flushPendingSaves()) {
+        showToast('有未保存的改动没能写入磁盘，请先重试保存，这次没有删除任何内容', 'error', 6000)
+        return
+      }
       const results = await Promise.all(targetDates.map(async (dateStr) => {
         let result
-        if (wholeDays) {
-          result = await window.api.fs.deleteFile(dayFile(dateStr))
-        } else {
-          // Writing the day without those sections also removes its file when nothing is left.
-          const remaining = { ...(loadedDates[dateStr] || {}) }
-          for (const id of filterSections) delete remaining[id]
-          result = await writeDayData(dateStr, remaining)
+        try {
+          if (wholeDays) {
+            result = await window.api.fs.deleteFile(dayFile(dateStr))
+          } else {
+            // Writing the day without those sections also removes its file when nothing is left. The day is
+            // read again: the list may be older than the file, and a day that cannot be read is left alone.
+            const remaining = { ...await readDayDataStrict(dateStr) }
+            for (const id of filterSections) delete remaining[id]
+            result = await writeDayData(dateStr, remaining)
+          }
+        } catch (error) {
+          console.error(error)
+          result = { ok: false }
         }
         return { dateStr, ok: Boolean(result?.ok) }
       }))

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { adoptLeftovers, handOverPendingWrite, markWritten } from '../src/renderer/src/utils/leftoverSaves.js'
+import { adoptLeftovers, discardLeftover, handOverPendingWrite, markWritten } from '../src/renderer/src/utils/leftoverSaves.js'
 
 function registry() {
   const flushes = new Map()
@@ -139,6 +139,24 @@ describe('a page that opens the day or note again', () => {
     expect(retried).toEqual({ ok: true })
     expect(write).toHaveBeenCalledTimes(2)
     expect(reg.flushes.size).toBe(0)
+  })
+
+  it('a note or day the user deleted does not come back from its failed copy', async () => {
+    const reg = registry()
+    const write = vi.fn(async () => ({ ok: false }))
+    await handOverPendingWrite({ key: 'trash-note:gone', value: 'N', write, ...reg })
+    await handOverPendingWrite({ key: 'trash-day:2026-01-01', value: 'D', write, ...reg })
+    // The page showed the copy, then the user deleted that note.
+    expect((await adoptLeftovers('trash-note:')).map(item => item.key)).toEqual(['trash-note:gone'])
+    discardLeftover('trash-note:gone')
+    // Not shown again, and not written again at close (the registration is gone).
+    expect(await adoptLeftovers('trash-note:')).toEqual([])
+    expect(reg.flushes.has('trash-note:gone#leftover')).toBe(false)
+    // Only that key: the other copy is still waiting for its retry.
+    expect(reg.flushes.has('trash-day:2026-01-01#leftover')).toBe(true)
+    expect(write).toHaveBeenCalledTimes(2)
+    // Nothing to discard is not an error.
+    expect(() => discardLeftover('note:never-existed')).not.toThrow()
   })
 
   it('a newer hand-over of the same key takes over the registration', async () => {

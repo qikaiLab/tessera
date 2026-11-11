@@ -11,8 +11,9 @@ export function isBlockedShortcut(input) {
 
 // F11 toggles the window's full screen. The packaged app has no menu (that is how the reload and
 // developer-tools shortcuts are gone), and the default menu is what used to provide this one.
+// Holding the key sends repeated presses, which must not flip the window back and forth.
 export function isFullScreenShortcut(input) {
-  if (!input || input.type !== 'keyDown') return false
+  if (!input || input.type !== 'keyDown' || input.isAutoRepeat) return false
   if (String(input.key).toLowerCase() !== 'f11') return false
   return !input.control && !input.meta && !input.alt && !input.shift
 }
