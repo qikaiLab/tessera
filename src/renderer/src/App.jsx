@@ -6,6 +6,7 @@ import Toast from './components/Toast'
 import Onboarding from './components/Onboarding'
 import ShortcutsModal from './components/ShortcutsModal'
 import CrashRecovery from './components/CrashRecovery'
+import AboutDialog from './components/about/AboutDialog'
 import ContextMenu from './components/ContextMenu'
 import Presence from './components/Presence'
 import Today from './pages/Today'
@@ -37,6 +38,7 @@ function AppContent() {
   const { isInitialized, adjustInterfaceZoom } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
   const [tmpFiles, setTmpFiles] = useState([])
   const sidebar = useResizableWidth({
     storageKey: 'mototrace_sidebar_width',
@@ -85,6 +87,7 @@ function AppContent() {
           width={sidebar.width}
           onResizeStart={sidebar.startResize}
           onOpenOnboarding={openOnboarding}
+          onOpenAbout={() => setShowAbout(true)}
         />
         <main className="app-main">
           <PageBoundary>
@@ -112,6 +115,7 @@ function AppContent() {
         />
       )}</Presence>
       <Presence>{showShortcuts && tmpFiles.length === 0 && <ShortcutsModal stacked={showOnboarding} onClose={() => setShowShortcuts(false)} />}</Presence>
+      <Presence>{showAbout && tmpFiles.length === 0 && <AboutDialog onClose={() => setShowAbout(false)} />}</Presence>
       {tmpFiles.length > 0 && (
         <CrashRecovery
           files={tmpFiles}

@@ -157,3 +157,47 @@ test('the text field menu acts on the field: select all, and disabled entries st
     await app.close()
   }
 })
+
+test('the version button opens the about dialog with the version, links and licences', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    const version = await window.locator('.sidebar-version').innerText()
+    expect(version).toMatch(/v\d+\.\d+\.\d+/)
+    await window.locator('.sidebar-version').click()
+
+    const dialog = window.locator('.about-modal')
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText('1132171117')
+    // The repository and the issue page are buttons whose address is their tooltip.
+    await expect(dialog.locator('.about-link[title*="qikaiLab"]')).toHaveCount(2)
+    await expect(dialog.locator('.about-link')).toHaveCount(4)
+    await expect(dialog.locator('.about-third-party li').first()).toBeVisible()
+
+    // Esc closes it and the keyboard goes back to the page.
+    await window.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
+test('a first launch opens light in pine green and keeps it after one setting changes', async ({ sandbox }) => {
+  const { app, window, problems } = await launchApp(sandbox)
+  try {
+    const root = window.locator('html')
+    await expect(root).toHaveAttribute('data-interface-style', 'default')
+    await expect(root).toHaveAttribute('data-theme', 'light')
+    await expect(root).toHaveAttribute('data-theme-accent', 'forest')
+
+    // Changing the theme must not send the accent back to the old default.
+    await window.evaluate(() => window.api.config.set('theme', 'dark'))
+    await window.reload()
+    await window.waitForSelector('.sidebar')
+    await expect(root).toHaveAttribute('data-theme', 'dark')
+    await expect(root).toHaveAttribute('data-theme-accent', 'forest')
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

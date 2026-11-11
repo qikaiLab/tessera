@@ -1,8 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
 import {
+  FRESH_INSTALL_APPEARANCE,
   INTERFACE_STYLE_IDS,
   THEME_ACCENT_IDS,
   applyAppearanceToRoot,
+  isFreshInstallConfig,
   isThemeToggleAvailable,
   normalizeInterfaceStyleId,
   normalizeTheme,
@@ -116,7 +118,20 @@ export function useAppearance() {
   }, [interfaceFont])
 
   // Applies the saved config (from `window.api.config.get()`) and the saved frosted background.
-  const loadAppearance = useCallback(async (config) => {
+  const loadAppearance = useCallback(async (loadedConfig) => {
+    // A first launch starts with the fresh-install look, which is saved right away so that a later
+    // change to one setting never sends the others back to the old defaults.
+    const fresh = isFreshInstallConfig(loadedConfig)
+    const config = fresh ? { ...loadedConfig, ...FRESH_INSTALL_APPEARANCE } : loadedConfig
+    if (fresh) {
+      try {
+        for (const [key, value] of Object.entries(FRESH_INSTALL_APPEARANCE)) {
+          await window.api.config.set(key, value)
+        }
+      } catch (error) {
+        console.error('Failed to save the first-launch appearance:', error)
+      }
+    }
     const savedTheme = normalizeTheme(config.theme)
     const savedStyle = normalizeInterfaceStyleId(config.interfaceStyle)
     const savedAccent = normalizeThemeAccentId(config.themeAccent)

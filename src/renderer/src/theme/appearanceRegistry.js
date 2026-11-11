@@ -69,6 +69,23 @@ const STYLE_BY_ID = new Map(INTERFACE_STYLE_REGISTRY.map(style => [style.id, sty
 const SELECTABLE_STYLE_IDS = new Set(SELECTABLE_INTERFACE_STYLES.map(style => style.id))
 const ACCENT_IDS = new Set(THEME_ACCENT_OPTIONS.map(accent => accent.id))
 
+// What a brand-new installation starts with: the default style, light, in pine green. An existing
+// installation that never touched these settings keeps the look it has always had (dark, violet).
+export const FRESH_INSTALL_APPEARANCE = Object.freeze({
+  interfaceStyle: INTERFACE_STYLE_IDS.DEFAULT,
+  theme: 'light',
+  themeAccent: THEME_ACCENT_IDS.FOREST
+})
+
+// A configuration with no appearance setting at all and a guide that was never closed is a first
+// launch. (Anyone who has used the app has either saved a setting or finished the guide.)
+export function isFreshInstallConfig(config = {}) {
+  return !config.onboardingDone
+    && config.interfaceStyle === undefined
+    && config.theme === undefined
+    && config.themeAccent === undefined
+}
+
 export function normalizeInterfaceStyleId(value) {
   return SELECTABLE_STYLE_IDS.has(value) ? value : INTERFACE_STYLE_IDS.DEFAULT
 }

@@ -42,7 +42,7 @@ function useNavIndicator(navRef, pathname) {
 }
 
 // The page list, the theme toggle and the drag handle that resizes the sidebar.
-export default function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
+export default function Sidebar({ width, onResizeStart, onOpenOnboarding, onOpenAbout }) {
   const { theme, toggleTheme, interfaceStyle } = useApp()
   const canToggleTheme = isThemeToggleAvailable(interfaceStyle)
   const location = useLocation()
@@ -97,7 +97,15 @@ export default function Sidebar({ width, onResizeStart, onOpenOnboarding }) {
         >
           {theme === 'dark' ? '○' : '●'}
         </button>
-        <span className="sidebar-version">v{__APP_VERSION__}</span>
+        <button
+          className="sidebar-version"
+          onClick={onOpenAbout}
+          title="关于、作者与许可"
+          aria-label={`关于，版本 ${__APP_VERSION__}`}
+        >
+          <span className="sidebar-version-mark" aria-hidden="true">ⓘ</span>
+          v{__APP_VERSION__}
+        </button>
       </div>
       <div
         className="sidebar-resize-handle"
