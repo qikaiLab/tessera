@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getDrawnBindings,
   getHeatmapDays,
+  getHeatmapRangeStart,
   getMetricForSection,
   moveBindingToFront,
   normalizeSeries,
@@ -73,10 +74,17 @@ describe('getHeatmapDays', () => {
   const today = new Date(2026, 4, 20)
 
   it('covers the last N days and starts on a Monday', () => {
-    const days = getHeatmapDays({ dateRange: '7' }, [], today)
-    expect(days[0]).toBe('2026-05-11')
+    const days = getHeatmapDays({ dateRange: '30' }, [], today)
+    // 30 days back from Wed 05-20 is Tue 04-21, so the grid starts on Mon 04-20.
+    expect(days[0]).toBe('2026-04-20')
     expect(days[days.length - 1]).toBe('2026-05-20')
     expect(new Date(days[0]).getUTCDay()).toBe(1)
+    expect(getHeatmapRangeStart({ dateRange: '30' }, [], today)).toBe('2026-04-21')
+  })
+
+  it('shows the last 7 days as exactly 7 days, without padding to a Monday', () => {
+    const days = getHeatmapDays({ dateRange: '7' }, [], today)
+    expect(days).toEqual(['2026-05-14', '2026-05-15', '2026-05-16', '2026-05-17', '2026-05-18', '2026-05-19', '2026-05-20'])
   })
 
   it('runs all-time views from the first recorded day, keeping empty days', () => {

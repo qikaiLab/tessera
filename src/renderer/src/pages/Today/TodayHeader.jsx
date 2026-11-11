@@ -41,7 +41,19 @@ export default function TodayHeader({
           ←
         </button>
         <div className="today-date-group">
-          <div className="today-date" onClick={() => setShowDatePicker(v => !v)}>
+          <div
+            className="today-date"
+            role="button"
+            tabIndex={0}
+            aria-expanded={showDatePicker}
+            title="跳转到其他日期"
+            onClick={() => setShowDatePicker(v => !v)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return
+              event.preventDefault()
+              setShowDatePicker(v => !v)
+            }}
+          >
             <div key={dateStr} className={`today-date-motion date-motion-${dateTransitionDir}`}>
               <span className="today-date-main">{formatDateDisplay(selectedDate)}</span>
               <span className="today-date-sub">{format(selectedDate, 'yyyy年MM月dd日')}</span>

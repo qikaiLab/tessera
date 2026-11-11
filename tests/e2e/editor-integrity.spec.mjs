@@ -86,6 +86,51 @@ test('a stored document with formats this version does not know keeps its text a
   }
 })
 
+test('clicking into a document that ends in a list does not rewrite it, repaired or not', async ({ sandbox }) => {
+  // Ends in a list, so the editor wants an empty paragraph after it once it is focused: that follow-up
+  // is not an edit by the user and must not write the file (here the document was also repaired).
+  const original = JSON.stringify({
+    type: 'doc',
+    content: [
+      { type: 'paragraph', content: [{ type: 'text', text: '带未知标记', marks: [{ type: 'sparkle' }] }] },
+      { type: 'bulletList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: '清单项' }] }] }] }
+    ]
+  })
+  await seedDiary(sandbox, original)
+  const file = todayFile(sandbox)
+  const before = await fs.readFile(file, 'utf8')
+
+  const { app, window } = await openApp(sandbox)
+  try {
+    const editor = window.locator(EDITOR).first()
+    await expect(editor).toContainText('清单项')
+    await expect(window.getByText(/当前版本不支持的格式/)).toHaveCount(1)
+    await editor.click()
+    await window.keyboard.press('Control+End')
+    await window.waitForTimeout(1500)
+    expect(await fs.readFile(file, 'utf8')).toBe(before)
+
+    await window.keyboard.type('追加')
+    await expect.poll(() => fs.readFile(file, 'utf8'), { timeout: 10_000 }).toContain('追加')
+    expect(await fs.readFile(file, 'utf8')).toContain('带未知标记')
+  } finally {
+    await app.close()
+  }
+})
+
+test('a legacy plain-text day with blank lines is opened once, with one notice and no second load', async ({ sandbox }) => {
+  // Not a valid rich-text document: shown as paragraphs, blank lines included.
+  await seedDiary(sandbox, '{"unfinished": 第一段\n\n第二段')
+  const { app, window } = await openApp(sandbox)
+  try {
+    await expect(window.locator(EDITOR).first()).toContainText('第二段')
+    await window.waitForTimeout(800)
+    expect(await window.getByText(/当前版本不支持的格式/).count()).toBeLessThanOrEqual(1)
+  } finally {
+    await app.close()
+  }
+})
+
 test('legacy plain text that happens to be valid JSON is shown, not replaced by an empty card', async ({ sandbox }) => {
   await seedDiary(sandbox, '2024')
   const { app, window, problems } = await openApp(sandbox)

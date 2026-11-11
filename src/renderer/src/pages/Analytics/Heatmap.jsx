@@ -29,10 +29,13 @@ export default function Heatmap({ data, color, dateRange }) {
   const scale = useMemo(() => createHeatmapScale(data.map(d => d.value)), [data])
   const maxValue = useMemo(() => data.reduce((max, d) => Math.max(max, d.value), 0), [data])
 
-  // Show the most recent days first: scroll to the right edge.
+  // Show the most recent days first: scroll to the right edge. Only when the grid itself changes
+  // (another range, another number of days), not on every new data array: editing the card's title
+  // makes one, and must not throw away where the user had scrolled to.
+  const dayCount = data.length
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
-  }, [data])
+  }, [dayCount, dateRange])
 
   // The wheel scrolls the grid sideways when it overflows. React's onWheel is passive and cannot
   // call preventDefault() reliably, so this needs a native, non-passive listener.
@@ -49,7 +52,7 @@ export default function Heatmap({ data, color, dateRange }) {
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [data])
+  }, [dayCount, dateRange])
 
   if (!data.length) return null
 
@@ -86,7 +89,10 @@ export default function Heatmap({ data, color, dateRange }) {
       <div className={`heatmap-wrapper${isCompact ? ' heatmap-compact' : ''}`} ref={scrollRef}>
         <div className={`heatmap${isCompact ? ' heatmap-compact-grid' : ''}`}>
           {data.map((day, i) => (
-            <div key={i} className="heatmap-cell" style={{ background: getColor(day.value) }} title={`${day.date}: ${day.value}`} />
+            day.padded
+              // Only completes the first week of the grid: a blank space, not a day of the range.
+              ? <div key={i} className="heatmap-cell" style={{ visibility: 'hidden' }} aria-hidden="true" />
+              : <div key={i} className="heatmap-cell" style={{ background: getColor(day.value) }} title={`${day.date}: ${day.value}`} />
           ))}
         </div>
       </div>

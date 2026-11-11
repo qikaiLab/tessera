@@ -61,7 +61,14 @@ export default function SortableSection({ section, onToggleResident, onChangeCol
         ) : (
           <span
             className="sec-item-name sec-item-name-editable"
+            role="button"
+            tabIndex={0}
             onClick={startEdit}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return
+              event.preventDefault()
+              startEdit()
+            }}
             title="点击重命名"
           >
             {section.name}
@@ -94,17 +101,18 @@ export default function SortableSection({ section, onToggleResident, onChangeCol
             value={color}
             onChange={e => onChangeColor(e.target.value)}
             style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
-            tabIndex={-1}
+            aria-label={`${section.name}的颜色`}
           />
           <span className="color-swatch-circle" style={{ background: color }} />
         </label>
         <button
           className={`btn btn-sm ${section.resident ? 'btn-primary' : 'btn-ghost'}`}
+          aria-pressed={Boolean(section.resident)}
           onClick={onToggleResident}
         >
           {section.resident ? '★ 常驻' : '☆ 常驻'}
         </button>
-        <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--error)' }} onClick={onDelete}>🗑</button>
+        <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--error)' }} aria-label={`删除版块 ${section.name}`} onClick={onDelete}>🗑</button>
       </div>
     </div>
   )

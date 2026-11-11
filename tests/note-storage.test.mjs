@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { loadNotesFromDisk } from '../src/renderer/src/utils/noteStorage.js'
+import { handOverPendingWrite } from '../src/renderer/src/utils/leftoverSaves.js'
 
 // A fake data folder behind window.api.fs: { 'notes/index.json': text, 'notes/a.json': text, ... }
 let files
@@ -54,5 +55,25 @@ describe('loading the notes', () => {
     files['notes/a.json.tmp'] = '{}'
     files['notes/b.json.incomplete'] = '{}'
     expect(await loadNotesFromDisk()).toEqual([])
+  })
+})
+
+describe('a note whose save failed when its page was left', () => {
+  it('is shown as it was edited, not as the older file, including a note that never reached the disk', async () => {
+    files['notes/index.json'] = JSON.stringify([{ id: 'a', title: 'A' }])
+    files['notes/a.json'] = note('a', 'A on disk')
+    const edited = { id: 'a', title: 'A edited', content: { type: 'doc', content: [] }, updatedAt: '2026-02-01T00:00:00.000Z', pinned: false, archived: false }
+    const fresh = { id: 'fresh', title: 'Never saved', content: { type: 'doc', content: [] }, updatedAt: '2026-03-01T00:00:00.000Z', pinned: false, archived: false }
+    const flushes = new Map()
+    const reg = { registerPendingFlush: (key, fn) => flushes.set(key, fn), unregisterPendingFlush: key => flushes.delete(key) }
+    const fail = async () => ({ ok: false })
+    await handOverPendingWrite({ key: 'note:a', value: { note: edited, notes: [edited] }, write: fail, ...reg })
+    await handOverPendingWrite({ key: 'note:fresh', value: { note: fresh, notes: [fresh] }, write: fail, ...reg })
+
+    const loaded = await loadNotesFromDisk()
+    expect(loaded.find(item => item.id === 'a').title).toBe('A edited')
+    expect(loaded.find(item => item.id === 'fresh').title).toBe('Never saved')
+    expect(loaded.map(item => item.id)).toEqual(['fresh', 'a'])
+    flushes.clear()
   })
 })

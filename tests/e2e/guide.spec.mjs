@@ -39,6 +39,25 @@ test('the guide lists every topic and switches between them', async ({ sandbox }
   }
 })
 
+test('the guide takes focus when it opens and gives it back to the button that opened it', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    const opener = window.getByTitle('使用说明')
+    await opener.focus()
+    await opener.click()
+    const dialog = window.getByRole('dialog', { name: '使用说明' })
+    await expect(dialog).toBeVisible()
+    // Focus is on the scrolling article (so the arrow and page keys work), inside the dialog.
+    await expect.poll(() => window.evaluate(() => document.activeElement?.id)).toBe('guide-panel')
+    await window.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(opener).toBeFocused()
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
 test('searching narrows the topics, Esc clears the search first and then closes the guide', async ({ sandbox }) => {
   const { app, window, problems } = await openApp(sandbox)
   try {

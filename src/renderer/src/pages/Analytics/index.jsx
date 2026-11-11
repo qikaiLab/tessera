@@ -5,6 +5,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useApp } from '../../context/AppContext'
+import ModalFrame from '../../components/ModalFrame'
 import Presence from '../../components/Presence'
 import SortableCard from './AnalyticsCard'
 import { SECONDARY_PALETTE, getRenderedAccentColor } from './chartTheme'
@@ -15,22 +16,20 @@ import './Analytics.css'
 function DeleteChartDialog({ card, onCancel, onConfirm }) {
   return (
     <Presence>{card && (
-      <div className="modal-overlay" onClick={onCancel}>
-        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+      <ModalFrame role="alertdialog" label="删除图表" onDismiss={onCancel} style={{ maxWidth: 380 }}>
           <div className="modal-header">
             <span className="modal-title">删除图表</span>
-            <button className="btn btn-ghost btn-icon" onClick={onCancel}>✕</button>
+            <button className="btn btn-ghost btn-icon" aria-label="关闭" onClick={onCancel}>✕</button>
           </div>
           <div style={{ marginBottom: 20, color: 'var(--text-primary)', lineHeight: 1.6 }}>
             <p>确定要删除图表 <b>「{card.title}」</b> 吗？</p>
             <p style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: 13 }}>此操作无法撤销。</p>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button className="btn btn-ghost" onClick={onCancel}>取消</button>
+            <button className="btn btn-ghost" data-autofocus="" onClick={onCancel}>取消</button>
             <button className="btn btn-primary" style={{ background: 'var(--error)' }} onClick={onConfirm}>确定删除</button>
           </div>
-        </div>
-      </div>
+      </ModalFrame>
     )}</Presence>
   )
 }
@@ -38,7 +37,7 @@ function DeleteChartDialog({ card, onCancel, onConfirm }) {
 // The analytics page: a grid of chart cards (line, bar, pie, heatmap) bound to data sections.
 export default function Analytics() {
   const { sections, datesWithData, analytics: cards, saveAnalytics: setCards } = useApp()
-  const loadedData = useAnalyticsDays(datesWithData)
+  const { loadedData, loading } = useAnalyticsDays(datesWithData)
   const cardActions = useAnalyticsCards({ cards, setCards })
   const accentColor = getRenderedAccentColor()
   const palette = useMemo(() => [accentColor, ...SECONDARY_PALETTE], [accentColor])
@@ -74,6 +73,7 @@ export default function Analytics() {
                     card={card}
                     sections={sections}
                     loadedData={loadedData}
+                    loading={loading}
                     datesWithData={datesWithData}
                     palette={palette}
                     isEditing={cardActions.editingCard === card.id}

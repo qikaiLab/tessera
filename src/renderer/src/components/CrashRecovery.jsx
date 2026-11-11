@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import ModalFrame from './ModalFrame'
 
 export default function CrashRecovery({ files, onDone }) {
   const { showToast } = useApp()
@@ -45,8 +46,7 @@ export default function CrashRecovery({ files, onDone }) {
 
   if (reloadNotice) {
     return (
-      <div className="modal-overlay">
-        <div className="modal">
+      <ModalFrame key="recovered" role="alertdialog" label="恢复完成">
           <div className="modal-header">
             <span className="modal-title">恢复完成</span>
           </div>
@@ -54,16 +54,14 @@ export default function CrashRecovery({ files, onDone }) {
             {reloadNotice}软件需要重新载入，才能显示并继续编辑恢复后的内容。
           </p>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="btn btn-primary" onClick={() => window.location.reload()}>重新载入</button>
+            <button className="btn btn-primary" data-autofocus="" onClick={() => window.location.reload()}>重新载入</button>
           </div>
-        </div>
-      </div>
+      </ModalFrame>
     )
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal">
+    <ModalFrame key="found" role="alertdialog" label="发现未保存的数据">
         <div className="modal-header">
           <span className="modal-title">⚠ 发现未保存的数据</span>
         </div>
@@ -81,11 +79,10 @@ export default function CrashRecovery({ files, onDone }) {
           <button className="btn btn-ghost" onClick={discardAll} disabled={processing}>
             丢弃
           </button>
-          <button className="btn btn-primary" onClick={recoverAll} disabled={processing}>
+          <button className="btn btn-primary" data-autofocus="" onClick={recoverAll} disabled={processing}>
             {processing ? '处理中...' : '恢复数据'}
           </button>
         </div>
-      </div>
-    </div>
+    </ModalFrame>
   )
 }

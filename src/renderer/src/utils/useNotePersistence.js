@@ -24,6 +24,24 @@ const writeIndex = (notes) => window.api.fs.writeFile(
   JSON.stringify(notes.map(normalizeNoteMeta), null, 2)
 )
 
+// Puts one note's entry into the index as it is on disk now, instead of writing a list that was
+// taken some time ago (the notes may have been added, deleted or reordered since).
+async function writeIndexEntry(note, fallbackNotes) {
+  let list = null
+  const current = await window.api.fs.readFile(NOTES_INDEX_PATH)
+  if (current.ok) {
+    try {
+      const parsed = JSON.parse(current.data)
+      if (Array.isArray(parsed)) list = parsed
+    } catch { /* an unusable index is replaced below */ }
+  }
+  if (!list) return writeIndex(fallbackNotes)
+  const meta = normalizeNoteMeta(note)
+  const position = list.findIndex(item => item?.id === note.id)
+  const next = position >= 0 ? list.map((item, index) => (index === position ? meta : item)) : [...list, meta]
+  return window.api.fs.writeFile(NOTES_INDEX_PATH, JSON.stringify(next, null, 2))
+}
+
 /**
  * Saving notes: a note file and the index that lists it, debounced while typing, flushed on
  * demand (before switching notes, on a save shortcut) and before the window closes or the owner
@@ -101,10 +119,11 @@ export function useNotePersistence({ flushKey, savedBadgeMs = 1600 }) {
         const { registerPendingFlush: register, unregisterPendingFlush: unregister, showToast: toast } = leaveRef.current
         handOverPendingWrite({
           key: `note:${pending.note.id}`,
+          value: pending,
           write: async () => {
             const noteResult = await writeNote(pending.note)
             if (!noteResult.ok) return noteResult
-            return writeIndex(pending.notes)
+            return writeIndexEntry(pending.note, pending.notes)
           },
           registerPendingFlush: register,
           unregisterPendingFlush: unregister,

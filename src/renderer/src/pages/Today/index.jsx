@@ -119,6 +119,7 @@ export default function Today() {
               <SectionCard
                 section={section}
                 value={presence.getDisplayValue(section)}
+                valuePending={records.carryPending.has(section.id)}
                 onChange={(value) => records.changeValue(section.id, value)}
                 onContextMenu={(event) => menu.openSectionMenu(event, section)}
                 onUseRecentNumberValue={() => records.findRecentNumberValue(dateStr, section.id)}

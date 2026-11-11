@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useModalA11y } from '../utils/useModalA11y'
 import GuideBlock from './guide/GuideBlock'
 import { GUIDE_TOPICS, searchTopics } from './guide/guideTopics'
 import './Onboarding.css'
 
 // The in-app guide ("使用说明"): topics on the left, the open topic on the right, and a search
 // that narrows the topics. It opens by itself on the first run and from the 💡 button / F1.
-// `suspended`: another dialog (the shortcut list) is on top, so Esc belongs to that one.
-export default function Onboarding({ onDone, onOpenShortcuts, firstRun = false, suspended = false }) {
+export default function Onboarding({ onDone, onOpenShortcuts, firstRun = false }) {
   const [topicId, setTopicId] = useState(GUIDE_TOPICS[0].id)
   const [query, setQuery] = useState('')
   const scrollRef = useRef(null)
@@ -23,22 +23,16 @@ export default function Onboarding({ onDone, onOpenShortcuts, firstRun = false, 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 })
   }, [current?.id])
-  useEffect(() => {
-    scrollRef.current?.focus({ preventScroll: true })
-  }, [])
 
-  useEffect(() => {
-    if (suspended) return undefined
-    const onKeyDown = (event) => {
-      if (event.key !== 'Escape') return
-      event.preventDefault()
-      // Esc first clears a search, then closes the guide.
-      if (query) setQuery('')
-      else onDone()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onDone, query, suspended])
+  // Esc first clears a search, then closes the guide. While the shortcut list is open on top of it,
+  // that dialog (the newest one) gets Esc instead.
+  const dialogRef = useRef(null)
+  const dismiss = useCallback(() => {
+    if (query) setQuery('')
+    else onDone()
+  }, [onDone, query])
+  // Focus starts on the scrolling pane (`data-autofocus` below), and returns to the opener on close.
+  useModalA11y(dialogRef, { onDismiss: dismiss })
 
   const selectTopic = useCallback((id) => setTopicId(id), [])
 
@@ -56,7 +50,7 @@ export default function Onboarding({ onDone, onOpenShortcuts, firstRun = false, 
 
   return (
     <div className="onboarding-overlay">
-      <div className="onboarding-modal guide" role="dialog" aria-modal="true" aria-label="使用说明">
+      <div ref={dialogRef} className="onboarding-modal guide" role="dialog" aria-modal="true" aria-label="使用说明">
         <aside className="guide-side">
           <div className="guide-brand">
             <span className="guide-brand-mark" aria-hidden="true">◈</span>
@@ -130,6 +124,7 @@ export default function Onboarding({ onDone, onOpenShortcuts, firstRun = false, 
             role="tabpanel"
             aria-labelledby={current ? `guide-tab-${current.id}` : undefined}
             tabIndex={-1}
+            data-autofocus
             ref={scrollRef}
           >
             {current ? (

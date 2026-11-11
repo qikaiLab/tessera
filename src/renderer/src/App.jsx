@@ -102,15 +102,16 @@ function AppContent() {
       </div>
       <Toast />
       <ContextMenu />
-      <Presence>{showOnboarding && (
+      {/* The recovery question comes first: it is shown above everything, and the guide and the shortcut
+          list wait until it is answered, so the keyboard never belongs to a dialog hidden beneath it. */}
+      <Presence>{showOnboarding && tmpFiles.length === 0 && (
         <Onboarding
           onDone={handleOnboardingDone}
           onOpenShortcuts={() => setShowShortcuts(true)}
           firstRun={guideFirstRun}
-          suspended={showShortcuts}
         />
       )}</Presence>
-      <Presence>{showShortcuts && <ShortcutsModal stacked={showOnboarding} onClose={() => setShowShortcuts(false)} />}</Presence>
+      <Presence>{showShortcuts && tmpFiles.length === 0 && <ShortcutsModal stacked={showOnboarding} onClose={() => setShowShortcuts(false)} />}</Presence>
       {tmpFiles.length > 0 && (
         <CrashRecovery
           files={tmpFiles}

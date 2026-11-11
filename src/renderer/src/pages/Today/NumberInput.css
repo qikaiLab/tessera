@@ -16,3 +16,8 @@
 }
 .num-btn:hover { background: var(--bg-hover); border-color: var(--border-hover); }
 .num-btn:active { transform: scale(0.95); }
+
+.num-btn:disabled { opacity: 0.5; cursor: progress; }
+.num-btn:disabled:hover { background: var(--bg-surface-2); border-color: var(--border); }
+.num-btn:disabled:active { transform: none; }
+.number-input-wrap[aria-busy="true"] .number-input { opacity: 0.6; }

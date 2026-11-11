@@ -1,3 +1,4 @@
+import { adoptLeftovers } from './leftoverSaves'
 import {
   NOTES_INDEX_PATH,
   compareNotes,
@@ -14,6 +15,9 @@ import {
  * files themselves. `onIndexCorrupt` is called when an index exists but cannot be used.
  */
 export async function loadNotesFromDisk({ onIndexCorrupt } = {}) {
+  // A note saved when its page was left, still being written or failed to be: it is newer than the
+  // file, so it is shown instead (see leftoverSaves).
+  const leftovers = await adoptLeftovers('note:')
   const indexResult = await window.api.fs.readFile(NOTES_INDEX_PATH)
   let metas = []
   let indexUsable = false
@@ -45,5 +49,12 @@ export async function loadNotesFromDisk({ onIndexCorrupt } = {}) {
     if (!result.ok) return normalizeNoteMeta(meta)
     return parseNote(result.data, meta) || normalizeNoteMeta(meta)
   }))
+  for (const { value } of leftovers) {
+    const held = value?.note
+    if (!held?.id) continue
+    const position = notes.findIndex(item => item.id === held.id)
+    if (position >= 0) notes[position] = held
+    else notes.push(held)
+  }
   return notes.sort(compareNotes)
 }

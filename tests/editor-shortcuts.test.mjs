@@ -46,6 +46,14 @@ describe('isLeaveFullscreenKey', () => {
     expect(isLeaveFullscreenKey({ key: 'Escape' }, menuOpen)).toBe(false)
   })
 
+  it.each(['.app-context-menu', '.modal-overlay', '.shortcuts-overlay', '.onboarding-overlay'])(
+    'leaves Esc to an open %s',
+    owner => {
+      const open = { querySelector: selector => (selector === owner ? {} : null) }
+      expect(isLeaveFullscreenKey({ key: 'Escape' }, open)).toBe(false)
+    }
+  )
+
   it('leaves Esc to the input method while composing', () => {
     expect(isLeaveFullscreenKey({ key: 'Escape', isComposing: true }, noMenu)).toBe(false)
     expect(isLeaveFullscreenKey({ key: 'Escape', keyCode: 229 }, noMenu)).toBe(false)

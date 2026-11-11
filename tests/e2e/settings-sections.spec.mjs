@@ -77,7 +77,7 @@ test('sections can be added, renamed, pinned and deleted from the settings', asy
     await expect.poll(async () => (await readSections(sandbox)).find(section => section.name === '体重记录')?.resident).toBe(true)
 
     // Delete it: nothing is recorded for it, so the dialog lets it go.
-    await renamed.getByRole('button', { name: '🗑' }).click()
+    await renamed.getByRole('button', { name: /删除版块/ }).click()
     const dialog = window.locator('.modal')
     await expect(dialog).toContainText('可以安全删除')
     await dialog.getByRole('button', { name: '确定删除' }).click()
@@ -103,7 +103,7 @@ test('a section that holds data on any day cannot be deleted', async ({ sandbox 
   const { app, window, problems } = await openSettings(sandbox)
   try {
     await window.getByRole('tab', { name: '数据版块' }).click()
-    await window.locator('.settings-section-item', { hasText: '步数' }).getByRole('button', { name: '🗑' }).click()
+    await window.locator('.settings-section-item', { hasText: '步数' }).getByRole('button', { name: /删除版块/ }).click()
     const dialog = window.locator('.modal')
     await expect(dialog).toContainText('无法删除此版块')
     await expect(dialog.getByRole('button', { name: '确定删除' })).toHaveCount(0)
@@ -111,6 +111,34 @@ test('a section that holds data on any day cannot be deleted', async ({ sandbox 
     await expect(dialog).toHaveCount(0)
     expect((await readSections(sandbox)).some(section => section.id === 'steps')).toBe(true)
     expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
+test('a section is kept while a day cannot be read, since that day may hold data for it', async ({ sandbox }) => {
+  await fs.mkdir(sandbox.dataDir, { recursive: true })
+  await fs.writeFile(path.join(sandbox.dataDir, 'sections.json'), JSON.stringify([
+    { id: 'diary', name: '日记', type: 'text', unit: '', resident: true, order: 0 },
+    { id: 'steps', name: '步数', type: 'number', unit: '步', resident: false, order: 1 }
+  ]))
+  const now = new Date()
+  const file = path.join(sandbox.dataDir, String(now.getFullYear()), pad(now.getMonth() + 1), `${pad(now.getDate())}.json`)
+  await fs.mkdir(path.dirname(file), { recursive: true })
+  const broken = '{"steps": {"value": "80'
+  await fs.writeFile(file, broken)
+
+  const { app, window } = await openSettings(sandbox)
+  try {
+    await window.getByRole('tab', { name: '数据版块' }).click()
+    await window.locator('.settings-section-item', { hasText: '步数' }).getByRole('button', { name: /删除版块/ }).click()
+    const dialog = window.locator('.modal')
+    await expect(dialog).toContainText('暂时无法删除此版块')
+    await expect(dialog.getByRole('button', { name: '确定删除' })).toHaveCount(0)
+    await dialog.getByRole('button', { name: '知道了' }).click()
+    expect((await readSections(sandbox)).some(section => section.id === 'steps')).toBe(true)
+    // Nothing was touched on the way.
+    expect(await fs.readFile(file, 'utf8')).toBe(broken)
   } finally {
     await app.close()
   }

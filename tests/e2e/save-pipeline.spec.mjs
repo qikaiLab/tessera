@@ -49,6 +49,28 @@ test('an edit made just before leaving the record page still reaches the file', 
   }
 })
 
+test('coming straight back to the record page shows the edit that was just handed over, and the next edit keeps it', async ({ sandbox }) => {
+  await seedSections(sandbox)
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    const editor = () => window.locator('.sections-grid .ProseMirror').first()
+    await editor().click()
+    await window.keyboard.type('第一句')
+    await window.locator('.nav-item', { hasText: '时间线' }).click()
+    await window.locator('.nav-item', { hasText: '记录' }).click()
+    // The page must start from the handed-over copy (or the file once it holds it), never from the older file.
+    await expect(editor()).toContainText('第一句')
+    await editor().click()
+    await window.keyboard.press('End')
+    await window.keyboard.type('第二句')
+    await expect.poll(async () => JSON.stringify(await readToday(sandbox)), { timeout: 10_000 }).toContain('第二句')
+    expect(JSON.stringify(await readToday(sandbox))).toContain('第一句')
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
 test('a day file that cannot be read is shown as an error and is never written over', async ({ sandbox }) => {
   await seedSections(sandbox)
   const file = todayFile(sandbox)

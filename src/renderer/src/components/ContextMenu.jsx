@@ -69,13 +69,16 @@ export default function ContextMenu() {
     const handleResize = () => close()
     const handleKeyDown = event => {
       if (event.key === 'Escape' || event.key === 'Tab') {
+        // The menu consumed the key: a dialog or the fullscreen editor under it must not act on it too.
         event.preventDefault()
+        event.stopPropagation()
         close()
         return
       }
 
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault()
+        event.stopPropagation()
         setActiveIndex(current => nextEnabledMenuIndex(
           request.items,
           current,
@@ -86,6 +89,7 @@ export default function ContextMenu() {
 
       if ((event.key === 'Enter' || event.key === ' ') && activeIndex >= 0) {
         event.preventDefault()
+        event.stopPropagation()
         const item = request.items[activeIndex]
         close()
         void activateContextMenuItem(request, item)

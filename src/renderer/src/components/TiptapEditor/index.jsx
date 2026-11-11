@@ -79,8 +79,12 @@ const TiptapEditor = forwardRef(function TiptapEditor(
   const editor = useEditor({
     extensions: buildEditorExtensions({ placeholder, onSave: () => onSaveRef.current?.() }),
     content: initialContentRef.current.doc,
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor, transaction }) => {
       if (isExternalUpdateRef.current) return
+      // A change made only by the editor's own follow-up rules (the empty paragraph it keeps after a
+      // list or table, added when the editor is first focused) is not an edit by the user: it must not
+      // rewrite the stored document, least of all one that was opened in a repaired form.
+      if (!transaction.docChanged) return
       onChangeRef.current?.(editor.getJSON())
     },
     editorProps: {
@@ -127,8 +131,15 @@ const TiptapEditor = forwardRef(function TiptapEditor(
   // same document, which must not be loaded again or the cursor would jump.
   useEffect(() => {
     if (!editor) return
-    const nextContent = prepareDocument(value).doc
-    if (JSON.stringify(editor.getJSON()) !== JSON.stringify(nextContent)) loadDocument(value)
+    // Compared as documents, not as JSON text: the same document can be written two ways (an empty
+    // paragraph with or without an empty `content` list).
+    let unchanged = false
+    try {
+      unchanged = editor.state.doc.eq(editor.schema.nodeFromJSON(prepareDocument(value).doc))
+    } catch {
+      unchanged = false
+    }
+    if (!unchanged) loadDocument(value)
   }, [value, editor, loadDocument])
 
   useFullscreenEditor({ isFullScreen, fullScreenLeaving, onToggleFullScreen })

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ModalFrame from '../../components/ModalFrame'
 import { describeCountdown } from '../../utils/countdowns'
 
 const COLORS = ['#7c6aff', '#34d399', '#f87171', '#fbbf24', '#60a5fa', '#f472b6', '#a78bfa']
@@ -49,8 +50,11 @@ export default function CountdownModal({ countdowns, onSave, onClose, confirm })
       message,
       title: '保存确认',
       confirmText: '添加并保存',
-      cancelText: '直接保存'
+      cancelText: '直接保存',
+      // Closing the question (✕, Esc, a click outside) means "not yet", not "save without it".
+      dismissValue: null
     })
+    if (addFirst === null) return
     if (!addFirst) {
       onSave(list)
     } else if (newName && newDate) {
@@ -64,13 +68,12 @@ export default function CountdownModal({ countdowns, onSave, onClose, confirm })
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+    <ModalFrame label="倒数日管理" onDismiss={onClose}>
         <div className="modal-header">
           <span className="modal-title">倒数日管理</span>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <button className="btn btn-ghost btn-icon" aria-label="关闭" onClick={onClose}>✕</button>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+        <div className="countdown-list" style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
           {list.length === 0 && (
             <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
               还没有倒数日，在下方添加第一个吧 ↓
@@ -82,7 +85,7 @@ export default function CountdownModal({ countdowns, onSave, onClose, confirm })
               <span className="cd-name">{cd.name}</span>
               <span className="cd-date">{cd.date}</span>
               <span className="cd-diff">{describeCountdown(cd.date)}</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => remove(cd.id)}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label={`删除倒数日 ${cd.name}`} onClick={() => remove(cd.id)}>✕</button>
             </div>
           ))}
         </div>
@@ -95,6 +98,7 @@ export default function CountdownModal({ countdowns, onSave, onClose, confirm })
             <input
               className="input"
               placeholder="名称（必填）"
+              data-autofocus=""
               style={{ flex: 1, minWidth: 100, borderColor: addError && !newName ? 'var(--error)' : undefined }}
               value={newName}
               onChange={e => { setNewName(e.target.value); setAddError('') }}
@@ -111,6 +115,8 @@ export default function CountdownModal({ countdowns, onSave, onClose, confirm })
               {COLORS.map(c => (
                 <button
                   key={c}
+                  aria-label={`颜色 ${c}`}
+                  aria-pressed={newColor === c}
                   style={{
                     width: 20, height: 20, borderRadius: '50%', background: c,
                     border: newColor === c ? '2px solid white' : '2px solid transparent',
@@ -134,7 +140,6 @@ export default function CountdownModal({ countdowns, onSave, onClose, confirm })
           <button className="btn btn-ghost" onClick={onClose}>取消</button>
           <button className="btn btn-primary" onClick={handleSave}>保存</button>
         </div>
-      </div>
-    </div>
+    </ModalFrame>
   )
 }

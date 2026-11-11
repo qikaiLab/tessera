@@ -8,13 +8,20 @@ import { isEditableMenuTarget } from '../../utils/editableText'
 import ChartRenderer from './ChartRenderer'
 
 // One chart: title and actions, the (collapsible) settings editor, and the chart itself.
-function AnalyticsCard({ card, sections, loadedData, datesWithData, palette, isEditing, onEdit, onUpdate, onDelete, onDuplicate, dragHandleProps }) {
-  const chartData = useMemo(
-    () => buildChartData(card, sections, loadedData, datesWithData, palette),
-    [card, sections, loadedData, datesWithData, palette]
-  )
+function AnalyticsCard({ card, sections, loadedData, loading, datesWithData, palette, isEditing, onEdit, onUpdate, onDelete, onDuplicate, dragHandleProps }) {
+  // The chart is rebuilt (and redrawn) only when something it draws changes: typing in the title
+  // makes a new card object on every keystroke, but not a new chart.
+  const { type, dateRange, dateFrom, dateTo, dateAxisMode, axisMode } = card
   const bindings = useMemo(() => card.bindings || [], [card.bindings])
-  const heatmapColor = useMemo(() => getHeatmapColor(card, sections, palette), [card, sections, palette])
+  const chartConfig = useMemo(
+    () => ({ type, bindings, dateRange, dateFrom, dateTo, dateAxisMode, axisMode }),
+    [type, bindings, dateRange, dateFrom, dateTo, dateAxisMode, axisMode]
+  )
+  const chartData = useMemo(
+    () => buildChartData(chartConfig, sections, loadedData, datesWithData, palette),
+    [chartConfig, sections, loadedData, datesWithData, palette]
+  )
+  const heatmapColor = useMemo(() => getHeatmapColor(chartConfig, sections, palette), [chartConfig, sections, palette])
 
   // Mount the editor on first open and keep it so the collapse animation can play.
   const [editorMounted, setEditorMounted] = useState(isEditing)
@@ -81,9 +88,13 @@ function AnalyticsCard({ card, sections, loadedData, datesWithData, palette, isE
       </div>
 
       <div className="analytics-chart-area">
-        {chartData.length === 0 || bindings.length === 0 ? (
+        {bindings.length === 0 ? (
           <div className="chart-empty">
             <p>绑定数据版块后显示图表</p>
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="chart-empty" role="status">
+            <p>{loading ? '正在读取记录…' : '所选时间范围内没有可显示的数据'}</p>
           </div>
         ) : (
           <ChartRenderer card={card} data={chartData} sections={sections} heatmapColor={heatmapColor} palette={palette} />

@@ -286,6 +286,12 @@
 .countdown-diff { color: var(--text-secondary); }
 
 /* Countdown modal */
+/* Many countdowns scroll inside the dialog; its title and buttons stay in reach. */
+.countdown-list {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
 .countdown-row {
   display: flex;
   align-items: center;

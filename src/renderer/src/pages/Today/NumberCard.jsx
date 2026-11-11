@@ -6,6 +6,7 @@ import SectionTypeBadge from './SectionTypeBadge'
 export default function NumberCard({
   section,
   value,
+  valuePending,
   onChange,
   onContextMenu,
   onUseRecentNumberValue,
@@ -33,6 +34,7 @@ export default function NumberCard({
           <NumberInput
             sectionId={section.id}
             value={value}
+            pending={valuePending}
             unit={section.unit}
             onChange={onChange}
             onUseRecentValue={onUseRecentNumberValue}

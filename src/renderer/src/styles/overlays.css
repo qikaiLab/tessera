@@ -33,6 +33,15 @@
   max-width: 90vw;
   box-shadow: var(--shadow-xl);
   animation: modalIn var(--transition-spring) both;
+  /* A dialog taller than the window scrolls instead of losing its header and buttons off-screen. */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+/* Dialogs take focus themselves (for screen readers and Tab); that is not worth a ring. */
+.modal:focus,
+.shortcuts-modal:focus {
+  outline: none;
 }
 
 /* <Presence> keeps a closing dialog or menu mounted just long enough to play these. */

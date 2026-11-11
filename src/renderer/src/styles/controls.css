@@ -97,3 +97,12 @@
   border-radius: var(--radius-lg);
   padding: var(--spacing-5);
 }
+
+/* Keyboard focus on the clickable areas that are not <button>s (a day card, the date, a section's name). */
+.timeline-card:focus-visible,
+.today-date:focus-visible,
+.sec-item-name-editable:focus-visible,
+.color-swatch-btn:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

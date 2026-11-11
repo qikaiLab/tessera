@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useRef, useState } from 'react'
+import { useModalA11y, useOverlayDismiss } from '../utils/useModalA11y'
 import './ShortcutsModal.css'
 
 const categories = [
@@ -52,16 +53,10 @@ export default function ShortcutsModal({ onClose, stacked = false }) {
   const [activeTab, setActiveTab] = useState('edit')
   const isMac = window.navigator.platform.toUpperCase().indexOf('MAC') >= 0
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  // Esc, focus and Tab are handled by the shared dialog behaviour (the newest open dialog answers).
+  const boxRef = useRef(null)
+  useModalA11y(boxRef, { onDismiss: onClose })
+  const overlayProps = useOverlayDismiss(onClose)
 
   const renderKeys = (keys) => {
     return keys.map((key, i) => {
@@ -75,14 +70,14 @@ export default function ShortcutsModal({ onClose, stacked = false }) {
   const activeCategory = categories.find(c => c.id === activeTab)
 
   return (
-    <div className={`shortcuts-overlay${stacked ? ' is-stacked' : ''}`} onClick={onClose}>
-      <div className="shortcuts-modal" onClick={e => e.stopPropagation()}>
+    <div className={`shortcuts-overlay${stacked ? ' is-stacked' : ''}`} {...overlayProps}>
+      <div ref={boxRef} className="shortcuts-modal" role="dialog" aria-modal="true" aria-label="快捷键清单" tabIndex={-1}>
         <div className="shortcuts-header">
           <div className="shortcuts-header-title">
             <span className="shortcuts-header-icon">⌨</span>
             <h2>快捷键清单</h2>
           </div>
-          <button className="shortcuts-close" onClick={onClose} title="关闭 (Esc)">✕</button>
+          <button className="shortcuts-close" aria-label="关闭" onClick={onClose} title="关闭 (Esc)">✕</button>
         </div>
 
         <div className="shortcuts-tabs">
@@ -112,7 +107,7 @@ export default function ShortcutsModal({ onClose, stacked = false }) {
 
         <div className="shortcuts-footer">
           <span className="shortcuts-hint">按 <kbd>Esc</kbd> 键可快速关闭此窗口</span>
-          <button className="btn btn-primary btn-sm" onClick={onClose}>我知道了</button>
+          <button className="btn btn-primary btn-sm" data-autofocus="" onClick={onClose}>我知道了</button>
         </div>
       </div>
     </div>

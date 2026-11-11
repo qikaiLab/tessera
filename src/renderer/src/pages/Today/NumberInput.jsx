@@ -5,7 +5,9 @@ import './NumberInput.css'
 
 const isNumericText = (value) => /^-?\d+(\.\d+)?$/.test(String(value || '').trim())
 
-export default function NumberInput({ sectionId, value, unit, onChange, onUseRecentValue, showToast }) {
+// `pending`: the value to start from (the last recorded number) is still being looked up, so the
+// field is locked: a press on + or - would otherwise act on the placeholder 0.
+export default function NumberInput({ sectionId, value, pending = false, unit, onChange, onUseRecentValue, showToast }) {
   const numVal = value === '' ? '' : String(value)
 
   const handleChange = (e) => {
@@ -33,6 +35,7 @@ export default function NumberInput({ sectionId, value, unit, onChange, onUseRec
     }
 
     if (id === 'copy-value') {
+      if (pending) return
       window.api?.clipboard?.writeText?.(numVal || '0')
       showToast?.('已复制数值', 'success', 1000)
       return
@@ -45,7 +48,7 @@ export default function NumberInput({ sectionId, value, unit, onChange, onUseRec
         onChange(trimmed)
       }
     }
-  }, [numVal, onChange, onUseRecentValue, sectionId, showToast]))
+  }, [numVal, onChange, onUseRecentValue, pending, sectionId, showToast]))
 
   const handleContextMenu = async (event) => {
     const clipboardText = window.api?.clipboard?.readText?.() || ''
@@ -82,17 +85,18 @@ export default function NumberInput({ sectionId, value, unit, onChange, onUseRec
   }
 
   return (
-    <div className="number-input-wrap" onContextMenu={handleContextMenu}>
-      <button className="num-btn" onClick={() => increment(-1)}>−</button>
+    <div className="number-input-wrap" aria-busy={pending || undefined} onContextMenu={handleContextMenu}>
+      <button className="num-btn" disabled={pending} onClick={() => increment(-1)}>−</button>
       <input
         className="input number-input selectable"
         type="text"
         inputMode="decimal"
         value={numVal}
+        readOnly={pending}
         onChange={handleChange}
         placeholder="0"
       />
-      <button className="num-btn" onClick={() => increment(1)}>+</button>
+      <button className="num-btn" disabled={pending} onClick={() => increment(1)}>+</button>
       {unit && <span className="number-unit">{unit}</span>}
     </div>
   )

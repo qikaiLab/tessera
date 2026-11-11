@@ -68,8 +68,10 @@ test('chart cards draw the axes and series their bindings call for', async ({ sa
 
     // A pie shows a slice per bound section, and a heatmap a grid of day cells.
     await expect(card('饼图').locator('.recharts-pie-sector')).toHaveCount(2)
-    await expect(card('热力图').locator('.heatmap-cell').first()).toBeVisible()
-    expect(await card('热力图').locator('.heatmap-cell').count()).toBeGreaterThanOrEqual(30)
+    // (Cells that only fill out the first week are hidden spaces, not days.)
+    const dayCells = card('热力图').locator('.heatmap-cell:not([aria-hidden="true"])')
+    await expect(dayCells.first()).toBeVisible()
+    expect(await dayCells.count()).toBeGreaterThanOrEqual(30)
     expect(problems).toEqual([])
   } finally {
     await app.close()

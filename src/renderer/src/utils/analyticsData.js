@@ -5,6 +5,7 @@ import {
   getAxisMode,
   getDateAxisMode,
   getHeatmapDays,
+  getHeatmapRangeStart,
   normalizeSeries
 } from './analyticsCard'
 import { hasStoredValue } from './dayEntries'
@@ -30,10 +31,16 @@ function getRecordedDateRange(card, datesWithData, today) {
   if (card.dateRange === 'custom' && card.dateFrom && card.dateTo) {
     return datesWithData.filter(d => d >= card.dateFrom && d <= card.dateTo)
   }
-  const days = parseInt(card.dateRange)
-  const cutoff = format(subDays(today, days), 'yyyy-MM-dd')
-  return datesWithData.filter(d => d >= cutoff)
+  // "Last N days" is today and the N-1 days before it, the same window the continuous axis and the
+  // heatmap use; days dated after today (the record page can open them) are not part of it.
+  const days = parseInt(card.dateRange, 10) || 30
+  const cutoff = format(subDays(today, days - 1), 'yyyy-MM-dd')
+  const latest = format(today, 'yyyy-MM-dd')
+  return datesWithData.filter(d => d >= cutoff && d <= latest)
 }
+
+// A safety net for the continuous axis: a mistyped year must not turn into tens of thousands of points.
+const MAX_CONTINUOUS_DAYS = 366 * 20
 
 // Every calendar day of the range, with or without data.
 function getContinuousDateRange(card, datesWithData, bindings, loadedData, today) {
@@ -48,7 +55,9 @@ function getContinuousDateRange(card, datesWithData, bindings, loadedData, today
     const sorted = [...(boundDates.length ? boundDates : datesWithData)].sort()
     if (!sorted.length) return []
     start = parseISO(sorted[0])
+    // Up to today: a stray far-future date would otherwise stretch the axis over decades.
     end = parseISO(sorted[sorted.length - 1])
+    if (end > today) end = today
   } else {
     const days = parseInt(card.dateRange) || 30
     end = today
@@ -58,6 +67,8 @@ function getContinuousDateRange(card, datesWithData, bindings, loadedData, today
   if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
     return []
   }
+  const earliest = subDays(end, MAX_CONTINUOUS_DAYS - 1)
+  if (start < earliest) start = earliest
   return eachDayOfInterval({ start, end }).map(d => format(d, 'yyyy-MM-dd'))
 }
 
@@ -80,14 +91,31 @@ export function hasChartBindingData(dateStr, bindings, loadedData) {
   })
 }
 
+// The recorded days, oldest first. Sorted once per loaded data set (a new set replaces the old one
+// whenever a day changes), not once per point of a long chart.
+const sortedDatesCache = new WeakMap()
+function sortedRecordedDates(loadedData) {
+  let dates = sortedDatesCache.get(loadedData)
+  if (!dates) {
+    dates = Object.keys(loadedData).sort()
+    sortedDatesCache.set(loadedData, dates)
+  }
+  return dates
+}
+
 // The latest number recorded before `dateStr` (for number sections that carry their value over).
 function findRecentNumberValue(dateStr, sectionId, loadedData) {
-  const previousDates = Object.keys(loadedData)
-    .filter(d => d < dateStr)
-    .sort((a, b) => b.localeCompare(a))
-
-  for (const d of previousDates) {
-    const entry = loadedData[d]?.[sectionId]
+  const dates = sortedRecordedDates(loadedData)
+  // First day that is not before `dateStr`; everything left of it is earlier.
+  let low = 0
+  let high = dates.length
+  while (low < high) {
+    const middle = (low + high) >> 1
+    if (dates[middle] < dateStr) low = middle + 1
+    else high = middle
+  }
+  for (let i = low - 1; i >= 0; i -= 1) {
+    const entry = loadedData[dates[i]]?.[sectionId]
     if (hasStoredValue(entry)) return parseFloat(entry.value) || 0
   }
   return 0
@@ -124,27 +152,56 @@ function buildPieData(card, sections, loadedData, dates, palette) {
   }).filter(Boolean)
 }
 
-// Every day of the range, quiet days as 0.
+// Every day of the range, quiet days as 0. The days that only complete the first week of the grid
+// are marked `padded`: they are drawn as blank spaces and carry no value, so they neither colour
+// the cell nor stretch the colour scale.
 function buildHeatmapData(card, loadedData, datesWithData, today) {
   const days = getHeatmapDays(card, datesWithData, today)
+  const firstDay = getHeatmapRangeStart(card, datesWithData, today)
   const binding = (card.bindings || [])[0]
-  if (!binding) return days.map(date => ({ date, value: 0 }))
-  return days.map(date => ({ date, value: entryNumber(loadedData[date]?.[binding.sectionId], binding) }))
+  return days.map(date => {
+    if (date < firstDay) return { date, value: 0, padded: true }
+    return { date, value: binding ? entryNumber(loadedData[date]?.[binding.sectionId], binding) : 0 }
+  })
 }
 
-// One point per day with a value per bound section (keyed by the section's name).
+// Keys a point already uses for something other than a series.
+const RESERVED_POINT_KEYS = ['date', '__raw']
+
+/**
+ * The bound sections of a line / bar chart, in the order the sections are listed, each with the key
+ * its values are stored (and drawn, and labelled in the legend) under. That is the section's name,
+ * but names are not unique and a section may even be called "date": the later one gets a number
+ * ("体重 (2)") instead of overwriting the first one's values.
+ */
+export function getChartSeries(card, sections) {
+  const bound = new Set((card.bindings || []).map(binding => binding.sectionId))
+  const taken = new Set(RESERVED_POINT_KEYS)
+  return sections.filter(section => bound.has(section.id)).map(section => {
+    let key = section.name
+    for (let n = 2; taken.has(key); n += 1) key = `${section.name} (${n})`
+    taken.add(key)
+    return { key, section }
+  })
+}
+
+// One point per day with a value per bound section (keyed as getChartSeries says).
 function buildSeriesData(card, sections, loadedData, dates) {
   const bindings = card.bindings || []
-  const series = dates.map(date => {
+  const series = getChartSeries(card, sections).map(({ key, section }) => ({
+    key,
+    section,
+    binding: bindings.find(binding => binding.sectionId === section.id)
+  }))
+  const points = dates.map(date => {
     const point = { date }
-    for (const binding of bindings) {
-      const section = sections.find(s => s.id === binding.sectionId)
-      if (section) point[section.name] = resolveBindingValue(date, binding, section, loadedData)
+    for (const { key, section, binding } of series) {
+      point[key] = resolveBindingValue(date, binding, section, loadedData)
     }
     return point
   })
-  const names = bindings.map(b => sections.find(s => s.id === b.sectionId)?.name).filter(Boolean)
-  return isNormalizedChart(card, names.length) ? normalizeSeries(series, names) : series
+  const keys = series.map(item => item.key)
+  return isNormalizedChart(card, keys.length) ? normalizeSeries(points, keys) : points
 }
 
 /**

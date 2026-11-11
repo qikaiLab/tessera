@@ -119,16 +119,32 @@ export default function TimelineCard({
     }
   }
 
+  // The card is the control: it opens the day (or, while managing, ticks it) from the keyboard too.
+  // Keys that belong to a button inside it (the favourite star) are left to that button.
+  const handleKeyDown = (event) => {
+    if (event.target !== event.currentTarget) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      handleCardClick(event)
+    }
+  }
+
   return (
     <div
       className={`timeline-card ${isManageMode ? 'manage-mode-card' : ''} ${isSelected ? 'selected' : ''}`}
       // Cards play their entrance as they scroll into view (see useScrollReveal).
       data-reveal="pending"
       ref={revealRef}
+      role={isManageMode ? 'checkbox' : 'button'}
+      // A short name (the day and its size), not the card's whole text: the star inside it is a button of its own.
+      aria-label={`${format(date, 'yyyy年M月d日 EEEE', { locale: zhCN })}，${card.totalWords} 字`}
+      aria-checked={isManageMode ? isSelected : undefined}
+      tabIndex={0}
       onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
     >
       {isManageMode && (
-        <div className={`tl-card-checkbox-custom ${isSelected ? 'selected' : ''}`} onClick={(e) => { e.stopPropagation(); onToggleSelect() }}>
+        <div className={`tl-card-checkbox-custom ${isSelected ? 'selected' : ''}`} aria-hidden="true" onClick={(e) => { e.stopPropagation(); onToggleSelect() }}>
           <div className="checkbox-inner">
             {isSelected && '✓'}
           </div>

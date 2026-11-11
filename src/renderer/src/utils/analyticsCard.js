@@ -89,20 +89,29 @@ export function moveBindingToFront(bindings, sectionId) {
 
 const HEATMAP_DEFAULT_DAYS = 365
 
-// Every calendar day a heatmap covers, as yyyy-MM-dd, starting on a Monday so each column
-// is a full week. "All time" runs from the first recorded day (or a year back when nothing
-// is recorded yet) up to today, and keeps the empty days so the weeks line up.
-export function getHeatmapDays(card, datesWithData = [], today = new Date()) {
-  let start
+// The first day a heatmap's range covers. "All time" runs from the first recorded day (or a year
+// back when nothing is recorded yet, or the dates are unusable).
+function getHeatmapStart(card, datesWithData, today) {
   if (card.dateRange === 'all') {
     const earliest = [...datesWithData].sort()[0]
-    start = earliest ? parseISO(earliest) : subDays(today, HEATMAP_DEFAULT_DAYS - 1)
-    if (Number.isNaN(start.getTime()) || start > today) start = subDays(today, HEATMAP_DEFAULT_DAYS - 1)
-  } else {
-    const days = parseInt(card.dateRange, 10) || 30
-    start = subDays(today, days - 1)
+    const start = earliest ? parseISO(earliest) : subDays(today, HEATMAP_DEFAULT_DAYS - 1)
+    return Number.isNaN(start.getTime()) || start > today ? subDays(today, HEATMAP_DEFAULT_DAYS - 1) : start
   }
-  const daysFromMonday = start.getDay() === 0 ? 6 : start.getDay() - 1
+  const days = parseInt(card.dateRange, 10) || 30
+  return subDays(today, days - 1)
+}
+
+export function getHeatmapRangeStart(card, datesWithData = [], today = new Date()) {
+  return format(getHeatmapStart(card, datesWithData, today), 'yyyy-MM-dd')
+}
+
+// Every calendar day a heatmap draws, as yyyy-MM-dd, up to today. Weekly grids start on a Monday
+// so each column is a full week (the days before the range only fill that first column: see
+// getHeatmapRangeStart); the one-row "last 7 days" view shows exactly those 7 days. "All time"
+// keeps the empty days so the weeks line up.
+export function getHeatmapDays(card, datesWithData = [], today = new Date()) {
+  const start = getHeatmapStart(card, datesWithData, today)
+  const daysFromMonday = card.dateRange === '7' ? 0 : (start.getDay() === 0 ? 6 : start.getDay() - 1)
   const paddedStart = subDays(start, daysFromMonday)
   return eachDayOfInterval({ start: paddedStart, end: today }).map(day => format(day, 'yyyy-MM-dd'))
 }

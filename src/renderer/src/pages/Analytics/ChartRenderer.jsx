@@ -3,7 +3,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { LINE_STYLE_STRAIGHT, getLineStyle } from '../../utils/analyticsCard'
-import { formatAxisDate, isNormalizedChart } from '../../utils/analyticsData'
+import { formatAxisDate, getChartSeries, isNormalizedChart } from '../../utils/analyticsData'
 import Heatmap from './Heatmap'
 import { AXIS_TICK, CHART_MOTION, TOOLTIP_PROPS, normalizedTooltipFormatter } from './chartTheme'
 
@@ -24,8 +24,8 @@ function yAxisIdFor(yMode, index) {
 
 // Recharts finds its axes among the chart's direct children, so this returns the elements
 // instead of being a component of its own (a wrapper component would hide them).
-function renderYAxes({ yMode, names, sections, palette }) {
-  const colorOf = (index) => sections.find(s => s.name === names[index])?.color || palette[index]
+function renderYAxes({ yMode, series, palette }) {
+  const colorOf = (index) => series[index]?.section.color || palette[index]
   if (yMode === 'single') return <YAxis yAxisId="left" tick={AXIS_TICK} width={40} />
   if (yMode === 'normalized') {
     return (
@@ -50,10 +50,10 @@ function renderYAxes({ yMode, names, sections, palette }) {
 }
 
 // Line and bar charts differ only in the series they draw.
-function AxisChart({ card, data, names, sections, palette }) {
+function AxisChart({ card, data, series, palette }) {
   const isLine = card.type === 'line'
   const Chart = isLine ? LineChart : BarChart
-  const yMode = getYAxisMode(card, names.length)
+  const yMode = getYAxisMode(card, series.length)
   const tooltipProps = yMode === 'normalized'
     ? { ...TOOLTIP_PROPS, formatter: normalizedTooltipFormatter }
     : TOOLTIP_PROPS
@@ -70,11 +70,11 @@ function AxisChart({ card, data, names, sections, palette }) {
           minTickGap={18}
           interval="preserveStartEnd"
         />
-        {renderYAxes({ yMode, names, sections, palette })}
+        {renderYAxes({ yMode, series, palette })}
         <Tooltip {...tooltipProps} />
-        {(yMode === 'dual' || yMode === 'none' || names.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
-        {names.map((name, i) => {
-          const color = sections.find(s => s.name === name)?.color || palette[i % palette.length]
+        {(yMode === 'dual' || yMode === 'none' || series.length > 1) && <Legend wrapperStyle={{ fontSize: 12 }} />}
+        {series.map(({ key: name, section }, i) => {
+          const color = section.color || palette[i % palette.length]
           return isLine ? (
             <Line
               key={name}
@@ -131,13 +131,10 @@ function PieView({ data }) {
 
 // Draws the card's chart type from its prepared data (see buildChartData).
 export default function ChartRenderer({ card, data, sections, heatmapColor, palette }) {
-  // The bound sections' names, in the order the sections are listed.
-  const names = sections
-    .filter(section => (card.bindings || []).some(binding => binding.sectionId === section.id))
-    .map(section => section.name)
-
   if (card.type === 'line' || card.type === 'bar') {
-    return <AxisChart card={card} data={data} names={names} sections={sections} palette={palette} />
+    // The bound sections, in the order the sections are listed (see getChartSeries for the keys).
+    const series = getChartSeries(card, sections)
+    return <AxisChart card={card} data={data} series={series} palette={palette} />
   }
   if (card.type === 'pie') return <PieView data={data} />
   if (card.type === 'heatmap') return <Heatmap data={data} color={heatmapColor} dateRange={card.dateRange} />

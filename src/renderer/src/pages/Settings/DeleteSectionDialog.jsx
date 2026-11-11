@@ -1,16 +1,18 @@
+import ModalFrame from '../../components/ModalFrame'
 import Presence from '../../components/Presence'
 
 // Confirms deleting a section, or explains why it cannot be deleted: a section with data in any
 // day is kept so history stays whole (it can be taken off the day page by un-pinning it).
-// `state` is { isOpen, sec, hasData, checking }.
+// `state` is { isOpen, sec, hasData, unreadable, checking }: `unreadable` counts the days that could not
+// be read, which also keeps the section, because nothing can be said about what those days hold.
 export default function DeleteSectionDialog({ state, onCancel, onConfirm }) {
+  const blocked = state.hasData || state.unreadable > 0
   return (
     <Presence>{state.isOpen && (
-      <div className="modal-overlay" onClick={onCancel}>
-        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+      <ModalFrame role="alertdialog" label="删除版块确认" onDismiss={onCancel} style={{ maxWidth: 400 }}>
           <div className="modal-header">
             <span className="modal-title">删除版块确认</span>
-            <button className="btn btn-ghost btn-icon" onClick={onCancel}>✕</button>
+            <button className="btn btn-ghost btn-icon" aria-label="关闭" onClick={onCancel}>✕</button>
           </div>
           <div style={{ marginBottom: 20 }}>
             {state.checking ? (
@@ -26,6 +28,14 @@ export default function DeleteSectionDialog({ state, onCancel, onConfirm }) {
                   为了保证历史数据的完整性，包含已有记录的版块禁止被删除。如果您不想在今日记录中看到它，请将其 <b>「取消常驻」</b>。
                 </p>
               </div>
+            ) : state.unreadable > 0 ? (
+              <div style={{ color: 'var(--text-primary)', lineHeight: 1.6 }}>
+                <p style={{ color: 'var(--error)', fontWeight: 'bold', marginBottom: 8 }}>暂时无法删除此版块</p>
+                <p>有 {state.unreadable} 天的记录当前无法读取，无法确认 <b>{state.sec?.name}</b> 在那些天里有没有数据。</p>
+                <p style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: 13 }}>
+                  为了保证历史数据的完整性，请先在「记录」页打开那几天，把记录修复或恢复后再试。
+                </p>
+              </div>
             ) : (
               <div style={{ color: 'var(--text-primary)', lineHeight: 1.6 }}>
                 <p>确定要删除版块 <b>{state.sec?.name}</b> 吗？</p>
@@ -34,17 +44,16 @@ export default function DeleteSectionDialog({ state, onCancel, onConfirm }) {
             )}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button className="btn btn-ghost" onClick={onCancel}>
-              {state.hasData ? '知道了' : '取消'}
+            <button className="btn btn-ghost" data-autofocus="" onClick={onCancel}>
+              {blocked ? '知道了' : '取消'}
             </button>
-            {!state.checking && !state.hasData && (
+            {!state.checking && !blocked && (
               <button className="btn btn-primary" style={{ background: 'var(--error)' }} onClick={onConfirm}>
                 确定删除
               </button>
             )}
           </div>
-        </div>
-      </div>
+      </ModalFrame>
     )}</Presence>
   )
 }

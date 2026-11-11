@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { hasStoredValue } from '../../utils/dayEntries'
-import { handOverPendingWrite, markWritten } from '../../utils/leftoverSaves'
+import { adoptLeftovers, handOverPendingWrite, markWritten } from '../../utils/leftoverSaves'
 import { flushPendingValue } from '../../utils/pendingSaves'
+import { findRecentNumberValues } from '../../utils/recentNumbers'
 import { NUMBER_DEFAULT_MODE, getNumberDefaultMode } from '../../utils/sectionDefaults'
 
 export const SAVE_STATUS = {
@@ -32,6 +33,9 @@ export function useDayRecords({ dateStr, sections }) {
 
   const [data, setData] = useState({})
   const [numberDefaults, setNumberDefaults] = useState({})
+  // The number sections whose carried-over default is still being looked up: their stepper stays
+  // locked meanwhile, since a press would act on a placeholder 0 instead of the real last value.
+  const [carryPending, setCarryPending] = useState(() => new Set())
   const [saveStatus, setSaveStatus] = useState(SAVE_STATUS.IDLE)
   const [loading, setLoading] = useState(true)
   const [showSkeleton, setShowSkeleton] = useState(false)
@@ -68,28 +72,44 @@ export function useDayRecords({ dateStr, sections }) {
     [writeDay]
   )
 
+  // The latest number recorded before `targetDateStr`, for "carry the last value over" sections.
   const findRecentNumberValue = useCallback(async (targetDateStr, sectionId) => {
-    const candidates = datesWithDataRef.current
-      .filter(d => d < targetDateStr)
-      .sort((a, b) => b.localeCompare(a))
-
-    for (const d of candidates) {
-      const entry = (await readDayData(d))[sectionId]
-      if (hasStoredValue(entry)) return String(entry.value)
-    }
-    return '0'
+    const found = await findRecentNumberValues({
+      dates: datesWithDataRef.current,
+      before: targetDateStr,
+      sectionIds: [sectionId],
+      readDay: readDayData
+    })
+    return found[sectionId] ?? '0'
   }, [readDayData])
 
-  const buildNumberDefaults = useCallback(async (targetDateStr, loadedData) => {
+  // What the empty number sections of a day show. Sections that start from 0 are known at once;
+  // the ones that carry a value over have to look through earlier days, which the page does not
+  // wait for (see `carriedNumberDefaults`).
+  const plainNumberDefaults = useCallback((loadedData) => {
     const defaults = {}
     for (const section of sections) {
-      if (section.type !== 'number' || hasStoredValue(loadedData[section.id])) continue
-      defaults[section.id] = getNumberDefaultMode(section) === NUMBER_DEFAULT_MODE.CARRY
-        ? await findRecentNumberValue(targetDateStr, section.id)
-        : '0'
+      if (section.type === 'number' && !hasStoredValue(loadedData[section.id])) defaults[section.id] = '0'
     }
     return defaults
-  }, [findRecentNumberValue, sections])
+  }, [sections])
+
+  const carryingSections = useCallback(loadedData => sections.filter(section => (
+    section.type === 'number' &&
+    !hasStoredValue(loadedData[section.id]) &&
+    getNumberDefaultMode(section) === NUMBER_DEFAULT_MODE.CARRY
+  )), [sections])
+
+  const carriedNumberDefaults = useCallback(async (targetDateStr, carrying) => {
+    if (!carrying.length) return {}
+    const found = await findRecentNumberValues({
+      dates: datesWithDataRef.current,
+      before: targetDateStr,
+      sectionIds: carrying.map(section => section.id),
+      readDay: readDayData
+    })
+    return Object.fromEntries(carrying.map(section => [section.id, found[section.id] ?? '0']))
+  }, [readDayData])
 
   useEffect(() => {
     const seq = loadSeqRef.current + 1
@@ -102,16 +122,43 @@ export function useDayRecords({ dateStr, sections }) {
     setShowSkeleton(false)
     setSaveStatus(SAVE_STATUS.IDLE)
     setNumberDefaults({})
+    setCarryPending(new Set())
     if (!hasLoadedOnce) skeletonTimer = setTimeout(() => setShowSkeleton(true), SKELETON_DELAY_MS)
 
-    readDayDataStrict(dateStr)
-      .then(async loaded => {
-        const defaults = await buildNumberDefaults(dateStr, loaded)
+    // A save of this day that was handed over when the page was left and has not reached the file
+    // (still running, or failed) is newer than the file: start from it, and keep trying to save it.
+    const readDay = async () => {
+      const [leftover] = await adoptLeftovers(`day:${dateStr}`)
+      if (leftover) return { loaded: leftover.value, restored: true }
+      return { loaded: await readDayDataStrict(dateStr), restored: false }
+    }
+
+    readDay()
+      .then(({ loaded, restored }) => {
         if (loadSeqRef.current !== seq) return
         dataRef.current = loaded
         loadedDateRef.current = dateStr
         setData(loaded)
-        setNumberDefaults(defaults)
+        if (restored) {
+          scheduleSaveRef.current?.(loaded)
+          showToast('上次离开时没能保存的改动已恢复，正在重新保存', 'info', 5000)
+        }
+        setNumberDefaults(plainNumberDefaults(loaded))
+        // The numbers carried over from earlier days arrive when they are found: with a long history
+        // that can take a moment, and the day itself must not wait for it.
+        const carrying = carryingSections(loaded)
+        setCarryPending(new Set(carrying.map(section => section.id)))
+        carriedNumberDefaults(dateStr, carrying)
+          .then(carried => {
+            if (loadSeqRef.current === seq) setNumberDefaults(previous => ({ ...previous, ...carried }))
+          })
+          .catch(error => {
+            console.error('Failed to look up carried numbers:', error)
+            if (loadSeqRef.current === seq) showToast('读取最近一次的数值失败，相关数值暂按 0 显示', 'error', 6000)
+          })
+          .finally(() => {
+            if (loadSeqRef.current === seq) setCarryPending(new Set())
+          })
       })
       .catch(error => {
         console.error('Failed to load day data:', error)
@@ -134,10 +181,11 @@ export function useDayRecords({ dateStr, sections }) {
     return () => {
       if (skeletonTimer) clearTimeout(skeletonTimer)
     }
-  }, [dateStr, reloadTick, readDayDataStrict, buildNumberDefaults])
+  }, [dateStr, reloadTick, readDayDataStrict, plainNumberDefaults, carryingSections, carriedNumberDefaults, showToast])
 
   const retryLoad = useCallback(() => setReloadTick(tick => tick + 1), [])
 
+  const scheduleSaveRef = useRef(null)
   const scheduleSave = useCallback((nextData) => {
     pendingDataRef.current = nextData
     pendingDateRef.current = loadedDateRef.current ?? dateStrRef.current
@@ -161,6 +209,8 @@ export function useDayRecords({ dateStr, sections }) {
       }
     }, SAVE_DEBOUNCE_MS)
   }, [writePending, showToast])
+
+  scheduleSaveRef.current = scheduleSave
 
   // Writes whatever is pending right now (cancelling the debounce).
   const flushNow = useCallback(async () => {
@@ -193,6 +243,7 @@ export function useDayRecords({ dateStr, sections }) {
     const { writeDay: write, registerPendingFlush: register, unregisterPendingFlush: unregister, showToast: toast } = leaveRef.current
     handOverPendingWrite({
       key: `day:${date}`,
+      value,
       write: () => write(date, value),
       registerPendingFlush: register,
       unregisterPendingFlush: unregister,
@@ -246,6 +297,7 @@ export function useDayRecords({ dateStr, sections }) {
   return {
     data,
     numberDefaults,
+    carryPending,
     loading,
     showSkeleton,
     holding: loadedDateStr !== null && loadedDateStr !== dateStr,

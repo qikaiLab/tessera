@@ -1,3 +1,4 @@
+import { Fragment, Slice } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
 import { fileUrlToLocalPath, isLocalFileHref, localPathLabel, localPathToFileUrl } from '../../utils/localFileLinks'
 
@@ -120,17 +121,30 @@ export function plainTextToParagraphs(text) {
   ))
 }
 
+// The transaction that pastes `text` the way Ctrl+V does: a single line goes into the line being
+// edited; several lines become paragraphs whose first and last line stay joined to the text before
+// and after the caret; inside a code block the lines stay in that block. Null for an empty text,
+// which must not delete the selection.
+export function plainTextTransaction(state, text) {
+  const paragraphs = plainTextToParagraphs(text)
+  const { schema, selection } = state
+  if (paragraphs.length === 1) {
+    const single = paragraphs[0].content?.[0]?.text ?? ''
+    return single ? state.tr.insertText(single, selection.from, selection.to) : null
+  }
+  if (selection.$from.parent.type.spec.code) {
+    return state.tr.insertText(String(text).replace(/\r\n?/g, '\n'), selection.from, selection.to)
+  }
+  const nodes = paragraphs.map(paragraph => schema.nodeFromJSON(paragraph))
+  return state.tr.replaceSelection(new Slice(Fragment.from(nodes), 1, 1)).scrollIntoView()
+}
+
 export function insertPlainText(editor, text) {
   if (!editor) return false
-  const paragraphs = plainTextToParagraphs(text)
-  if (paragraphs.length > 1) return editor.chain().focus().insertContent(paragraphs).run()
-  const single = paragraphs[0].content?.[0]?.text ?? ''
-  // An empty clipboard pastes nothing; it must not delete the selection.
-  if (!single) return false
   return editor.chain().focus().command(({ state, dispatch }) => {
-    if (dispatch) {
-      dispatch(state.tr.insertText(single, state.selection.from, state.selection.to))
-    }
+    const tr = plainTextTransaction(state, text)
+    if (!tr) return false
+    if (dispatch) dispatch(tr)
     return true
   }).run()
 }

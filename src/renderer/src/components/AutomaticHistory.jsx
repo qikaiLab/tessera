@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useApp } from '../context/AppContext'
+import ModalFrame from './ModalFrame'
 import './AutomaticHistory.css'
 
 function previewContent(content) {
@@ -68,23 +69,15 @@ export default function AutomaticHistory({ filePath, onClose, onRestore }) {
     }
   }
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape' && !busy) onClose()
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [busy, onClose])
-
   const visibleEntries = entries.filter(entry => entry.path !== 'notes/index.json' &&
     `${entry.title} ${entry.path}`.toLowerCase().includes(filter.toLowerCase()))
 
   return (
-    <div className="modal-overlay" onClick={() => { if (!busy) onClose() }}>
-      <section className="modal automatic-history" role="dialog" aria-modal="true" aria-label="自动历史" onClick={event => event.stopPropagation()}>
+    // Esc and a click outside close it, except while a restore is running.
+    <ModalFrame className="modal automatic-history" label="自动历史" onDismiss={busy ? undefined : onClose}>
         <div className="modal-header"><span className="modal-title">自动历史</span><button className="btn btn-ghost" onClick={onClose} disabled={busy}>关闭</button></div>
         <p className="history-description">只保存变化的文件，内容压缩去重。便签会恢复为新副本，也可以找回已删除的便签。</p>
-        <input className="input" aria-label="搜索历史" placeholder="搜索便签标题或文件" value={filter} onChange={event => setFilter(event.target.value)} disabled={busy} />
+        <input className="input" data-autofocus="" aria-label="搜索历史" placeholder="搜索便签标题或文件" value={filter} onChange={event => setFilter(event.target.value)} disabled={busy} />
         {error && <p role="alert">{error}</p>}
         <div className="history-columns">
           <div className="history-list">
@@ -99,7 +92,6 @@ export default function AutomaticHistory({ filePath, onClose, onRestore }) {
             <button className="btn btn-primary" onClick={restore} disabled={!revision || busy || revision.path === 'notes/index.json'}>{busy ? '正在恢复…' : noteCopy ? '恢复为新便签' : '恢复此文件'}</button>
           </div>
         </div>
-      </section>
-    </div>
+    </ModalFrame>
   )
 }

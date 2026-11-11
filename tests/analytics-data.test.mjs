@@ -3,6 +3,7 @@ import {
   buildChartData,
   formatAxisDate,
   formatTooltipDate,
+  getChartSeries,
   getDateRange,
   getHeatmapColor,
   hasChartBindingData,
@@ -54,6 +55,30 @@ describe('which days a chart covers', () => {
     ])
     const custom = card({ dateRange: 'custom', dateFrom: '2026-10-05', dateTo: '2026-10-03', dateAxisMode: 'continuous' })
     expect(getDateRange(custom, datesWithData, [steps], loadedData, today)).toEqual([])
+  })
+
+  it('covers exactly N days for "last N days": today and the N-1 before it, nothing dated later', () => {
+    // today is 2026-10-13: a 7-day window starts on 10-07.
+    const recorded = ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-13', '2026-10-14']
+    expect(getDateRange(card({ dateRange: '7' }), recorded, [], {}, today))
+      .toEqual(['2026-10-07', '2026-10-13'])
+    // The continuous axis spans the same 7 days.
+    const continuous = getDateRange(card({ dateRange: '7', dateAxisMode: 'continuous' }), recorded, [steps], {}, today)
+    expect(continuous).toHaveLength(7)
+    expect(continuous[0]).toBe('2026-10-07')
+    // An unusable range falls back to 30 days instead of comparing with "NaN-NaN-NaN".
+    expect(getDateRange(card({ dateRange: 'weird' }), recorded, [], {}, today)).toEqual(recorded.slice(0, 4))
+  })
+
+  it('does not stretch an all-time continuous axis to a stray far-future day', () => {
+    const typo = { ...loadedData, '2062-01-01': { steps: { value: '1' } } }
+    const all = card({ dateRange: 'all', dateAxisMode: 'continuous' })
+    const days = getDateRange(all, Object.keys(typo), [steps], typo, today)
+    expect(days.at(-1)).toBe('2026-10-13')
+    expect(days).toHaveLength(4)
+    // Even a typo in the past is bounded.
+    const ancient = { '1800-01-01': { steps: { value: '1' } }, ...loadedData }
+    expect(getDateRange(all, Object.keys(ancient), [steps], ancient, today).length).toBeLessThanOrEqual(366 * 20)
   })
 
   it('does not reorder the days it is given', () => {
@@ -131,6 +156,93 @@ describe('chart data', () => {
     expect(getHeatmapColor(card({ type: 'heatmap', bindings: [steps] }), sections, palette)).toBe('#ff0000')
     expect(getHeatmapColor(card({ type: 'heatmap', bindings: [sleep] }), sections, palette)).toBe('#222222')
     expect(getHeatmapColor(card({ type: 'line', bindings: [steps] }), sections, palette)).toBe('#111111')
+  })
+})
+
+describe('sections with the same name', () => {
+  const twins = [
+    { id: 'a', name: '体重', type: 'number', color: '#aa0000' },
+    { id: 'b', name: '体重', type: 'number', color: '#00aa00' },
+    { id: 'c', name: 'date', type: 'number' }
+  ]
+  const twinData = { '2026-10-12': { a: { value: '70' }, b: { value: '5' }, c: { value: '9' } } }
+  const bindings = [
+    { sectionId: 'a', metric: 'value' },
+    { sectionId: 'b', metric: 'value' },
+    { sectionId: 'c', metric: 'value' }
+  ]
+
+  it('gives every bound section its own series key', () => {
+    expect(getChartSeries(card({ bindings }), twins).map(item => item.key)).toEqual(['体重', '体重 (2)', 'date (2)'])
+    // Sections that are not bound take no key.
+    expect(getChartSeries(card({ bindings: [bindings[1]] }), twins).map(item => item.key)).toEqual(['体重'])
+  })
+
+  it('draws both values instead of letting the later one overwrite the first', () => {
+    const data = buildChartData(card({ bindings }), twins, twinData, Object.keys(twinData), palette, today)
+    expect(data).toEqual([{ date: '2026-10-12', 体重: 70, '体重 (2)': 5, 'date (2)': 9 }])
+  })
+
+  it('normalizes each of them on its own', () => {
+    const data = buildChartData(card({ axisMode: 'normalized', bindings: bindings.slice(0, 2) }), twins, twinData, Object.keys(twinData), palette, today)
+    expect(data[0].体重).toBe(100)
+    expect(data[0]['体重 (2)']).toBe(100)
+    expect(data[0].__raw).toEqual({ 体重: 70, '体重 (2)': 5 })
+  })
+})
+
+describe('the heatmap grid', () => {
+  it('shows exactly the last 7 days for "last 7 days", whatever weekday it is', () => {
+    for (let offset = 0; offset < 7; offset += 1) {
+      const day = new Date(2026, 9, 12 + offset)
+      const data = buildChartData(card({ type: 'heatmap', dateRange: '7', bindings: [steps] }), sections, loadedData, datesWithData, palette, day)
+      expect(data).toHaveLength(7)
+      expect(data.some(entry => entry.padded)).toBe(false)
+    }
+  })
+
+  // Wed 2026-10-14: 30 days back starts on Tue 09-15, so the grid starts on Mon 09-14.
+  const wednesday = new Date(2026, 9, 14)
+
+  it('marks the days that only complete the first week as padding with no value', () => {
+    const recorded = { '2026-09-15': { steps: { value: '999' } }, '2026-10-12': { steps: { value: '5' } } }
+    const data = buildChartData(card({ type: 'heatmap', dateRange: '30', bindings: [steps] }), sections, recorded, Object.keys(recorded), palette, wednesday)
+    expect(data[0]).toEqual({ date: '2026-09-14', value: 0, padded: true })
+    expect(data.find(day => !day.padded)).toEqual({ date: '2026-09-15', value: 999 })
+    expect(data.filter(day => day.padded)).toHaveLength(1)
+    expect(data.at(-1)).toEqual({ date: '2026-10-14', value: 0 })
+  })
+
+  it('draws no value for padding, even when that day has one older than the range', () => {
+    const recorded = { '2026-09-14': { steps: { value: '12345' } } }
+    const data = buildChartData(card({ type: 'heatmap', dateRange: '30', bindings: [steps] }), sections, recorded, Object.keys(recorded), palette, wednesday)
+    expect(data[0]).toEqual({ date: '2026-09-14', value: 0, padded: true })
+    expect(Math.max(...data.map(day => day.value))).toBe(0)
+  })
+})
+
+describe('carrying a number over', () => {
+  const section = { id: 'sleep', name: '睡眠', type: 'number', numberDefaultMode: 'carry' }
+
+  it('finds the latest earlier value on a long history', () => {
+    const history = {}
+    for (let day = 0; day < 365; day += 1) {
+      const date = new Date(Date.UTC(2025, 0, 1 + day)).toISOString().slice(0, 10)
+      history[date] = day === 0 ? { sleep: { value: '6' } } : {}
+    }
+    for (const date of Object.keys(history)) {
+      expect(resolveBindingValue(date, sleep, section, history)).toBe(6)
+    }
+    // Before the first value there is nothing to carry.
+    expect(resolveBindingValue('2024-12-31', sleep, section, history)).toBe(0)
+  })
+
+  it('looks at a new data set afresh', () => {
+    const data = { '2026-10-01': { sleep: { value: '5' } } }
+    expect(resolveBindingValue('2026-10-05', sleep, section, data)).toBe(5)
+    // A new data set is a new object (that is how the page loads days).
+    const next = { ...data, '2026-10-03': { sleep: { value: '8' } } }
+    expect(resolveBindingValue('2026-10-05', sleep, section, next)).toBe(8)
   })
 })
 
