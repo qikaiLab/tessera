@@ -4,6 +4,7 @@
 
 [![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](package.json)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
+[![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange.svg)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/ci.yml?branch=main&label=CI)](https://github.com/qikaiLab/tessera/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/qikaiLab/tessera?include_prereleases)](https://github.com/qikaiLab/tessera/releases)
 
@@ -361,4 +362,10 @@ A: 该版块已有历史数据，系统会阻止误删。如果你确定不再�
 **Q: 软件是否支持 macOS / Linux？**  
 A: 当前版本仅支持 Windows。未来版本考虑扩展多平台支持。
 
-© 2026 MotoTrace. Built with ❤️ using Electron + React.
+---
+
+## 📄 许可证
+
+MotoTrace 以 [PolyForm Noncommercial License 1.0.0](LICENSE) 发布：**源码公开，个人学习、研究、爱好项目，以及教育、公益等非营利机构均可免费使用、修改与分发；商业用途需另行取得作者许可。** 这不是 OSI 定义的「开源」许可证，而是源码可见（source-available）许可证。
+
+© 2026 qikaiLab. Built with ❤️ using Electron + React.

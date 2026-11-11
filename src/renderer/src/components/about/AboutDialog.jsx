@@ -85,7 +85,8 @@ export default function AboutDialog({ onClose }) {
       <section className="about-section">
         <h3 className="about-heading">许可与致谢</h3>
         <p className="about-text">
-          {ABOUT_INFO.appName} 以 {ABOUT_INFO.license} 许可证开源，可自由使用、修改与分发，完整条款见仓库中的 LICENSE 文件。
+          {ABOUT_INFO.appName} 以 {ABOUT_INFO.license} 许可证发布：源码公开，个人学习、研究、爱好等非商业用途可自由使用、修改与分发；商业用途需另行取得作者许可。
+          <button className="about-inline-link about-license-link" onClick={() => openLink(ABOUT_INFO.licenseUrl)} title={ABOUT_INFO.licenseUrl}>查看许可证全文 ↗</button>
         </p>
         <p className="about-text">软件使用了以下开源组件，感谢它们的作者：</p>
         <ul className="about-third-party">

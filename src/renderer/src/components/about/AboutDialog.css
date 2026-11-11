@@ -167,3 +167,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+.about-license-link {
+  margin-left: var(--spacing-2);
+  color: var(--accent);
+}

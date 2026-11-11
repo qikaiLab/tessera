@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   ABOUT_INFO,
@@ -52,5 +54,27 @@ describe('first-launch appearance', () => {
     expect(isFreshInstallConfig({ theme: 'dark' })).toBe(false)
     expect(isFreshInstallConfig({ themeAccent: 'violet' })).toBe(false)
     expect(isFreshInstallConfig({ interfaceStyle: 'default' })).toBe(false)
+  })
+})
+
+describe('licence', () => {
+  const root = process.cwd()
+  const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+  const packageLock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'))
+  const licenseText = readFileSync(join(root, 'LICENSE'), 'utf8')
+
+  it('is PolyForm Noncommercial 1.0.0 in the licence file, the package files and the dialog', () => {
+    expect(licenseText).toContain('# PolyForm Noncommercial License 1.0.0')
+    expect(licenseText).toMatch(/^Required Notice: Copyright /)
+    expect(packageJson.license).toBe('PolyForm-Noncommercial-1.0.0')
+    expect(packageLock.packages[''].license).toBe(packageJson.license)
+    expect(ABOUT_INFO.license).toBe('PolyForm Noncommercial 1.0.0')
+    expect(ABOUT_INFO.licenseUrl).toBe('https://polyformproject.org/licenses/noncommercial/1.0.0')
+  })
+
+  it('keeps the README from calling the project open source', () => {
+    const readme = readFileSync(join(root, 'README.md'), 'utf8')
+    expect(readme).toContain('PolyForm Noncommercial License 1.0.0')
+    expect(readme).not.toMatch(/MIT License|license-MIT/)
   })
 })

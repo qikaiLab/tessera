@@ -12,7 +12,8 @@ export const ABOUT_INFO = Object.freeze({
   homepage: 'https://qikailab.github.io',
   support: 'https://ifdian.net/a/7klab',
   repository: 'https://github.com/qikaiLab/tessera',
-  license: 'MIT'
+  license: 'PolyForm Noncommercial 1.0.0',
+  licenseUrl: 'https://polyformproject.org/licenses/noncommercial/1.0.0'
 })
 
 export const ABOUT_LINKS = Object.freeze([
