@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](package.json)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange.svg)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/ci.yml?branch=main&label=CI)](https://github.com/qikaiLab/tessera/actions/workflows/ci.yml)
@@ -203,6 +203,23 @@ Tessera 将数据安全视为头等大事，采用三层防护：
 ---
 
 ## 📋 更新日志
+
+### v0.5.0 *(2026-11-12)*
+
+**新特性**
+- 应用更名为 Tessera，换用新图标与标志；窗口按主题底色打开，浅色界面不再先闪一下深色。
+- 编辑器新增表格（`Tab` 切换、右键增删行列与合并拆分单元格）、`[文字](网址)` 自动成链接、Markdown 粘贴自动渲染（`Ctrl+Shift+V` 保留原文）。
+- 笔记可链接到本机的文件和文件夹：照片与纯文本用默认程序打开，其他类型只在资源管理器中显示，不会被运行。
+- 软件内使用说明重做为可搜索的主题式手册；新增「关于」对话框（版本信息一键复制、作者链接、许可与致谢）；新安装默认松绿色浅色界面。
+- 更改数据目录改为下次启动时整夹复制并逐个文件核对（大小与 SHA-256），通过才切换，旧目录原样保留；找不到数据目录时不再新建空目录。
+
+**修复与优化**
+- 数据保存更稳：离开页面或关闭窗口时未写出的编辑会重试写入并等待完成；读不出来的当天记录显示为错误而不是空白；已删除的便签与日期不会被失败的旧副本「复活」；导入备份不会被之后的未保存副本覆盖。
+- 崩溃恢复不再用残缺的临时文件替换完好文件；导入 ZIP 先校验后写入；导出与备份失败时明确报错；自动历史文件夹在 Windows 下保持只读。
+- 已存文档里含不认识的内容时保留文字并提示；`3/3`、`有/无` 等文字中的 `/` 不再触发斜杠菜单；修复时间线管理模式下清除版块会删掉只含数字的一天的问题。
+- 渲染进程启用沙盒并加严格的内容安全策略，不再联系字体服务器；Electron 更新到 43.8.7；Tiptap、Playwright 等依赖同步更新。
+- 安装程序拒绝磁盘根目录与程序目录内的数据目录，卸载只清空默认数据目录，升级不再删除快捷方式，含非 ASCII 字符的数据文件夹能被正确识别。
+- 侧栏拖动条整条可抓；对话框焦点与键盘行为统一；`F11` 不再来回切换全屏。
 
 ### v0.4.0 *(2026-10-13)*
 
