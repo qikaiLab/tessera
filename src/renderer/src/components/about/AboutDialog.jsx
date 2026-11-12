@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { Fragment, useCallback, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import BrandMark from '../BrandMark'
 import ModalFrame from '../ModalFrame'
@@ -7,6 +7,7 @@ import AboutIcon from './AboutIcon'
 import {
   ABOUT_INFO,
   ABOUT_LINKS,
+  CO_DEVELOPERS,
   THIRD_PARTY,
   buildVersionReport,
   readRuntimeVersions
@@ -100,6 +101,16 @@ export default function AboutDialog({ onClose }) {
             <div>
               <p className="about-author-name">{ABOUT_INFO.authorName}</p>
               <p className="about-author-role">{ABOUT_INFO.authorBio || '作者'}</p>
+              <p className="about-author-role about-codev">
+                与 AI 助手{' '}
+                {CO_DEVELOPERS.map((dev, index) => (
+                  <Fragment key={dev.id}>
+                    {index > 0 && ' · '}
+                    <button className="about-inline-link" onClick={() => openLink(dev.url)} title={`${dev.maker} · ${dev.url}`}>{dev.name}</button>
+                  </Fragment>
+                ))}
+                {' '}共同开发
+              </p>
             </div>
           </div>
 

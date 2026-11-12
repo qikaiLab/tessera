@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ABOUT_INFO,
   ABOUT_LINKS,
+  CO_DEVELOPERS,
   THIRD_PARTY,
   buildVersionReport,
   readRuntimeVersions
@@ -17,7 +18,7 @@ import {
 
 describe('about dialog content', () => {
   it('links only to https pages', () => {
-    for (const link of [...ABOUT_LINKS, ...THIRD_PARTY.map(item => ({ url: item.url }))]) {
+    for (const link of [...ABOUT_LINKS, ...CO_DEVELOPERS, ...THIRD_PARTY.map(item => ({ url: item.url }))]) {
       expect(new URL(link.url).protocol).toBe('https:')
     }
   })
@@ -35,6 +36,11 @@ describe('about dialog content', () => {
     expect(ABOUT_INFO.qqGroup).toBe('1132171117')
     expect(ABOUT_LINKS.find(link => link.id === 'homepage').url).toBe('https://qikailab.github.io')
     expect(ABOUT_LINKS.find(link => link.id === 'support').url).toBe('https://ifdian.net/a/7klab')
+  })
+
+  it('names the AI assistants that build the app with the author', () => {
+    expect(CO_DEVELOPERS.map(dev => `${dev.name} (${dev.maker})`)).toEqual(['Claude (Anthropic)', 'Codex (OpenAI)'])
+    expect(new Set(CO_DEVELOPERS.map(dev => dev.id)).size).toBe(CO_DEVELOPERS.length)
   })
 
   it('reads the runtime versions from the user agent and builds a bug-report text', () => {
@@ -79,6 +85,13 @@ describe('licence', () => {
     expect(packageLock.packages[''].license).toBe(packageJson.license)
     expect(ABOUT_INFO.license).toBe('PolyForm Noncommercial 1.0.0')
     expect(ABOUT_INFO.licenseUrl).toBe('https://polyformproject.org/licenses/noncommercial/1.0.0')
+  })
+
+  it('credits the same AI assistants in the README as in the dialog', () => {
+    const readme = readFileSync(join(root, 'README.md'), 'utf8')
+    for (const dev of CO_DEVELOPERS) {
+      expect(readme).toContain(`**[${dev.name}](${dev.url})**（${dev.maker}）`)
+    }
   })
 
   it('keeps the README from calling the project open source', () => {

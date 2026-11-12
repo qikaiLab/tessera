@@ -156,6 +156,11 @@
   user-select: text;
 }
 
+/* "与 AI 助手 Claude · Codex 共同开发" sits under the role (below, same small type); the names are links. */
+.about-codev .about-inline-link {
+  color: var(--text-secondary);
+}
+
 .about-author-role {
   margin-top: 1px;
   font-size: var(--text-xs);

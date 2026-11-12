@@ -172,6 +172,10 @@ test('the about button opens a tabbed dialog with the version, author, links and
     // The first tab: the author with the avatar, the four link tiles and the group number.
     await expect(dialog.getByRole('tab', { name: '作者与链接' })).toHaveAttribute('aria-selected', 'true')
     await expect(dialog.locator('.about-author-name')).toHaveText('7k')
+    // The AI assistants it is built with are named under the author, each a link to its maker.
+    await expect(dialog.locator('.about-codev')).toHaveText('与 AI 助手 Claude · Codex 共同开发')
+    await expect(dialog.locator('.about-codev button')).toHaveCount(2)
+    await expect(dialog.locator('.about-codev button').first()).toHaveAttribute('title', /Anthropic/)
     await expect.poll(() => dialog.locator('.about-avatar').evaluate(img => img.naturalWidth)).toBeGreaterThan(0)
     await expect(dialog).toContainText('1132171117')
     // The repository and the issue page are tiles whose address is their tooltip.

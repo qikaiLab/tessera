@@ -364,6 +364,17 @@ A: 当前版本仅支持 Windows。未来版本考虑扩展多平台支持。
 
 ---
 
+## 🤝 开发与致谢
+
+Tessera 由作者 **7k**（[qikaiLab](https://github.com/qikaiLab)）与两位 AI 编程助手共同开发：
+
+- **[Claude](https://www.anthropic.com/claude)**（Anthropic）
+- **[Codex](https://openai.com/codex)**（OpenAI）
+
+作者负责需求、设计取舍与最终决定，并通过自然语言与助手协作完成方案讨论、编码、测试与文档。软件使用的第三方组件及其许可证见应用内「关于 → 许可与致谢」。
+
+---
+
 ## 📄 许可证
 
 Tessera 以 [PolyForm Noncommercial License 1.0.0](LICENSE) 发布：**源码公开，个人学习、研究、爱好项目，以及教育、公益等非营利机构均可免费使用、修改与分发；商业用途需另行取得作者许可。** 这不是 OSI 定义的「开源」许可证，而是源码可见（source-available）许可证。

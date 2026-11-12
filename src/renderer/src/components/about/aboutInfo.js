@@ -24,6 +24,13 @@ export const ABOUT_LINKS = Object.freeze([
   { id: 'support', label: '爱发电', icon: 'support', url: ABOUT_INFO.support }
 ])
 
+// The AI assistants the author builds Tessera with. Names and a link only, no logos; the maker
+// shows in the tooltip and in the README.
+export const CO_DEVELOPERS = Object.freeze([
+  { id: 'claude', name: 'Claude', maker: 'Anthropic', url: 'https://www.anthropic.com/claude' },
+  { id: 'codex', name: 'Codex', maker: 'OpenAI', url: 'https://openai.com/codex' }
+])
+
 // The libraries bundled into the app and the licence each is distributed under.
 export const THIRD_PARTY = Object.freeze([
   { name: 'Electron', license: 'MIT', url: 'https://www.electronjs.org/' },
