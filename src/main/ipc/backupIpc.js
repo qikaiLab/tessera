@@ -9,6 +9,10 @@ import { attempt } from './attempt.js'
 
 const fsp = fs.promises
 
+// An import is read into memory whole and handed to the renderer as base64: a file over this size is
+// refused before it is read (the renderer applies its own, stricter limits to what is inside).
+export const MAX_IMPORT_FILE_BYTES = 128 * 1024 * 1024
+
 // Backups, export and import move ZIP files as base64 (a plain Buffer would be copied through
 // the IPC channel as an array of numbers). The renderer builds and reads the ZIP itself.
 export function registerBackupIpc() {
@@ -71,6 +75,10 @@ export function registerBackupIpc() {
 
   ipcMain.handle('import:readFile', (_, filePath) => attempt(async () => {
     if (!pathGrants.consume('read', filePath)) throw new Error('Import path was not chosen in an open dialog')
+    const { size } = await fsp.stat(filePath)
+    if (size > MAX_IMPORT_FILE_BYTES) {
+      throw Object.assign(new Error('Import file is too large'), { code: 'TESSERA_FILE_TOO_LARGE' })
+    }
     return { data: (await fsp.readFile(filePath)).toString('base64') }
   }))
 }

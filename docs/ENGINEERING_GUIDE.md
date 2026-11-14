@@ -147,6 +147,7 @@ npm run check
 - `fs:discardTmp`、`fs:recoverTmp` 只接受数据目录内的 `.tmp` 文件；恢复前先校验 JSON，不完整的文件改名为 `.incomplete` 保留，不能覆盖原文件。
 - `export:writeFile`、`import:readFile` 只接受用户刚在 `dialog:saveFile` / `dialog:openFile` 里选过的路径（`pathGrants.js`，一次有效）。
 - 备份读取数据目录失败必须报错，不能返回残缺的文件列表。
+- 导入的 ZIP 是不可信输入：`import:readFile` 拒绝超过 128 MB 的文件（读取之前就检查），渲染层的 `readArchiveJsonEntries`（`utils/dataArchive.js` 的 `ARCHIVE_LIMITS`）再限制条目数（5 万）、单个 JSON 展开后大小（32 MB）和合计大小（256 MB），边展开边计数，超限立即中止，不会等整个文件进了内存。限值远高于真实数据，改动时同步 `tests/data-archive.test.mjs` 与 `tests/e2e/data-import.spec.mjs`。
 - 数据目录不能由渲染层直接设置：`config:set` 拒绝 `dataDir`、`pendingDataDirChange`；更改只能走 `config:planDataDirChange` / `config:scheduleDataDirChange`，且目录必须是用户刚在 `dialog:openDirectory` 里选过的（`pathGrants` 的 `folder`）。更改只记录为预约，在下次启动时复制、核对后才切换，旧目录永不删除。
 - 自动化测试固定的数据目录（`TESSERA_DATA_DIR`）不会被预约迁移或目录缺失提示改动；迁移启动流程由 `tests/data-directory-startup.test.mjs` 用真实临时目录覆盖，改动它时还应按下一节的开发目录做一次真实两次启动验证。
 - 导入 ZIP 先整体校验（合法 JSON、相对路径），有任何问题就一个文件都不写。

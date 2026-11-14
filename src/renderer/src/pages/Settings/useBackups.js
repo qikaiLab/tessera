@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { useApp } from '../../context/AppContext'
-import { findInvalidArchiveEntries, readArchiveJsonEntries, zipFilesToBase64 } from '../../utils/dataArchive'
+import { ArchiveLimitError, findInvalidArchiveEntries, readArchiveJsonEntries, zipFilesToBase64 } from '../../utils/dataArchive'
 import { NOTES_INDEX_PATH } from '../../utils/notes'
 
 /**
@@ -142,10 +142,10 @@ export function useBackups() {
           showToast(`导入成功，共恢复 ${count} 个文件。`, 'success', 4000)
         }
       } catch (e) {
-        showToast(`解析失败: ${e.message}`, 'error')
+        showToast(e instanceof ArchiveLimitError ? `${e.message}，未做任何改动` : `解析失败: ${e.message}`, 'error', 7000)
       }
     } else {
-      showToast('读取文件失败', 'error')
+      showToast(read.code === 'TESSERA_FILE_TOO_LARGE' ? '压缩包超过 128 MB，已拒绝导入，未做任何改动' : '读取文件失败', 'error', 6000)
     }
     setImporting(false)
   }
