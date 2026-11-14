@@ -35,7 +35,9 @@ const localDayNumber = (date) => dayNumber(date.getFullYear(), date.getMonth(), 
 const pad = (value, width = 2) => String(value).padStart(width, '0')
 const localDateString = (date) => `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 
-const someMoment = fc.date({ min: new Date('1971-01-02T00:00:00Z'), max: new Date('2098-12-30T00:00:00Z'), noInvalidDate: true })
+// From 1996 on: Kiritimati dropped a whole day at the end of 1994 (a calendar jump, so day counts across it
+// legitimately differ from plain UTC arithmetic), and nothing in this app records dates before then.
+const someMoment = fc.date({ min: new Date('1996-01-04T00:00:00Z'), max: new Date('2098-12-30T00:00:00Z'), noInvalidDate: true })
 const someDay = someMoment.map(date => date.toISOString().slice(0, 10))
 const JUNK_DATES = ['', ' ', 'abc', '0000-00-00', '2026-13-45', '2026-02-30', '9999-12-31', '0001-01-01', '１２３４-０１-０１', '2026-1-1', '2026/01/01', '20260101', 'null', 'undefined', '__proto__']
 // The days the data folder lists are always digits (yyyy-MM-dd from year/month/day.json names), but

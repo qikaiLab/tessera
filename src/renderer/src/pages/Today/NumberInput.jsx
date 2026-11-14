@@ -1,14 +1,15 @@
 import { useCallback } from 'react'
 import { editMenuItems, separator, showContextMenu, useContextMenuCommand } from '../../utils/contextMenu'
+import { storedText } from '../../utils/dayEntries'
 import { focusEditableTarget, getEditableSelectionState } from '../../utils/editableText'
 import './NumberInput.css'
 
-const isNumericText = (value) => /^-?\d+(\.\d+)?$/.test(String(value || '').trim())
+const isNumericText = (value) => /^-?\d+(\.\d+)?$/.test(storedText(value || '').trim())
 
 // `pending`: the value to start from (the last recorded number) is still being looked up, so the
 // field is locked: a press on + or - would otherwise act on the placeholder 0.
 export default function NumberInput({ sectionId, value, pending = false, unit, onChange, onUseRecentValue, showToast }) {
-  const numVal = value === '' ? '' : String(value)
+  const numVal = value === '' ? '' : storedText(value)
 
   const handleChange = (e) => {
     const v = e.target.value

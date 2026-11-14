@@ -1,4 +1,4 @@
-import { hasStoredValue } from './dayEntries'
+import { hasStoredValue, storedText } from './dayEntries'
 
 // How many earlier days are read at once while looking for a number to carry over.
 const CHUNK_SIZE = 24
@@ -25,7 +25,7 @@ export async function findRecentNumberValues({ dates, before, sectionIds, readDa
       for (const sectionId of [...wanted]) {
         const entry = day?.[sectionId]
         if (!hasStoredValue(entry)) continue
-        found[sectionId] = String(entry.value)
+        found[sectionId] = storedText(entry.value)
         wanted.delete(sectionId)
       }
     }

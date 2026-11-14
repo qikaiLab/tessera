@@ -1,9 +1,25 @@
+// A stored value as text, or '' when it cannot be read as text: a damaged or hand-edited file can
+// hold an object whose conversion to text throws, and a throw while drawing a page is a blank page.
+export function storedText(value) {
+  try {
+    return String(value ?? '')
+  } catch {
+    return ''
+  }
+}
+
 // Whether a stored value counts as "nothing written": missing, blank, or a rich-text document
 // without a single visible character. Such entries are never persisted (see writeDayData) and
-// must not keep an optional section "activated" on a day.
+// must not keep an optional section "activated" on a day. A value that cannot be read as text is
+// still something that is there, so it is kept rather than silently dropped.
 export function isEntryEmpty(value) {
   if (value === undefined || value === null) return true
-  const text = String(value).trim()
+  let text
+  try {
+    text = String(value).trim()
+  } catch {
+    return false
+  }
   if (text === '') return true
   if (text.startsWith('{') && text.endsWith('}')) {
     try {
@@ -41,7 +57,12 @@ export function dropEmptyEntries(entries) {
 
 // Something is stored for the section (a number, or any non-blank text or document).
 export function hasStoredValue(entry) {
-  return entry?.value !== undefined && entry?.value !== null && String(entry.value).trim() !== ''
+  if (entry?.value === undefined || entry?.value === null) return false
+  try {
+    return String(entry.value).trim() !== ''
+  } catch {
+    return true
+  }
 }
 
 // Resident sections are always on a day. An optional ("activated") one is there while it holds

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  dropEmptyEntries,
   hasStoredValue,
   isEntryEmpty,
   isSectionAddable,
   isSectionClosable,
-  isSectionOnDay
+  isSectionOnDay,
+  storedText
 } from '../src/renderer/src/utils/dayEntries.js'
 
 const doc = (...texts) => JSON.stringify({
@@ -73,5 +75,22 @@ describe('which sections are on a day', () => {
     expect(isSectionAddable(optional, undefined)).toBe(true)
     expect(isSectionAddable(optional, { value: '1' })).toBe(false)
     expect(isSectionAddable(optional, undefined, true)).toBe(false)
+  })
+})
+
+describe('values a damaged file can hold', () => {
+  // An object whose conversion to text throws: nothing the app writes, but a hand-edited file can.
+  const unreadable = { toString: null }
+
+  it('are kept as something stored instead of throwing or being dropped', () => {
+    expect(isEntryEmpty(unreadable)).toBe(false)
+    expect(hasStoredValue({ value: unreadable })).toBe(true)
+    expect(dropEmptyEntries({ a: { value: unreadable }, b: { value: '' } })).toEqual({ a: { value: unreadable } })
+  })
+
+  it('read as no text at all', () => {
+    expect(storedText(unreadable)).toBe('')
+    expect(storedText(undefined)).toBe('')
+    expect(storedText(12)).toBe('12')
   })
 })

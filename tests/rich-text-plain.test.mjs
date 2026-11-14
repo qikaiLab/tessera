@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { extractPlainText } from '../src/renderer/src/utils/richText.js'
+import { extractPlainText, richTextToPlainText } from '../src/renderer/src/utils/richText.js'
+import { getSectionPreview } from '../src/renderer/src/utils/sectionPreview.js'
 
 const doc = (...texts) => ({
   type: 'doc',
@@ -34,5 +35,26 @@ describe('extractPlainText', () => {
       ] }]
     }
     expect(extractPlainText(list)).toBe('一二')
+  })
+})
+
+describe('text nodes whose text is not a string', () => {
+  const damaged = doc => JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'ok ' }, doc] }] })
+
+  it.each([
+    ['an object that cannot be turned into text', { type: 'text', text: { toString: null } }],
+    ['an array', { type: 'text', text: ['a', 'b'] }],
+    ['null', { type: 'text', text: null }],
+    ['a nested object', { type: 'text', text: { a: { b: 1 } } }]
+  ])('reading %s keeps the rest of the text and does not throw', (_, node) => {
+    const value = damaged(node)
+    expect(extractPlainText(value)).toBe('ok ')
+    expect(richTextToPlainText(value)).toBe('ok')
+    expect(getSectionPreview(value)).toBe('ok')
+  })
+
+  it('still reads numbers and booleans as their text', () => {
+    expect(extractPlainText(damaged({ type: 'text', text: 12 }))).toBe('ok 12')
+    expect(extractPlainText(damaged({ type: 'text', text: true }))).toBe('ok true')
   })
 })

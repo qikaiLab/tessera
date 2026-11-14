@@ -1,3 +1,5 @@
+import { textOf } from './richText'
+
 const TEXT_BLOCKS = new Set(['paragraph', 'heading', 'codeBlock'])
 
 // The text of each paragraph, heading and code block in reading order. Walked with an explicit
@@ -11,7 +13,7 @@ function collectBlocks(root, blocks) {
     if (!node || typeof node !== 'object' || node.type === 'text') continue
     const children = Array.isArray(node.content) ? node.content : []
     if (TEXT_BLOCKS.has(node.type)) {
-      const text = children.map(child => (child && typeof child === 'object' ? child.text ?? '' : '')).join('').trim()
+      const text = children.map(child => (child && typeof child === 'object' ? textOf(child) : '')).join('').trim()
       if (text) blocks.push(text)
       continue
     }

@@ -61,6 +61,15 @@ export function extractPlainText(value) {
   return String(value)
 }
 
+// The text of a text node. A hand-edited or damaged file can put anything in `text`; only a string
+// (or a plain number or boolean, which read as their usual text) counts, and an object whose
+// conversion to text would itself throw is read as nothing.
+export function textOf(node) {
+  const text = node?.text
+  if (typeof text === 'string') return text
+  return typeof text === 'number' || typeof text === 'boolean' ? String(text) : ''
+}
+
 // Visits a document tree depth-first without recursion: a damaged or hostile file can nest nodes
 // thousands of levels deep, and a recursive walk would overflow the stack (one such day would then
 // break every page that reads text, the timeline included). `enter` runs before a node's children
@@ -89,7 +98,7 @@ function walkNodes(root, { enter, exit }) {
 function nodeText(root) {
   const parts = []
   walkNodes(root, {
-    enter: (node) => { if (node.type === 'text') parts.push(node.text || '') },
+    enter: (node) => { if (node.type === 'text') parts.push(textOf(node)) },
     // Keep neighbouring table cells from running together in searches and snippets.
     exit: (node) => { if (node.type === 'tableCell' || node.type === 'tableHeader') parts.push(' ') }
   })
@@ -101,7 +110,7 @@ const BLOCK_TYPES = new Set(['paragraph', 'heading', 'codeBlock', 'listItem', 't
 export function richTextToPlainText(value) {
   const parts = []
   walkNodes(parseRichText(value), {
-    enter: (node) => { if (node.type === 'text') parts.push(node.text || '') },
+    enter: (node) => { if (node.type === 'text') parts.push(textOf(node)) },
     exit: (node) => { if (BLOCK_TYPES.has(node.type)) parts.push('\n') }
   })
   return parts.join('').replace(/\n{2,}/g, '\n').trim()

@@ -10,7 +10,7 @@ import {
   MAX_RANGE_DAYS,
   normalizeSeries
 } from './analyticsCard'
-import { hasStoredValue } from './dayEntries'
+import { hasStoredValue, storedText } from './dayEntries'
 import { extractPlainText } from './richText'
 import { NUMBER_DEFAULT_MODE, getNumberDefaultMode } from './sectionDefaults'
 
@@ -85,7 +85,7 @@ export function hasChartBindingData(dateStr, bindings, loadedData) {
     const entry = loadedData[dateStr]?.[binding.sectionId]
     if (!hasStoredValue(entry)) return false
     if (binding.metric === 'wordcount') return wordCount(entry.value) > 0
-    return String(entry.value).trim() !== ''
+    return storedText(entry.value).trim() !== ''
   })
 }
 
@@ -121,7 +121,7 @@ function findRecentNumberValue(dateStr, sectionId, loadedData) {
 
 // A number a chart can draw: text that reads as infinity ("1e999") or as nothing counts as 0.
 const finiteNumber = (value) => {
-  const number = parseFloat(value)
+  const number = parseFloat(storedText(value))
   return Number.isFinite(number) ? number : 0
 }
 
