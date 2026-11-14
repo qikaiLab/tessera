@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 
-export async function launchApp(sandbox) {
+export async function launchApp(sandbox, { env = {} } = {}) {
   // TESSERA_E2E_EXECUTABLE points the suite at a packaged build (release/win-unpacked)
   // instead of the built output, to verify what actually ships.
   const executablePath = process.env.TESSERA_E2E_EXECUTABLE
@@ -18,7 +18,8 @@ export async function launchApp(sandbox) {
       // Keep the test window off-screen and unfocused (TESSERA_E2E_VISIBLE=1 to watch it).
       TESSERA_E2E_QUIET: process.env.TESSERA_E2E_VISIBLE === '1' ? '' : '1',
       TESSERA_USER_DATA_DIR: sandbox.userDataDir,
-      TESSERA_DATA_DIR: sandbox.dataDir
+      TESSERA_DATA_DIR: sandbox.dataDir,
+      ...env
     }
   })
   const window = await app.firstWindow()

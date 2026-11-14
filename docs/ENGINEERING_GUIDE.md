@@ -110,7 +110,7 @@ npm run check
 ### 主进程（`src/main`）
 
 - `index.js` 只做装配：运行时覆盖、单实例锁、应用生命周期。
-- `appState.js` 是各部分共享的进程级状态（窗口、数据目录、是否正在退出）；`window.js` 创建窗口并处理静默测试模式；`externalLinks.js` 判定哪些地址可以在外部打开。
+- `appState.js` 是各部分共享的进程级状态（窗口、数据目录、是否正在退出）；`window.js` 创建窗口并处理静默测试模式；`windowBounds.js` 把窗口及其最小尺寸限制在屏幕可用区域内（逻辑像素；1920×1080 在 150% 缩放下只有约 1280×680，1366×768 在 125% 下约 1093×574），自动化测试用 `TESSERA_E2E_WORK_AREA=宽x高` 假装屏幕较小，静默测试模式默认不限制，见 `tests/window-bounds.test.mjs` 与 `tests/e2e/window-fit.spec.mjs`；`externalLinks.js` 判定哪些地址可以在外部打开。
 - `dataFiles.js`、`dataDirectory.js` 是数据文件操作与数据目录解析（纯函数，有测试）；`security.js` 限制可访问路径。
 - `dataDirectoryMigration.js` 规划并执行数据目录的复制迁移（复制、逐文件 SHA-256 核对、不改动旧目录）；`dataDirectoryStartup.js` 在启动、打开任何数据之前决定使用哪个目录：执行预约的迁移，并在已保存目录不存在时拒绝静默新建空目录。
 - `ipc/*Ipc.js` 按主题注册 IPC handler（文件、备份、配置、元数据、对话框、窗口、外观），统一经 `ipc/attempt.js` 包装为 `{ ok, ... }` 结果；`ipc/index.js` 汇总注册。

@@ -1,6 +1,6 @@
 import path from 'node:path'
 import os from 'node:os'
-import { BrowserWindow, Menu, app, dialog } from 'electron'
+import { BrowserWindow, Menu, app, dialog, screen } from 'electron'
 import { appState, loadConfig, saveConfig } from './appState.js'
 import { ensureDirSync } from './dataFiles.js'
 import { syncDataPathFile } from './dataDirectory.js'
@@ -8,6 +8,7 @@ import { resolveStartupDataDirectory } from './dataDirectoryStartup.js'
 import { isAppNavigationUrl, openExternalQuietly } from './externalLinks.js'
 import { isBlockedShortcut, isFullScreenShortcut } from './shortcuts.js'
 import { resolveWindowBackground } from './windowBackground.js'
+import { fitWindowToWorkArea, parseWorkAreaOverride } from './windowBounds.js'
 
 // How long the renderer has to confirm that pending edits were saved before the user is told
 // the close was cancelled.
@@ -167,13 +168,16 @@ export async function createWindow({ runtimeOverrides }) {
   // would drop edits that have not been saved yet. Packaged builds have no menu bar to show anyway.
   if (hasNoMenu()) Menu.setApplicationMenu(null)
 
+  // The window never exceeds the screen's usable area (high display scaling or a small laptop screen
+  // leaves less than the preferred size). Automated runs keep the preferred size unless they ask for
+  // a pretend work area, so their layout does not depend on the machine's screen.
+  const workArea = parseWorkAreaOverride(process.env) ?? (quietWindow ? null : screen.getPrimaryDisplay().workAreaSize)
+  const size = fitWindowToWorkArea(workArea)
+
   const window = new BrowserWindow({
     icon: path.join(__dirname, '../../logo.ico'),
     ...(quietWindow ? { x: -12000, y: -12000 } : {}),
-    width: 1280,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    ...size,
     frame: false,
     backgroundColor: resolveWindowBackground(startup.config),
     titleBarStyle: 'hidden',
