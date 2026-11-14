@@ -38,7 +38,16 @@ async function readDirQuietly(dir, what) {
   }
 }
 
-// Every day that has a file, as yyyy-MM-dd (whether or not the file has anything in it).
+// A name made of digits is not yet a day: "2025/13/01.json" and "2025/02/30.json" exist as files
+// but on no calendar, and a date nothing can format would take the timeline page down with it.
+function isCalendarDay(year, month, day) {
+  const date = new Date(0)
+  date.setUTCFullYear(Number(year), Number(month) - 1, Number(day))
+  return date.getUTCFullYear() === Number(year) && date.getUTCMonth() === Number(month) - 1 && date.getUTCDate() === Number(day)
+}
+
+// Every day that has a file, as yyyy-MM-dd (whether or not the file has anything in it). Files
+// whose names are not a real calendar day are left alone and not listed.
 export async function scanDayDates(dataDir) {
   const dates = []
   const years = (await readDirQuietly(dataDir, 'data dir')).filter(name => /^\d{4}$/.test(name))
@@ -48,7 +57,10 @@ export async function scanDayDates(dataDir) {
     for (const month of months) {
       const monthPath = path.join(yearPath, month)
       const days = (await readDirQuietly(monthPath, 'month dir')).filter(name => /^\d{2}\.json$/.test(name))
-      for (const dayFile of days) dates.push(`${year}-${month}-${dayFile.replace('.json', '')}`)
+      for (const dayFile of days) {
+        const day = dayFile.replace('.json', '')
+        if (isCalendarDay(year, month, day)) dates.push(`${year}-${month}-${day}`)
+      }
     }
   }
   return dates

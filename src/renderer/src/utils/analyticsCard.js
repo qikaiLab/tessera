@@ -89,16 +89,29 @@ export function moveBindingToFront(bindings, sectionId) {
 
 const HEATMAP_DEFAULT_DAYS = 365
 
+// The longest stretch a chart ever covers (20 years). A mistyped year in a data folder or a
+// hand-edited range must not turn into hundreds of thousands of points, or a date no calendar holds.
+export const MAX_RANGE_DAYS = 366 * 20
+
+// How many days "last N days" covers: the card's number, 30 when it is missing or unreadable, and
+// never less than today or more than MAX_RANGE_DAYS.
+export function getRangeDays(card) {
+  const days = parseInt(card.dateRange, 10) || 30
+  return Math.min(MAX_RANGE_DAYS, Math.max(1, days))
+}
+
 // The first day a heatmap's range covers. "All time" runs from the first recorded day (or a year
-// back when nothing is recorded yet, or the dates are unusable).
+// back when nothing is recorded yet, or the dates are unusable), but no further back than
+// MAX_RANGE_DAYS.
 function getHeatmapStart(card, datesWithData, today) {
   if (card.dateRange === 'all') {
     const earliest = [...datesWithData].sort()[0]
     const start = earliest ? parseISO(earliest) : subDays(today, HEATMAP_DEFAULT_DAYS - 1)
-    return Number.isNaN(start.getTime()) || start > today ? subDays(today, HEATMAP_DEFAULT_DAYS - 1) : start
+    if (Number.isNaN(start.getTime()) || start > today) return subDays(today, HEATMAP_DEFAULT_DAYS - 1)
+    const limit = subDays(today, MAX_RANGE_DAYS - 1)
+    return start < limit ? limit : start
   }
-  const days = parseInt(card.dateRange, 10) || 30
-  return subDays(today, days - 1)
+  return subDays(today, getRangeDays(card) - 1)
 }
 
 export function getHeatmapRangeStart(card, datesWithData = [], today = new Date()) {

@@ -61,31 +61,49 @@ export function extractPlainText(value) {
   return String(value)
 }
 
-function nodeText(node) {
-  if (!node) return ''
-  if (node.type === 'text') return node.text || ''
-  if (Array.isArray(node.content)) {
-    const text = node.content.map(nodeText).join('')
-    // Keep neighbouring table cells from running together in searches and snippets.
-    return node.type === 'tableCell' || node.type === 'tableHeader' ? `${text} ` : text
+// Visits a document tree depth-first without recursion: a damaged or hostile file can nest nodes
+// thousands of levels deep, and a recursive walk would overflow the stack (one such day would then
+// break every page that reads text, the timeline included). `enter` runs before a node's children
+// and `exit` after them.
+function walkNodes(root, { enter, exit }) {
+  if (!root || typeof root !== 'object') return
+  const stack = [{ node: root, index: 0 }]
+  enter(root)
+  while (stack.length > 0) {
+    const frame = stack[stack.length - 1]
+    const children = Array.isArray(frame.node.content) ? frame.node.content : []
+    if (frame.index < children.length) {
+      const child = children[frame.index]
+      frame.index += 1
+      if (child && typeof child === 'object') {
+        enter(child)
+        stack.push({ node: child, index: 0 })
+      }
+    } else {
+      exit(frame.node)
+      stack.pop()
+    }
   }
-  return ''
+}
+
+function nodeText(root) {
+  const parts = []
+  walkNodes(root, {
+    enter: (node) => { if (node.type === 'text') parts.push(node.text || '') },
+    // Keep neighbouring table cells from running together in searches and snippets.
+    exit: (node) => { if (node.type === 'tableCell' || node.type === 'tableHeader') parts.push(' ') }
+  })
+  return parts.join('')
 }
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'codeBlock', 'listItem', 'taskItem', 'tableRow'])
 
 export function richTextToPlainText(value) {
   const parts = []
-  const visit = (node) => {
-    if (!node || typeof node !== 'object') return
-    if (node.type === 'text') {
-      parts.push(node.text || '')
-      return
-    }
-    for (const child of node.content || []) visit(child)
-    if (BLOCK_TYPES.has(node.type)) parts.push('\n')
-  }
-  visit(parseRichText(value))
+  walkNodes(parseRichText(value), {
+    enter: (node) => { if (node.type === 'text') parts.push(node.text || '') },
+    exit: (node) => { if (BLOCK_TYPES.has(node.type)) parts.push('\n') }
+  })
   return parts.join('').replace(/\n{2,}/g, '\n').trim()
 }
 

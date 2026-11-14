@@ -57,7 +57,11 @@ export function prepareDocument(value, schema = defaultSchema()) {
   }
   if (isValid(schema, document)) return { doc: document, repaired: false }
 
-  const [cleaned] = cleanNode(schema, document)
-  if (cleaned && isValid(schema, cleaned)) return { doc: cleaned, repaired: true }
+  try {
+    const [cleaned] = cleanNode(schema, document)
+    if (cleaned && isValid(schema, cleaned)) return { doc: cleaned, repaired: true }
+  } catch {
+    // Nested so deeply that cleaning ran out of stack: the text alone is kept below.
+  }
   return { doc: plainTextDocument(richTextToPlainText(document)), repaired: true }
 }

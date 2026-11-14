@@ -188,8 +188,10 @@ describe('automatic backups', () => {
       'backups /automatic /index.json',
       'backups\\automatic\\index.json'
     ]) {
-      await expect(store.write(name, '[]'), name).rejects.toThrow('read-only')
-      await expect(store.delete(name), name).rejects.toThrow('read-only')
+      // Spellings Windows would fold into the folder (a trailing dot or space) are refused one step
+      // earlier, as names no file may have; the rest reach the folder check. Either way, nothing is written.
+      await expect(store.write(name, '[]'), name).rejects.toThrow(/read-only|Unsupported file name/)
+      await expect(store.delete(name), name).rejects.toThrow(/read-only|Unsupported file name/)
     }
     expect(await fs.readFile(path.join(directory, 'backups/automatic/index.json'), 'utf8')).toBe(before)
   })

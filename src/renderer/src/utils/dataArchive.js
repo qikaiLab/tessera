@@ -136,6 +136,15 @@ export async function readArchiveJsonEntries(base64Data, limits = ARCHIVE_LIMITS
   return entries
 }
 
+// A path segment that goes up a folder, or that Windows would read as something other than the
+// plain file name it looks like: a device (CON, NUL, COM1 ... with or without an extension), an
+// alternate data stream or drive (a colon), characters it does not allow, or a name ending in a dot
+// or space. The file layer refuses the same names (src/main/security.js).
+const DEVICE_NAME = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i
+function isUnsafeSegment(segment) {
+  return segment === '..' || /[<>:"|?*\u0000-\u001f]/.test(segment) || DEVICE_NAME.test(segment) || (segment !== '.' && /[. ]$/.test(segment))
+}
+
 /**
  * The entries of an archive that must not be imported: a path that could leave the data
  * directory, or JSON that does not parse. An import writes over existing files, so it checks
@@ -144,7 +153,7 @@ export async function readArchiveJsonEntries(base64Data, limits = ARCHIVE_LIMITS
 export function findInvalidArchiveEntries(entries) {
   const invalid = []
   for (const { path, text } of entries) {
-    const unsafePath = /^([a-zA-Z]:|[\\/])/.test(path) || path.split(/[\\/]/).includes('..')
+    const unsafePath = /^([a-zA-Z]:|[\\/])/.test(path) || path.split(/[\\/]/).some(isUnsafeSegment)
     let parsable = true
     try { JSON.parse(text) } catch { parsable = false }
     if (unsafePath || !parsable) invalid.push({ path, reason: unsafePath ? 'path' : 'json' })

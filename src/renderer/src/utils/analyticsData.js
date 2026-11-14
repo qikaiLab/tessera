@@ -6,6 +6,8 @@ import {
   getDateAxisMode,
   getHeatmapDays,
   getHeatmapRangeStart,
+  getRangeDays,
+  MAX_RANGE_DAYS,
   normalizeSeries
 } from './analyticsCard'
 import { hasStoredValue } from './dayEntries'
@@ -33,14 +35,11 @@ function getRecordedDateRange(card, datesWithData, today) {
   }
   // "Last N days" is today and the N-1 days before it, the same window the continuous axis and the
   // heatmap use; days dated after today (the record page can open them) are not part of it.
-  const days = parseInt(card.dateRange, 10) || 30
+  const days = getRangeDays(card)
   const cutoff = format(subDays(today, days - 1), 'yyyy-MM-dd')
   const latest = format(today, 'yyyy-MM-dd')
   return datesWithData.filter(d => d >= cutoff && d <= latest)
 }
-
-// A safety net for the continuous axis: a mistyped year must not turn into tens of thousands of points.
-const MAX_CONTINUOUS_DAYS = 366 * 20
 
 // Every calendar day of the range, with or without data.
 function getContinuousDateRange(card, datesWithData, bindings, loadedData, today) {
@@ -59,15 +58,14 @@ function getContinuousDateRange(card, datesWithData, bindings, loadedData, today
     end = parseISO(sorted[sorted.length - 1])
     if (end > today) end = today
   } else {
-    const days = parseInt(card.dateRange) || 30
     end = today
-    start = subDays(end, days - 1)
+    start = subDays(end, getRangeDays(card) - 1)
   }
 
   if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
     return []
   }
-  const earliest = subDays(end, MAX_CONTINUOUS_DAYS - 1)
+  const earliest = subDays(end, MAX_RANGE_DAYS - 1)
   if (start < earliest) start = earliest
   return eachDayOfInterval({ start, end }).map(d => format(d, 'yyyy-MM-dd'))
 }
@@ -116,14 +114,20 @@ function findRecentNumberValue(dateStr, sectionId, loadedData) {
   }
   for (let i = low - 1; i >= 0; i -= 1) {
     const entry = loadedData[dates[i]]?.[sectionId]
-    if (hasStoredValue(entry)) return parseFloat(entry.value) || 0
+    if (hasStoredValue(entry)) return finiteNumber(entry.value)
   }
   return 0
 }
 
+// A number a chart can draw: text that reads as infinity ("1e999") or as nothing counts as 0.
+const finiteNumber = (value) => {
+  const number = parseFloat(value)
+  return Number.isFinite(number) ? number : 0
+}
+
 function entryNumber(entry, binding) {
   if (!entry) return 0
-  return binding.metric === 'wordcount' ? wordCount(entry.value) : parseFloat(entry.value) || 0
+  return binding.metric === 'wordcount' ? wordCount(entry.value) : finiteNumber(entry.value)
 }
 
 export function resolveBindingValue(dateStr, binding, section, loadedData) {

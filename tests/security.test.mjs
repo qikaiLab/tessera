@@ -15,6 +15,24 @@ describe('resolveSafePath', () => {
     expect(() => resolveSafePath(baseDir, filePath)).toThrow('Path traversal detected')
   })
 
+  it('rejects the data directory itself, whose temporary file would land beside it', () => {
+    for (const requested of ['.', 'notes/..', 'a/b/../..', './']) {
+      expect(() => resolveSafePath(baseDir, requested), requested).toThrow('inside the data directory')
+    }
+  })
+
+  it('rejects names Windows reads as something else: devices, data streams, trailing dots and spaces', () => {
+    for (const requested of ['CON', 'nul.json', 'notes/COM1.json', 'LPT9', 'aux.txt', '2026/10/13.json:stream', 'notes/a:b.json', 'a?.json', 'a*.json', 'a<b>.json', 'notes/name.', 'notes/name ', 'a\u0000b.json']) {
+      expect(() => resolveSafePath(baseDir, requested), requested).toThrow('Unsupported file name')
+    }
+  })
+
+  it('still accepts every name the app writes', () => {
+    for (const requested of ['sections.json', 'metadata.json', '2026/11/14.json', 'notes/index.json', 'notes/3f2b8c1e-9d7a-4c55-8a1e-0b7d5f6a2c11.json', 'notes/seed-note-1.json', 'notes/connect.json', 'notes/console-log.json', '日记/2026.json']) {
+      expect(() => resolveSafePath(baseDir, requested), requested).not.toThrow()
+    }
+  })
+
   it('rejects absolute paths', () => {
     expect(() => resolveSafePath(baseDir, path.resolve('C:/secret.json'))).toThrow(
       'Absolute paths are not allowed'

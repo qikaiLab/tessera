@@ -75,6 +75,14 @@ describe('findInvalidArchiveEntries', () => {
     ])
   })
 
+  it('flags names Windows reads as something other than a plain file: devices, data streams, trailing dots and spaces', () => {
+    const bad = ['CON.json', 'notes/nul.json', 'notes/COM3.json', '2026/10/13.json:stream.json', 'a?b.json', 'notes/x*.json', 'notes/name .json'.replace('name .json', 'name .'), 'notes/dir./x.json', 'notes/a|b.json']
+    const found = findInvalidArchiveEntries(bad.map(path => ({ path, text: '{}' })))
+    expect(found.map(entry => entry.path)).toEqual(bad)
+    // Ordinary names, including ones that merely contain a device name, are fine.
+    expect(findInvalidArchiveEntries(['notes/connect.json', 'notes/console.json', 'a/./b.json', '日记/2026.json'].map(path => ({ path, text: '{}' })))).toEqual([])
+  })
+
   it('flags paths that could leave the data directory', () => {
     const bad = ['../outside.json', 'a/../../outside.json', '/etc/x.json', 'C:/x.json', 'C:\\x.json', '..\\x.json']
     const found = findInvalidArchiveEntries(bad.map(path => ({ path, text: '{}' })))

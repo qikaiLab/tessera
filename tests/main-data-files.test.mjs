@@ -44,6 +44,20 @@ describe('scanning the data directory', () => {
     expect((await scanDayDates(root)).sort()).toEqual(['2025-01-01', '2026-10-12', '2026-10-13'])
   })
 
+  it('lists only days that exist on the calendar', async () => {
+    write('2024/02/29.json')
+    write('0001/01/01.json')
+    // Digits, but not days: a date nothing can format would take the timeline down.
+    write('2025/02/29.json')
+    write('2025/02/30.json')
+    write('2025/13/01.json')
+    write('2025/00/10.json')
+    write('2025/01/00.json')
+    write('2025/01/99.json')
+    write('2025/04/31.json')
+    expect((await scanDayDates(root)).sort()).toEqual(['0001-01-01', '2024-02-29'])
+  })
+
   it('returns nothing for a directory that does not exist', async () => {
     expect(await scanDayDates(path.join(root, 'missing'))).toEqual([])
   })

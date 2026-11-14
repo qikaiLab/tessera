@@ -253,3 +253,36 @@ describe('date labels', () => {
     expect(formatAxisDate('not a date')).toBe('not a date')
   })
 })
+
+describe('damaged or mistyped data', () => {
+  const stepsBinding = { sectionId: 'steps', metric: 'value' }
+
+  it('a range setting beyond any real calendar still draws, capped at 20 years', () => {
+    for (const dateRange of ['99999999999999999999', '1e9', '-5', '0']) {
+      for (const type of ['line', 'bar', 'pie', 'heatmap']) {
+        for (const dateAxisMode of ['recorded', 'continuous']) {
+          const data = buildChartData(card({ type, dateRange, dateAxisMode, bindings: [stepsBinding] }), sections, loadedData, datesWithData, palette, today)
+          expect(Array.isArray(data), `${type} ${dateRange}`).toBe(true)
+          expect(data.length).toBeLessThanOrEqual(366 * 20 + 7)
+        }
+      }
+    }
+  })
+
+  it('one stray, very old day does not turn the all-time heatmap into hundreds of thousands of cells', () => {
+    const data = buildChartData(card({ type: 'heatmap', dateRange: 'all', bindings: [stepsBinding] }), sections, loadedData, ['0001-01-01', ...datesWithData], palette, today)
+    expect(data.length).toBeLessThanOrEqual(366 * 20 + 7)
+    expect(data.at(-1).date).toBe('2026-10-13')
+  })
+
+  it('numbers that read as infinity count as 0, so a chart is never drawn off the page', () => {
+    const odd = {
+      '2026-10-12': { steps: { value: '1e999' } },
+      '2026-10-13': { steps: { value: '-1e999' } }
+    }
+    const line = buildChartData(card({ type: 'line', dateRange: '7', bindings: [stepsBinding] }), sections, odd, Object.keys(odd), palette, today)
+    expect(line.map(point => point['步数'])).toEqual([0, 0])
+    const [slice] = buildChartData(card({ type: 'pie', dateRange: '7', bindings: [stepsBinding] }), sections, odd, Object.keys(odd), palette, today)
+    expect(slice.value).toBe(0)
+  })
+})

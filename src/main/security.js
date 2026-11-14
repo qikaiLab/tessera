@@ -2,6 +2,16 @@ const path = require('path')
 
 const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
 
+// What Windows reads differently from what is written: the device names (CON, NUL, COM1 ... with or
+// without an extension) are not files at all, a colon names an alternate data stream (or a drive),
+// and a trailing dot or space is silently dropped. None of them is ever a name the app creates.
+const WINDOWS_DEVICE_NAME = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i
+const UNSUPPORTED_NAME_CHARS = /[<>:"|?*\u0000-\u001f]/
+
+function hasUnsupportedName(segment) {
+  return UNSUPPORTED_NAME_CHARS.test(segment) || WINDOWS_DEVICE_NAME.test(segment) || /[. ]$/.test(segment)
+}
+
 function resolveSafePath(baseDir, filePath) {
   if (typeof baseDir !== 'string' || baseDir.length === 0) {
     throw new Error('Data directory is not configured')
@@ -19,6 +29,14 @@ function resolveSafePath(baseDir, filePath) {
 
   if (relative.startsWith('..') || path.isAbsolute(relative)) {
     throw new Error('Path traversal detected')
+  }
+  // The directory itself is not a file: writing "a/.." would put its temporary file beside the
+  // data directory instead of inside it.
+  if (relative === '') {
+    throw new Error('Path must name a file inside the data directory')
+  }
+  if (relative.split(path.sep).some(hasUnsupportedName)) {
+    throw new Error('Unsupported file name')
   }
   return resolved
 }

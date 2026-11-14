@@ -1,13 +1,22 @@
-function collectBlocks(node, blocks) {
-  if (!node || typeof node !== 'object') return
-  if (node.type === 'text') return
-  const isTextBlock = node.type === 'paragraph' || node.type === 'heading' || node.type === 'codeBlock'
-  if (isTextBlock) {
-    const text = (node.content || []).map(child => child.text ?? '').join('').trim()
-    if (text) blocks.push(text)
-    return
+const TEXT_BLOCKS = new Set(['paragraph', 'heading', 'codeBlock'])
+
+// The text of each paragraph, heading and code block in reading order. Walked with an explicit
+// stack: a damaged file can nest nodes so deeply that recursion would run out of stack, and the
+// preview of one such day must not take the whole page down. Malformed nodes (a null child, a
+// content that is not a list) are skipped rather than thrown on.
+function collectBlocks(root, blocks) {
+  const stack = [root]
+  while (stack.length > 0) {
+    const node = stack.pop()
+    if (!node || typeof node !== 'object' || node.type === 'text') continue
+    const children = Array.isArray(node.content) ? node.content : []
+    if (TEXT_BLOCKS.has(node.type)) {
+      const text = children.map(child => (child && typeof child === 'object' ? child.text ?? '' : '')).join('').trim()
+      if (text) blocks.push(text)
+      continue
+    }
+    for (let index = children.length - 1; index >= 0; index -= 1) stack.push(children[index])
   }
-  for (const child of node.content || []) collectBlocks(child, blocks)
 }
 
 // One-line summary of a rich-text value (a Tiptap JSON document, its serialized form, or

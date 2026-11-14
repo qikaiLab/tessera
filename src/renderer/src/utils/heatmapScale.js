@@ -10,7 +10,7 @@ export function createHeatmapScale(values) {
   if (positives.length === 0) return () => 0
 
   const max = positives[positives.length - 1]
-  if (positives[0] === max) return value => (value > 0 ? 1 : 0)
+  if (positives[0] === max) return value => (Number.isFinite(value) && value > 0 ? 1 : 0)
 
   const logMax = Math.log1p(max)
   const total = positives.length
