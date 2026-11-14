@@ -251,7 +251,7 @@ npm run screenshots  # 用示例数据重新生成 README 里的截图（docs/sc
 npm run check
 ```
 
-依次运行 ESLint、Vitest、依赖漏洞审计、版本一致性检查和生产构建。涉及界面或主进程的改动还应运行 `npm run test:e2e`（Electron 端到端测试，默认在屏幕外静默运行，使用临时数据目录）。分支、提交、依赖维护与发布规则见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [工程化管理指南](docs/ENGINEERING_GUIDE.md)。
+依次运行 ESLint、Vitest、依赖漏洞审计、版本一致性检查和生产构建。涉及界面或主进程的改动还应运行 `npm run test:e2e`（Electron 端到端测试，默认在屏幕外静默运行，使用临时数据目录）。随机化的模糊测试在 `tests/fuzz/`，随 `npm test` 一起运行；失败时会打印随机种子，用 `FUZZ_SEED=<数字>` 可以重放，`FUZZ_RUNS=<数字>` 可以加大次数。分支、提交、依赖维护与发布规则见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [工程化管理指南](docs/ENGINEERING_GUIDE.md)。
 
 ### 发布新版本（CI/CD 自动化）
 
