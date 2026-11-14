@@ -10,7 +10,8 @@
 - `package.json`：当前软件版本和可执行命令的权威来源。
 - `package-lock.json`：依赖的可复现快照，必须随依赖变更一起提交。
 - `RELEASE_NOTES.md`：下一次或当前正式发布面向用户的完整说明。
-- `README.md`：产品介绍、当前版本和历史摘要。
+- `README.md`：面向用户的产品介绍、下载安装说明、常见问题和最近一版的更新摘要。
+- `CHANGELOG.md`：完整的历史更新日志（README 只保留最近一版）。
 - GitHub Release：用户下载正式安装包的唯一权威位置。
 
 本地 `release/` 和 `out/` 都是可再生成产物，不作为发布依据，也不提交 Git。
@@ -42,7 +43,7 @@ npm run check
 1. ESLint 静态检查；
 2. Vitest 自动化测试；
 3. npm 高危/严重依赖漏洞审计；
-4. 版本、锁文件、README 和发布说明一致性检查；
+4. 版本、锁文件、README、更新日志和发布说明一致性检查；
 5. Electron 生产构建。
 
 不得用跳过检查、降低规则或删除测试的方式“修绿”。确需调整规则时，应在提交中说明原因。
@@ -241,7 +242,7 @@ npx playwright test   # 已有最新构建时直接运行
 
 1. `main` 的 CI 成功后才允许准备版本。
 2. 使用 `npm version <patch|minor|major> --no-git-tag-version` 同步两个包文件。
-3. 更新 README 当前版本、更新日志与 RELEASE_NOTES。
+3. 更新 README 当前版本徽章和「最近更新」、`CHANGELOG.md` 与 `RELEASE_NOTES.md`；`npm run verify:version` 会检查它们都含有这一版。
 4. 执行 `npm run check`。
 5. 提交并推送版本提交，等待 CI 成功。
 6. 创建统一的附注标签：`git tag -a vX.Y.Z -m "Tessera vX.Y.Z"`。
@@ -264,6 +265,13 @@ npx playwright test   # 已有最新构建时直接运行
 - 卸载不会误删用户选择的数据目录。
 
 ## 11. 依赖与安全
+
+仓库公开后的约定（`CONTRIBUTING.md`、`SECURITY.md` 为准）：
+
+- **Issue 接受，Pull Request 不接受**。`.github/workflows/close-external-pull-requests.yml` 会礼貌地关闭仓库所有者与 Dependabot 之外的 PR；它只评论和关闭，不检出也不运行 PR 里的任何代码。如果 GitHub 的仓库设置里提供了「限制谁可以创建 Pull Request」，建议同时开启。
+- 不宜公开的安全问题走邮件（`SECURITY.md` 里的地址）；仓库开启 Private vulnerability reporting 后也可以用 Security 页面提交。
+- 公开仓库后请在 Settings → Code security 打开 Dependabot alerts、Secret scanning 与 Push protection；`main` 可以开启分支保护，把 `Lint, test and build` 设为必须通过的检查。
+- 用户可见的截图在 `docs/screenshots/`，由 `npm run screenshots` 用示例数据重新生成（隔离的临时目录，不碰真实数据）；界面大改后重新运行并提交即可。
 
 每月处理 Dependabot，运行 `npm audit`，优先修复运行时依赖中的 high/critical 问题。大版本升级一次只处理一个核心组件，并保留独立回滚提交。
 

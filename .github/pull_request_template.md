@@ -1,3 +1,6 @@
+> **提示：本仓库目前不接受外部 Pull Request**，来自仓库所有者和 Dependabot 之外的 PR 会被自动关闭。
+> 想要的改动请先提 [Issue](https://github.com/qikaiLab/tessera/issues) 说明场景。详见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
+
 ## 变更说明
 
 <!-- 说明改了什么以及为什么。 -->

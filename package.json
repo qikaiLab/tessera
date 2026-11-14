@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "seed:dev": "node scripts/seed-dev-data.mjs",
+    "screenshots": "npm run build && node scripts/capture-screenshots.mjs",
     "postinstall": "node scripts/patch-brace-expansion.cjs",
     "clean": "node scripts/clean.mjs",
     "build": "electron-vite build",

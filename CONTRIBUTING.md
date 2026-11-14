@@ -1,4 +1,21 @@
-# Tessera 贡献与开发规范
+# Tessera 参与方式与开发规范
+
+## 先看这里：怎么参与
+
+| 你想做的事 | 怎么做 |
+| --- | --- |
+| 报告缺陷、提问、提功能建议 | **欢迎**：在 [Issues](https://github.com/qikaiLab/tessera/issues) 里选对应的模板提交，中文或英文都可以。提之前请先搜一下是否已有相同的 Issue，并看一眼软件内的使用说明（`F1`）和 [README 的常见问题](README.md#-常见问题) |
+| 提交代码（Pull Request） | **目前不接受**。这是一个由单人维护、主要通过 AI 助手协作开发的项目，维护者没有精力评审外部代码，也要保持许可证和代码来源清晰。外部 PR 会被自动关闭，不是针对你本人。想要的改动请提 Issue 说明场景，维护者会评估并自行实现 |
+| 报告不宜公开的安全问题 | 请不要建公开 Issue，按 [SECURITY.md](SECURITY.md) 用邮件私下联系 |
+| 在自己的电脑上修改、构建、使用 | 完全可以，在 [PolyForm Noncommercial 许可证](LICENSE) 范围内（非商业用途）自由使用、修改和分发，见下文「许可证」 |
+
+写 Issue 的小提示：请写清 Tessera 版本（软件内「关于」可一键复制版本信息）、Windows 版本、屏幕缩放比例，以及能复现问题的最短步骤；不要贴真实的个人记录或数据库，用脱敏的例子即可。项目由一位维护者在业余时间维护，回复可能不及时，请见谅。
+
+下面是维护者自己的开发规范，也方便想在本地构建、研究代码的人了解项目如何运转。
+
+---
+
+# 开发规范（维护者）
 
 本项目采用短生命周期分支、自动质量门禁和不可变版本标签。项目目前由单人维护，流程以“守住数据安全与发布可靠性”为目标，避免“本地能运行、发布才失败”。
 
@@ -40,9 +57,13 @@ npm run test:e2e
 
 用户已将常规 Git/GitHub 管理授权给 AI 助手：完成开发任务后自行执行检查、提交、推送、合并和分支清理。只有正式版本发布、共享历史改写、破坏性操作或范围不明确时需要额外确认。具体边界以根目录 `AGENTS.md` 为准。
 
-## 许可证与贡献
+## 许可证
 
-项目以 PolyForm Noncommercial License 1.0.0 发布（见 `LICENSE`），不是 OSI 意义上的开源许可证：非商业用途自由使用，商业用途需作者另行许可。提交贡献即表示你同意你的改动按同一许可证发布，并同意作者在需要时将它用于该项目的商业授权。依赖库保持各自的许可证，新增依赖前确认其许可证允许随本项目分发。
+项目以 PolyForm Noncommercial License 1.0.0 发布（见 `LICENSE`），不是 OSI 意义上的开源许可证：非商业用途自由使用、修改和分发，商业用途需作者另行许可。
+
+因为不接受外部代码，仓库里所有代码的版权都清晰地属于作者，不需要贡献者许可协议（CLA）。如果日后要开放代码贡献，会先补上 CLA 或 DCO，再修改本文件。
+
+依赖库保持各自的许可证，新增依赖前确认其许可证允许随本项目分发（软件内「关于 → 许可与致谢」列出了随安装包分发的第三方组件）。
 
 ## 完成标准
 
@@ -62,9 +83,9 @@ npm run test:e2e
 git switch main
 git pull --ff-only
 npm version patch --no-git-tag-version
-# 同步 README.md 与 RELEASE_NOTES.md
+# 同步 README.md（版本徽章与「最近更新」）、CHANGELOG.md 与 RELEASE_NOTES.md
 npm run check
-git add package.json package-lock.json README.md RELEASE_NOTES.md
+git add package.json package-lock.json README.md CHANGELOG.md RELEASE_NOTES.md
 git commit -m "chore(release): vX.Y.Z"
 git push origin main
 git tag -a vX.Y.Z -m "Tessera vX.Y.Z"
