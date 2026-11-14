@@ -7,7 +7,7 @@
 **一款本地优先的 Windows 个人记录软件**<br>
 写日记、记数字、回看历史、画趋势图——数据只存在你自己的电脑上。
 
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/qikaiLab/tessera/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/qikaiLab/tessera/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-lightgrey.svg)](#-下载与安装)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/qikaiLab/tessera?include_prereleases)](https://github.com/qikaiLab/tessera/releases)
@@ -20,7 +20,7 @@
 
 <!-- 演示视频：制作完成后，把链接加在这里（例如一行「▶ 观看 3 分钟介绍视频」）。 -->
 
-> **当前是 0.x 版本，功能和数据格式仍在演进。** 核心功能和数据保护有大量自动化测试覆盖（包括随机构造的异常数据、反复强制结束程序的崩溃测试），但还没有经过大范围的真实使用。请养成定期「导出 ZIP」备份到别处的习惯（见[数据与隐私](#-数据与隐私)）。
+> **1.0 是首个稳定版本**：核心功能完整，数据是你电脑上的普通 JSON 文件，之后的更新会保持对已有数据的兼容。数据保护有大量自动化测试覆盖（包括随机构造的异常数据、反复强制结束程序的崩溃测试），但软件仍由一个人在业余时间维护，请养成定期「导出 ZIP」备份到别处的习惯（见[数据与隐私](#-数据与隐私)）。
 
 <details>
 <summary><b>English summary</b></summary>
@@ -174,6 +174,12 @@ Get-FileHash .\Tessera-Setup-*.exe -Algorithm SHA256
 ## 📝 最近更新
 
 完整的版本历史见 **[CHANGELOG.md](CHANGELOG.md)**，每个版本的安装包见 [Releases](https://github.com/qikaiLab/tessera/releases)。
+
+### v1.0.0 *(2026-11-14)*
+
+- **首个稳定版本**。小屏幕和高缩放比例（如 1366×768 的 125%）下窗口自动适应可用区域，不再有部分超出屏幕的情况。
+- 导入 ZIP 前先检查大小，过大或异常的压缩包会被拒绝并且不改动任何数据；损坏、极端或恶意构造的数据文件（嵌套极深的文档、不是真实日期的文件名、过大的图表范围等）不再让页面出错。
+- 新增更全面的自动化测试：随机构造的异常数据、恶意粘贴、三年历史压力和编辑时反复强制结束程序的崩溃测试。
 
 ### v0.5.0 *(2026-11-12)*
 

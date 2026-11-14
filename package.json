@@ -1,6 +1,6 @@
 {
   "name": "tessera",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "Tessera - A self-tracking desktop application",
   "main": "out/main/index.js",
   "author": "qikaiLab",
