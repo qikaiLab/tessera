@@ -228,6 +228,8 @@ npx playwright test   # 已有最新构建时直接运行
 
 `npm run seed:dev` 会向开发数据目录写入示例数据（约 150 天记录、便签、倒数日和图表，含一个极端值用于测试热力图），可重复运行；脚本拒绝覆盖非空且不是它创建的目录，也拒绝触碰真实数据目录。确需用开发版读写真实数据时，才设置 `TESSERA_USE_REAL_DATA=1`，并先备份。显式的 `TESSERA_USER_DATA_DIR` / `TESSERA_DATA_DIR` 优先于以上默认值。
 
+`npm run seed:demo -- <目录> [--days N] [--with-today]` 生成另一份「演示数据」，用于演示、截图和录视频：默认 210 天，4 个文字版块（日记、软件开发、英语学习、投资记录）和 5 个数字版块（睡眠、运动、开支、体重、心情），数值随星期和睡眠自然起伏、没有极端值，带便签、倒数日、收藏和 6 张图表，今天默认留空（`--with-today` 填上）。与 `seed:dev` 一样只写入空目录或它创建过的目录，拒绝触碰真实数据；生成逻辑是纯函数（`scripts/lib/demo-data.mjs`），有单元测试守住取值范围和结构。
+
 未设置 `ELECTRON_RENDERER_URL`（仅 `electron-vite dev` 会注入）时，未打包的启动会加载构建产物而不是开发服务器。CI 在 `npm run check` 之后运行冒烟测试；它们不属于 `npm run check`，改动主进程、预加载桥接、编辑器保存或窗口生命周期时请在本地运行。
 
 ### 安装程序与卸载程序（`build/*.nsh`）

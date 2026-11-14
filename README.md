@@ -243,6 +243,7 @@ npm ci
 
 npm run dev          # 开发模式（热重载）；使用独立的开发数据目录，不会碰真实数据
 npm run seed:dev     # 往开发数据目录填充示例数据
+npm run seed:demo -- <目录>  # 生成一份观感自然的演示数据（演示、截图、录视频用），目录必须是一次性的
 npm run dist         # 生产打包，在 release/ 下生成 NSIS 安装包
 npm run screenshots  # 用示例数据重新生成 README 里的截图（docs/screenshots/）
 ```
