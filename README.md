@@ -7,10 +7,9 @@
 **一款本地优先的 Windows 个人记录软件**<br>
 写日记、记数字、回看历史、画趋势图——数据只存在你自己的电脑上。
 
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/qikaiLab/tessera/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-lightgrey.svg)](#-下载与安装)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange.svg)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/ci.yml?branch=main&label=CI)](https://github.com/qikaiLab/tessera/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/qikaiLab/tessera?include_prereleases)](https://github.com/qikaiLab/tessera/releases)
 
 [📦 下载安装](#-下载与安装) · [🚀 快速开始](#-快速开始) · [❓ 常见问题](#-常见问题) · [💬 反馈问题](https://github.com/qikaiLab/tessera/issues) · [📝 更新日志](CHANGELOG.md)
@@ -21,12 +20,12 @@
 
 <!-- 演示视频：制作完成后，把链接加在这里（例如一行「▶ 观看 3 分钟介绍视频」）。 -->
 
-> **当前是 0.x 公开测试版。** 核心功能和数据保护已有大量自动化测试覆盖，但还没有经过大范围的真实使用。请养成定期导出 ZIP 备份的习惯（见[数据与隐私](#-数据与隐私)）。
+> **当前是 0.x 版本，功能和数据格式仍在演进。** 核心功能和数据保护有大量自动化测试覆盖（包括随机构造的异常数据、反复强制结束程序的崩溃测试），但还没有经过大范围的真实使用。请养成定期「导出 ZIP」备份到别处的习惯（见[数据与隐私](#-数据与隐私)）。
 
 <details>
 <summary><b>English summary</b></summary>
 
-**Tessera** is a local-first self-tracking app for **Windows 10/11 (64-bit)**. You define "sections" (text or number), write one page per day, then browse your history on a timeline and calendar and chart trends. Everything is stored as plain JSON files on your own computer: no account, no cloud, no network access.
+**Tessera** is a local-first self-tracking app for **Windows 10/11 (64-bit)**. You define "sections" (text or number), write one page per day, then browse your history on a timeline and calendar and chart trends. Everything is stored as plain JSON files on your own computer: no account, no cloud, and (since 0.5.0) the app makes no network connections of its own.
 
 - The interface is **Simplified Chinese only** for now; there are no plans for other languages or platforms yet.
 - Download the installer from [Releases](https://github.com/qikaiLab/tessera/releases/latest). It is **not code-signed**, so Windows SmartScreen will warn you on first run; each release ships a `SHA256SUMS.txt` to verify the download. There is no auto-update.
@@ -41,10 +40,10 @@
 
 在信息碎片化的时代，Tessera 帮你把零散的记录整理成**结构化的自我认知**：日记心情、运动数据、学习进度、花销、睡眠……你自己决定要追踪什么，每天往里记一点，日子久了就能回看、搜索，也能一眼看出趋势。
 
-- 🔒 **完全本地** — 没有账号，不联网，不上传，没有统计和广告。数据是你电脑上的普通文件。
-- 🧩 **自己定义要记什么** — 文字版块（富文本编辑器）和数字版块任意组合，常驻或按需出现。
+- 🔒 **完全本地** — 没有账号，不上传，没有统计和广告；从 0.5.0 起程序自己不发起任何网络连接。数据是你电脑上的普通文件。
+- 🧩 **自己定义要记什么** — 每天的页面由若干张「版块」卡片组成：「日记」是文字版块（富文本编辑器），「体重」是数字版块，数量和种类由你决定。常驻版块每天都在，非常驻的版块在需要时再添加。
 - 📊 **从记录到洞察** — 折线图、柱状图、饼图和热力图，让积累的数据“说话”。
-- 🛡️ **把数据安全放在第一位** — 原子写入、崩溃恢复、自动历史版本、定期备份，误删也能找回。
+- 🛡️ **把数据安全放在第一位** — 写入不怕断电、崩溃恢复、自动历史版本、定期备份；多数误改、误删都可以找回（历史有容量和保留期限）。
 
 **适合谁**：想长期坚持记录、看重隐私、喜欢按自己的方式整理信息的人。<br>
 **可能不适合你**：需要手机端、多设备实时同步或多人协作——Tessera 目前只有 Windows 桌面版，也不提供账号和云同步。
@@ -62,16 +61,14 @@
   </tr>
 </table>
 
-**四套界面风格**，可随时切换：
+**四套界面风格**，可随时切换（从左到右：默认、亚麻书房、墨玉档案、雾化玻璃）：
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/theme-dark.webp" alt="默认风格（深色）"><br><sub><b>默认</b>（深色模式，另有八种主题色）</sub></td>
-    <td width="50%"><img src="docs/screenshots/theme-linen.webp" alt="亚麻书房"><br><sub><b>亚麻书房</b>：米色纸张质感，固定浅色</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/theme-jade.webp" alt="墨玉档案"><br><sub><b>墨玉档案</b>：深色书房气质，固定深色</sub></td>
-    <td width="50%"><img src="docs/screenshots/theme-frosted.webp" alt="雾化玻璃"><br><sub><b>雾化玻璃</b>：可换自己的壁纸，配色随壁纸自适应</sub></td>
+    <td width="25%"><img src="docs/screenshots/theme-dark.webp" alt="默认风格（深色）"><br><sub><b>默认</b>：深浅色 + 八种主题色</sub></td>
+    <td width="25%"><img src="docs/screenshots/theme-linen.webp" alt="亚麻书房"><br><sub><b>亚麻书房</b>：米色纸张，固定浅色</sub></td>
+    <td width="25%"><img src="docs/screenshots/theme-jade.webp" alt="墨玉档案"><br><sub><b>墨玉档案</b>：深色书房，固定深色</sub></td>
+    <td width="25%"><img src="docs/screenshots/theme-frosted.webp" alt="雾化玻璃"><br><sub><b>雾化玻璃</b>：可换壁纸，配色自适应</sub></td>
   </tr>
 </table>
 
@@ -79,24 +76,31 @@
 
 **系统要求**：Windows 10 或 Windows 11（64 位）。不需要联网，也不需要任何账号。
 
-1. 打开 **[Releases 页面](https://github.com/qikaiLab/tessera/releases/latest)**，下载最新的 `Tessera-Setup-x.y.z.exe`（约 107 MB）。
-2. 运行安装程序，按提示安装。推荐选「仅为当前用户安装」。
+1. 打开 **[Releases 页面](https://github.com/qikaiLab/tessera/releases/latest)**，在最新版本的 Assets 里**只下载** `Tessera-Setup-x.y.z.exe`（约 100 MB）。同一页里的 `.blockmap`、`latest.yml`、`SHA256SUMS.txt` 是校验用的辅助文件，不需要下载运行。
+2. 运行安装程序，按提示安装。推荐选「仅为当前用户安装」，这样不需要管理员权限。
 3. **第一次运行时 Windows 可能弹出蓝色的 SmartScreen 提示**（“Windows 已保护你的电脑”）。这是因为安装包**目前没有做代码签名**，不代表有问题：点「更多信息」→「仍要运行」即可。
 
-想确认下载的文件没有损坏或被替换？每个 Release 都附有 `SHA256SUMS.txt`，在 PowerShell 里计算下载文件的哈希，与它对照：
+**下载前请知道**：
+
+- Edge / Chrome 可能因为安装包没有签名而先拦截下载，在下载列表里选「保留」即可。
+- Windows 11 如果开启了「智能应用控制」，它会直接阻止未签名的程序，这时无法安装；关闭该功能是不可逆的，请自行权衡。
+- 数据是明文的 JSON 文件，**没有加密，也没有应用锁**：能打开你电脑上这个文件夹的人都能读到。需要保密请配合磁盘加密（如 BitLocker）。
+- 编辑器里暂时不能插入图片（可以链接到本机的图片文件）。
+
+想确认下载的文件是完整的？每个 Release 都附有 `SHA256SUMS.txt`，在 PowerShell 里计算下载文件的哈希，与它对照（忽略大小写；两者在同一个 Release 里，所以它只能证明文件完整，不能证明发布者身份）：
 
 ```powershell
-Get-FileHash .\Tessera-Setup-0.5.0.exe -Algorithm SHA256
+Get-FileHash .\Tessera-Setup-*.exe -Algorithm SHA256
 ```
 
 **升级**：目前没有自动更新。新版本发布后，下载新的安装程序直接运行即可覆盖升级，数据目录不会被改动。升级前建议先导出一份 ZIP 备份。<br>
 **卸载**：从 Windows「设置 → 应用」卸载。卸载程序里的「删除所有用户数据」只会清空默认数据目录，**你自己选的数据目录永远不会被清空**。<br>
-**杀毒软件**：未签名的新程序偶尔会被个别杀毒软件警告；如遇到，可对照上面的哈希确认文件无误后再放行。
+**杀毒软件**：未签名的新程序偶尔会被个别杀毒软件警告；如遇到，可对照上面的哈希确认文件完整后再放行。
 
 ## 🚀 快速开始
 
-1. 打开 **设置 → 数据版块**，建立你想追踪的版块：写日记用「文字」版块，体重、时长这类用「数字」版块。
-2. 回到 **记录** 页，在版块里写内容。**自动保存**，不用点保存。
+1. 安装后已经有「日记」版块，直接在 **记录** 页里写就行，**自动保存**，不用点保存。
+2. 想追踪体重、时长这类数字，到 **设置 → 数据版块** 添加「数字」版块（也可以再添加更多「文字」版块）。
 3. 过几天后，用 **时间线** 搜索和回看，用 **日历** 按日期跳转。
 4. 数字版块积累了数据后，到 **数据分析** 新建图表观察趋势。
 
@@ -106,7 +110,7 @@ Get-FileHash .\Tessera-Setup-0.5.0.exe -Algorithm SHA256
 
 | 模块 | 能做什么 |
 | --- | --- |
-| **记录** | 每天一页，由若干版块卡片组成。富文本编辑：输入 `/` 唤出斜杠菜单，选中文字弹出格式工具栏，支持标题、列表、待办、引用、代码块、**表格**，输入 `[文字](网址)` 自动成链接，粘贴 Markdown 自动渲染（`Ctrl+Shift+V` 保留原文） |
+| **记录** | 每天一页，由若干版块卡片组成。富文本编辑：标题、列表、待办、引用、代码块、**表格**；输入 `/` 唤出斜杠菜单；粘贴 Markdown 自动渲染（`Ctrl+Shift+V` 保留原文） |
 | **本地文件链接** | 笔记可链接到本机的照片、文本或文件夹：点击即打开；程序等其他文件只在资源管理器中显示，**不会被运行** |
 | **便签** | 不属于某一天的长期笔记：置顶、归档、搜索，可关联到某天或一段时间，在记录页的抽屉里随时翻看 |
 | **时间线** | 按日期展示摘要；全文搜索、按版块和时间范围筛选、收藏；预览模式连续阅读 |
@@ -118,33 +122,33 @@ Get-FileHash .\Tessera-Setup-0.5.0.exe -Algorithm SHA256
 
 ## 🔐 数据与隐私
 
-- **完全本地**：Tessera 自己不发起任何网络连接（页面的内容安全策略直接禁止），没有账号、统计或广告。只有你点击笔记里的网址时，才会用系统默认浏览器打开。
-- **数据在哪里**：默认在 `%USERPROFILE%\Tessera\data`，全部是普通的 JSON 文件，可以用任何文本编辑器打开，不被软件“锁死”；程序设置在 `%APPDATA%\Tessera`。你可以在 **设置 → 数据与备份** 把数据目录换到外置硬盘或云同步盘。
+- **完全本地**：从 0.5.0 起，Tessera 自己不发起任何网络连接（程序内部也禁止联网），没有账号、统计或广告。只有你点击笔记里的网址或「关于」里的作者链接时，才会交给系统默认浏览器打开；邮件、电话链接会唤起对应的程序。
+- **数据在哪里**：默认在 `%USERPROFILE%\Tessera\data`，全部是普通的 JSON（文本格式）文件，可以用任何文本编辑器打开，不被软件“锁死”；程序设置在 `%APPDATA%\Tessera`。你可以在 **设置 → 数据与备份** 把数据目录换到外置硬盘或云同步盘。
 - **多层保护**，防止崩溃、断电或手滑造成丢失：
 
   | 保护 | 说明 |
   | --- | --- |
-  | 原子写入 | 先写临时文件再整体替换，写到一半断电也不会留下损坏的数据 |
+  | 断电也不损坏 | 先写临时文件再整体替换，写到一半断电也不会留下损坏的数据 |
   | 崩溃恢复 | 启动时发现没写完的临时文件，会校验后引导你恢复，残缺的不会覆盖完好的文件 |
   | 自动历史 | 每次保存或删除前自动留存压缩的历史版本，误改、误删的记录和便签可以找回（[说明](docs/DATA_RECOVERY.md)） |
-  | 手动备份 | 一键备份为 ZIP，保留最近 30 份；也可以导出 / 导入 ZIP |
+  | 手动备份 | 一键备份为 ZIP（存在数据目录里的 `backups` 文件夹），保留最近 30 份；也可以导出 / 导入 ZIP |
   | 导入校验 | 导入前先校验每个文件；有一个损坏就一个都不写入，现有数据不会被动 |
   | 删除保护 | 已有记录的版块无法误删；批量删除需要二次确认 |
 
-- ⚠️ **请定期备份**：自动历史保存在数据目录内，不能替代另一块磁盘上的备份。重要的数据请定期用「导出 ZIP」备份到别处。
-- **把数据放进云同步盘**：可以，但同步由该云服务负责；请不要在两台电脑上同时打开同一份数据。
+- ⚠️ **请定期备份**：自动历史和一键备份都保存在数据目录内，那块磁盘坏了就会一起丢。重要的数据请定期用「导出 ZIP」（不含自动历史）备份到另一块磁盘或网盘。
+- **云同步盘**：数据目录可以放进云同步盘，但同步由该服务负责，不要在两台电脑上同时打开同一份数据。
 - 软件按「现状」提供，不附带任何担保（见[许可证](LICENSE)）。
 
 ## ❓ 常见问题
 
 **数据存在哪里？可以备份或搬到新电脑吗？**<br>
-默认在 `%USERPROFILE%\Tessera\data`。在「设置」页一键导出 ZIP，到新电脑上解压，再在「设置」里选择该文件夹即可（含 Tessera 数据的文件夹会被直接使用）。更改数据目录时，软件会在下次启动时整夹复制并逐个核对，通过后才切换，旧目录原样保留。
+默认在 `%USERPROFILE%\Tessera\data`。在「设置」页一键导出 ZIP，到新电脑上安装后用「导入 ZIP」导入即可（导入会覆盖新电脑上已有的记录，最好在全新安装时做）。也可以把整个数据文件夹复制过去，在「设置」里选择它。更改数据目录时，软件会在下次启动时整夹复制并逐个核对，通过后才切换，旧目录原样保留。
 
 **为什么删除版块时提示无法删除？**<br>
 该版块已有历史数据，系统会阻止误删。不想再看到它，把它设为「非常驻」即可，历史数据会保留。
 
 **安装时出现“Windows 已保护你的电脑”？**<br>
-安装包目前没有代码签名（个人项目，签名证书需要付费），所以 Windows 会提示未知发布者。可以用上面的 SHA-256 校验文件，确认无误后点「更多信息 → 仍要运行」。
+安装包目前没有代码签名（个人项目，签名证书需要付费），所以 Windows 会提示未知发布者，详见上面的「下载与安装」。
 
 **支持 macOS、Linux 或手机吗？有英文界面吗？**<br>
 目前仅支持 Windows 10/11（64 位），界面仅有简体中文，暂时没有扩展平台或语言的计划。
@@ -153,7 +157,7 @@ Get-FileHash .\Tessera-Setup-0.5.0.exe -Algorithm SHA256
 没有内置同步。可以把数据目录设在云同步盘里，但同一时间只在一台电脑上打开；或者定期导出 / 导入 ZIP。
 
 **屏幕比较小，或者系统缩放比例很高，界面显示不全？**<br>
-窗口最小约 900×600。窗口超出屏幕时，可以点标题栏的最大化按钮；字太小或太大可以在「设置」里调整界面缩放（80%–150%），或用 `Ctrl + 鼠标滚轮`。如果仍有问题，请[提一个 Issue](https://github.com/qikaiLab/tessera/issues)，并写上屏幕分辨率和缩放比例。
+窗口会自动适应屏幕的可用区域，小屏幕和高缩放比例（如 1366×768 的 125%）也能完整显示。字太小或太大可以在「设置」里调整界面缩放（80%–150%），或用 `Ctrl + 鼠标滚轮`。如果仍有问题，请[提一个 Issue](https://github.com/qikaiLab/tessera/issues)，并写上屏幕分辨率和缩放比例。
 
 **软件免费吗？可以商用吗？**<br>
 个人使用、学习研究、爱好项目，以及教育、公益等非营利机构均可免费使用。商业用途需要另行取得作者许可，详见[许可证](#-许可证)。
@@ -174,10 +178,10 @@ Get-FileHash .\Tessera-Setup-0.5.0.exe -Algorithm SHA256
 ### v0.5.0 *(2026-11-12)*
 
 - 应用更名为 **Tessera**，换用新图标；新安装默认松绿色浅色界面。
-- 编辑器新增**表格**、`[文字](网址)` 自动成链接、**Markdown 粘贴**自动渲染；笔记可链接到本机的文件和文件夹（只打开照片与纯文本，其他文件只在资源管理器中显示，不会被运行）。
-- 软件内**使用说明**重做为可搜索的主题式手册（`F1`），新增「关于」对话框。
-- **数据更安全**：保存、关闭窗口与导入备份的各种边界情况得到加固；崩溃恢复不再用残缺文件替换完好文件；导入 ZIP 先校验后写入；更改数据目录改为“下次启动时复制并逐个核对，通过才切换”。
-- 渲染进程启用沙盒并加严格的内容安全策略；安装程序拒绝磁盘根目录与程序目录内的数据目录，卸载只清空默认数据目录。
+- 编辑器新增**表格**、`[文字](网址)` 自动成链接和 **Markdown 粘贴**；笔记可链接到本机的文件和文件夹（不会运行程序）。软件内的使用说明改为可搜索的手册（`F1`）。
+- **数据更安全**：崩溃恢复不再用残缺文件替换完好文件，导入 ZIP 先校验后写入，更改数据目录改为“复制并逐个核对，通过才切换”；程序不再联网。
+
+技术细节（沙盒、内容安全策略、安装程序保护等）见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 🛠️ 开发者指南
 
@@ -202,7 +206,7 @@ Electron (electron-vite)
 | [React](https://reactjs.org/) | 18.x | UI 框架 |
 | [Tiptap](https://tiptap.dev/) | 3.x | 富文本编辑器引擎 |
 | [Recharts](https://recharts.org/) | 2.x | 图表渲染 |
-| [dnd-kit](https://dndkit.com/) | 6.x | 拖拽排序 |
+| [dnd-kit](https://dndkit.com/) | 6.x / 8.x | 拖拽排序 |
 | [date-fns](https://date-fns.org/) | 3.x | 日期计算与格式化 |
 | [JSZip](https://stuk.github.io/jszip/) | 3.x | 数据备份压缩 |
 
@@ -239,7 +243,9 @@ npm run screenshots  # 用示例数据重新生成 README 里的截图（docs/sc
 
 ### 质量检查
 
-提交代码前执行与 CI 完全相同的质量门禁：
+[![CI](https://img.shields.io/github/actions/workflow/status/qikaiLab/tessera/ci.yml?branch=main&label=CI)](https://github.com/qikaiLab/tessera/actions/workflows/ci.yml)
+
+合并前执行 CI 使用的质量门禁（CI 在此基础上还会运行端到端测试）：
 
 ```bash
 npm run check

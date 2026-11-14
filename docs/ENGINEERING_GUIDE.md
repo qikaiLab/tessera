@@ -268,9 +268,9 @@ npx playwright test   # 已有最新构建时直接运行
 
 仓库公开后的约定（`CONTRIBUTING.md`、`SECURITY.md` 为准）：
 
-- **Issue 接受，Pull Request 不接受**。`.github/workflows/close-external-pull-requests.yml` 会礼貌地关闭仓库所有者与 Dependabot 之外的 PR；它只评论和关闭，不检出也不运行 PR 里的任何代码。如果 GitHub 的仓库设置里提供了「限制谁可以创建 Pull Request」，建议同时开启。
+- **Issue 接受，Pull Request 不接受**。`.github/workflows/close-external-pull-requests.yml` 会礼貌地关闭仓库所有者、成员、协作者（按 `author_association` 判断）与 Dependabot 之外的 PR；CI 对来自 fork 的 PR 也不运行；它只评论和关闭，不检出也不运行 PR 里的任何代码。如果 GitHub 的仓库设置里提供了「限制谁可以创建 Pull Request」，建议同时开启。
 - 不宜公开的安全问题走邮件（`SECURITY.md` 里的地址）；仓库开启 Private vulnerability reporting 后也可以用 Security 页面提交。
-- 公开仓库后请在 Settings → Code security 打开 Dependabot alerts、Secret scanning 与 Push protection；`main` 可以开启分支保护，把 `Lint, test and build` 设为必须通过的检查。
+- 公开仓库后请在 Settings → Actions → General 把「Fork pull request workflows from outside collaborators」设为需要所有外部协作者批准，并在 Settings → Code security 打开 Dependabot alerts、Secret scanning 与 Push protection；`main` 可以开启分支保护，把 `Lint, test and build` 设为必须通过的检查。
 - 用户可见的截图在 `docs/screenshots/`，由 `npm run screenshots` 用示例数据重新生成（隔离的临时目录，不碰真实数据）；界面大改后重新运行并提交即可。
 
 每月处理 Dependabot，运行 `npm audit`，优先修复运行时依赖中的 high/critical 问题。大版本升级一次只处理一个核心组件，并保留独立回滚提交。

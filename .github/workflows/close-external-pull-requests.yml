@@ -1,7 +1,8 @@
 name: Close external pull requests
 
 # Tessera does not accept outside code contributions (see CONTRIBUTING.md). A pull request from
-# anyone but the repository owner or Dependabot is closed with an explanation.
+# anyone but the repository owner, its members and collaborators, or Dependabot is closed with an
+# explanation.
 #
 # This runs on pull_request_target so that it has permission to comment on pull requests from forks.
 # That is only safe because the job never checks out or runs anything from the pull request: it
@@ -18,7 +19,7 @@ jobs:
   close:
     name: Close with an explanation
     if: >-
-      github.event.pull_request.user.login != github.repository_owner &&
+      !contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association) &&
       github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -18,6 +18,9 @@ concurrency:
 jobs:
   quality:
     name: Lint, test and build
+    # A pull request from a fork would run its own code on the runner; those are not accepted
+    # (see close-external-pull-requests.yml), and pushes to this repository are covered above.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: windows-latest
     timeout-minutes: 35
 
