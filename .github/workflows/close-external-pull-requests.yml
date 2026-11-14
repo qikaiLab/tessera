@@ -1,0 +1,39 @@
+name: Close external pull requests
+
+# Tessera does not accept outside code contributions (see CONTRIBUTING.md). A pull request from
+# anyone but the repository owner, its members and collaborators, or Dependabot is closed with an
+# explanation.
+#
+# This runs on pull_request_target so that it has permission to comment on pull requests from forks.
+# That is only safe because the job never checks out or runs anything from the pull request: it
+# touches nothing but the pull request's own page.
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    name: Close with an explanation
+    if: >-
+      !contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association) &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Comment and close
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          MESSAGE: |
+            感谢你的关注和心意！Tessera 是一个由单人维护、主要通过 AI 助手协作开发的项目，**目前不接受外部 Pull Request**，所以这个 PR 会被自动关闭——这不是针对你本人，也不代表你的想法没有价值。
+
+            如果你希望改变某个行为或增加功能，欢迎在 [Issues](https://github.com/qikaiLab/tessera/issues) 里描述你的使用场景，维护者会评估并自行实现。详见 [CONTRIBUTING.md](https://github.com/qikaiLab/tessera/blob/main/CONTRIBUTING.md)。
+
+            ---
+
+            Thank you for the interest and the effort! Tessera is maintained by one person, largely with AI assistants, and **does not accept outside pull requests at the moment**, so this one is closed automatically. That is not a judgement of your idea: please describe the use case in an [issue](https://github.com/qikaiLab/tessera/issues) instead. See [CONTRIBUTING.md](https://github.com/qikaiLab/tessera/blob/main/CONTRIBUTING.md).
+        run: gh pr close "$PR_URL" --comment "$MESSAGE"

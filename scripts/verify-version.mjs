@@ -18,6 +18,7 @@ const packageJson = readJson('package.json')
 const packageLock = readJson('package-lock.json')
 const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8')
 const releaseNotes = fs.readFileSync(path.join(rootDir, 'RELEASE_NOTES.md'), 'utf8')
+const changelog = fs.readFileSync(path.join(rootDir, 'CHANGELOG.md'), 'utf8')
 const electronViteConfig = fs.readFileSync(path.join(rootDir, 'electron.vite.config.js'), 'utf8')
 const rendererAbout = fs.readFileSync(path.join(rootDir, 'src/renderer/src/components/about/AboutDialog.jsx'), 'utf8')
 const bugReportTemplate = fs.readFileSync(path.join(rootDir, '.github/ISSUE_TEMPLATE/bug_report.yml'), 'utf8')
@@ -38,6 +39,9 @@ if (!readme.includes(`version-${version}-blue`)) {
 }
 if (!readme.includes(`### ${expectedTag}`)) {
   fail(`README changelog has no ${expectedTag} section`)
+}
+if (!new RegExp(`^## ${expectedTag} `, 'm').test(changelog)) {
+  fail(`CHANGELOG.md has no "## ${expectedTag} (date)" section`)
 }
 // v0.4.0 and earlier were released as MotoTrace; the notes of those releases keep their title.
 if (!new RegExp(`^# (Tessera|MotoTrace) ${expectedTag}`).test(releaseNotes)) {
