@@ -64,6 +64,7 @@ function applyFrozenLayout(live, frozen) {
 }
 
 const keysOf = (entries) => entries.map(entry => entry.countdown.key)
+const rowSelector = (key) => `[data-key="${CSS.escape(key)}"]`
 
 // One countdown being edited: every valid change is stored at once, so there is nothing to confirm.
 function CountdownEditor({ countdown, onPatch, onDelete }) {
@@ -72,6 +73,7 @@ function CountdownEditor({ countdown, onPatch, onDelete }) {
   const [confirming, setConfirming] = useState(false)
   const deleteRef = useRef(null)
   const confirmRef = useRef(null)
+  const refocusDelete = useRef(false)
   const problems = validateDraft(draft)
 
   const change = (patch) => {
@@ -93,15 +95,19 @@ function CountdownEditor({ countdown, onPatch, onDelete }) {
   }
 
   useEffect(() => {
-    if (!confirming) return undefined
+    if (!confirming) {
+      if (refocusDelete.current) deleteRef.current?.focus({ preventScroll: true })
+      refocusDelete.current = false
+      return undefined
+    }
     confirmRef.current?.focus({ preventScroll: true })
     const timer = setTimeout(() => setConfirming(false), 6000)
     return () => clearTimeout(timer)
   }, [confirming])
 
   const cancelDelete = () => {
+    refocusDelete.current = true
     setConfirming(false)
-    requestAnimationFrame(() => deleteRef.current?.focus({ preventScroll: true }))
   }
 
   const onKeyDown = (event) => {
@@ -136,14 +142,19 @@ function NewCountdownForm({ initial, onAdd, onCancel, focusName }) {
   const formRef = useRef(null)
   const [draft, setDraft] = useState(initial)
   const [tried, setTried] = useState(false)
+  const [rejected, setRejected] = useState(0)
   const problems = validateDraft(draft)
   const wrong = Boolean(problems.name || problems.date || problems.every)
+
+  useEffect(() => {
+    if (rejected > 0) formRef.current?.querySelector('[aria-invalid="true"]')?.focus({ preventScroll: true })
+  }, [rejected])
 
   const submit = (event) => {
     event.preventDefault()
     setTried(true)
     if (wrong) {
-      requestAnimationFrame(() => formRef.current?.querySelector('[aria-invalid="true"]')?.focus({ preventScroll: true }))
+      setRejected(count => count + 1)
       return
     }
     onAdd(fieldsOfDraft(draft))
@@ -207,10 +218,26 @@ export default function CountdownDrawer({ countdowns, saveCountdowns, today, int
     }
   }, [])
 
-  const focusLater = (selector) => requestAnimationFrame(() => rootRef.current?.querySelector(selector)?.focus({ preventScroll: true }))
-  const scrollTo = (key) => requestAnimationFrame(() => {
-    rootRef.current?.querySelector(`[data-key="${CSS.escape(key)}"]`)?.scrollIntoView({ block: 'nearest' })
+  // Moving focus or scrolling waits for the render that draws the target (not for an animation frame,
+  // which a window in the background never runs): it is noted here and done after the next commit.
+  const pending = useRef({ focus: null, scroll: null })
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const { focus, scroll } = pending.current
+    const toScroll = scroll && root.querySelector(scroll)
+    if (toScroll) {
+      pending.current.scroll = null
+      toScroll.scrollIntoView({ block: 'nearest' })
+    }
+    const toFocus = focus && root.querySelector(focus)
+    if (toFocus) {
+      pending.current.focus = null
+      toFocus.focus({ preventScroll: true })
+    }
   })
+  const focusLater = (selector) => { pending.current.focus = selector }
+  const scrollTo = (key) => { pending.current.scroll = rowSelector(key) }
 
   const openEditor = (key) => {
     const { live: now } = latest.current
@@ -248,7 +275,6 @@ export default function CountdownDrawer({ countdowns, saveCountdowns, today, int
   // The one just added is shown, and flashes so it is clear it is in.
   useEffect(() => {
     if (!flashKey) return undefined
-    scrollTo(flashKey)
     const timer = setTimeout(() => setFlashKey(null), 1800)
     return () => clearTimeout(timer)
   }, [flashKey])
@@ -264,7 +290,8 @@ export default function CountdownDrawer({ countdowns, saveCountdowns, today, int
     })
     setAdding(false)
     setFlashKey(addedKey)
-    focusLater(`[data-key="${CSS.escape(addedKey)}"] .cd-row`)
+    scrollTo(addedKey)
+    focusLater(`${rowSelector(addedKey)} .cd-row`)
   }
 
   const remove = (key) => {
@@ -284,7 +311,7 @@ export default function CountdownDrawer({ countdowns, saveCountdowns, today, int
     } else if (openKey) {
       const key = openKey
       closeEditor()
-      focusLater(`[data-key="${CSS.escape(key)}"] .cd-row`)
+      focusLater(`${rowSelector(key)} .cd-row`)
     } else {
       onClose()
     }

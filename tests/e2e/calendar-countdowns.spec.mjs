@@ -279,6 +279,8 @@ test('Esc backs out of the drawer one step at a time, and focus goes back to its
     await window.keyboard.press('Escape')
     await expect(drawer.getByRole('form', { name: '新建倒数日' })).toHaveCount(0)
     await expect(drawer).toBeVisible()
+    // Focus stays in the drawer (on the button that opens the form), so the next Esc reaches it.
+    await expect(drawer.getByRole('button', { name: '＋ 新建倒数日' })).toBeFocused()
 
     await window.keyboard.press('Escape')
     await expect(drawer).toHaveCount(0)
