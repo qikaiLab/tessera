@@ -2,6 +2,20 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { test, expect, launchApp } from './fixtures.mjs'
 
+// Entering and leaving a fullscreen editor must not make the page flash or jump (checked frame by
+// frame below). The rules this guards, for whoever touches the fullscreen code or styles:
+// - The entrance animation of a fullscreen ancestor is switched off with `animation-duration: 0s`,
+//   never `animation: none`: when the name comes back at the end, the entrance would replay.
+// - A record card's header only gets `inert`; its body keeps the editor's height with `min-height`
+//   while the editor is out of the flow, so the cards below do not jump.
+// - The titlebar's colour, border, blur and texture fade together with the fullscreen layer
+//   (`body.editor-fullscreen-leaving` makes the way back follow the overlay), never switch.
+// - The card's own `backdrop-filter` is `none` while fullscreen, and eases back afterwards.
+// - `.tiptap-shell` has no background-colour transition, or the opaque layer would fade out
+//   slowly after leaving and flash the card black.
+// - The exit button sits top right, left of the window buttons (`--window-controls-width`); the
+//   header yields to it with `--fs-controls-reserve`, so nothing overlaps at any window width.
+
 const pad = value => String(value).padStart(2, '0')
 
 async function seedNotes(sandbox, count = 3) {

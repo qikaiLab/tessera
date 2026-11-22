@@ -42,9 +42,10 @@ npm run check
 
 1. ESLint 静态检查；
 2. Vitest 自动化测试；
-3. npm 高危/严重依赖漏洞审计；
-4. 版本、锁文件、README、更新日志和发布说明一致性检查；
-5. Electron 生产构建。
+3. 版本、锁文件、README、更新日志和发布说明一致性检查；
+4. Electron 生产构建。
+
+依赖漏洞审计（`npm audit`，high 及以上）不在日常 `check` 里：它依赖网络，报出的常是与当前改动无关的新公告，会让无关的改动变红。`.github/workflows/audit.yml` 每周一次、依赖文件变更时运行；发布前用 `npm run check:release`（即 `check` 加审计）。
 
 不得用跳过检查、降低规则或删除测试的方式“修绿”。确需调整规则时，应在提交中说明原因。
 
@@ -64,24 +65,16 @@ npm run check
 
 ### 动效约定
 
-- 时长与曲线统一用 `styles/tokens.css` 里的令牌：`--transition-fast/base/slow`、`--ease-out`（入场、悬停）、`--ease-in`（退场，更短，约 140 ms）。弹窗只带极轻微的回弹（`--transition-spring`），不做弹跳。
-- 只动画 `transform` 和 `opacity`；需要改变高度时用 `grid-template-rows: 0fr ↔ 1fr`。不使用 `transition: all`，不对整块内容区使用 `filter: blur`，不对 `margin`、`width` 做逐帧动画。
+下面只留跨功能的硬约束。单个功能的动效细节（时间线折叠、添加记录的生长、激发板块的出现与消失、全屏编辑器进出、倒数日抽屉等）写在对应代码和测试的注释里，改动时看那里，不再在这里重复。
+
+- 时长与曲线统一用 `styles/tokens.css` 里的令牌：`--transition-fast/base/slow`、`--ease-out`（入场、悬停）、`--ease-in`（退场，更短，约 140 ms）、`--ease-travel`（高度或距离不定的动画，起步较柔）。弹窗只带极轻微的回弹（`--transition-spring`），不做弹跳。
+- 只动画 `transform` 和 `opacity`；需要改变高度时用现成的件：新增的展开、收起优先用 `components/Unfold.jsx`（直接动画 `height` 0 ↔ auto，依赖 `interpolate-size`；`grid-template-rows` 的 0fr ↔ 1fr 在过渡中会留出空隙），`components/Collapsible.jsx` 与添加记录的槽位仍是 0fr ↔ 1fr 的写法，不用为此改动。不使用 `transition: all`，不对整块内容区使用 `filter: blur`，不对 `margin`、`width` 做逐帧动画。
 - 弹窗、下拉、菜单的退场用 `components/Presence.jsx`：它让被移除的子元素多停留一小会儿并带上 `.presence.is-leaving`（同时 `aria-hidden` 和 `inert`），样式写在 `styles/overlays.css`。新增浮层时给它的根节点加 `.modal-overlay`、`.dropdown-menu` 等已有类，或照样补一条 `.presence.is-leaving > .你的类` 规则。
 - 标签条和分段控件的滑动高亮用 `utils/useSlidingThumb.js`：把返回的 ref 挂到容器上即可，样式见 `styles/tabs.css` 的 `.has-thumb`。
-- 入场动画的填充模式用 `backwards`，不要用 `both`：`both` 会在动画结束后一直锁住 `transform: none`，让元素的 `:hover` 位移失效；对页面根元素等「全屏编辑器的祖先」更是致命，会让 `position: fixed` 的全屏层被圈在该元素内，不再铺满窗口（`tests/e2e/fullscreen-editor.spec.mjs` 守护）。
-- **雾化玻璃：玻璃元素（带 `backdrop-filter`）的任何祖先都不能带 `opacity < 1`、`filter` 或 `mask`，哪怕只是动画途中。** 否则浏览器只在该祖先内部取景，玻璃会在动画期间变成「平的」，动画一结束颜色突然跳变。含玻璃的容器（页面根、抽屉、设置卡片、弹窗遮罩）在该风格下只做位移动画，淡入淡出放在玻璃元素自身或遮罩的伪元素上；见 `theme/appearanceSurfaces.css` 与 `tests/e2e/frosted-glass-motion.spec.mjs`。
-- 高度会变化、距离不定的动画（卡片折叠）时长要随距离伸缩，见 `utils/collapseMotion.js`，并使用起步较柔的 `--ease-travel`；时长通过 `--collapse-ms` 在切换时按内容高度写入。
-- 滚动容器用 `scrollbar-gutter: stable` 预留滚动条位置，否则内容变高时滚动条中途出现会让图表、编辑器宽度抖动几个像素。
-- 通用动效件（优先复用，不要各写各的）：
-  - `components/Collapsible.jsx`：高度展开/收起，时长随内容高度伸缩，收起期间保留内容；自身不带透明度，淡入淡出写在 `.collapsible-inner > *` 上。
-  - `utils/useFullscreenPresence.js`：全屏层退出时多停留一段时间以播放退场；使用它的页面要同时把「全屏祖先」样式（`fullscreen-active-parent` 等）保持到退场结束，否则全屏层会被动画中的祖先圈住。
-  - `utils/useScrollReveal.js`：列表项滚动进入视野时才播放入场并错峰；用 `data-reveal` 属性而不是 class，避免 React 重渲染把状态冲掉。
-  - `utils/useDelayedFlag.js`：加载骨架屏只在加载确实变慢（约 240 ms）后才显示，快速加载直接出内容，不闪占位。
-- 全屏编辑器进出时，页面本身不能有任何「瞬变」（`tests/e2e/motion-polish.spec.mjs` 逐帧守护）：全屏祖先上的入场动画用 `animation-duration: 0s` 等方式让它失效，**不要写 `animation: none`**，否则全屏结束、动画名重新出现时入场动画会整段重播（卡片从透明淡入）；记录卡片的头部保持原样（只加 `inert`），正文用 `min-height` 占住编辑器离开文档流前的高度，下方的卡片才不会上下跳；标题栏的底色、描边、毛玻璃和纹理随全屏层同步渐变（`body.editor-fullscreen-leaving` 让退场时的渐变跟随遮罩的节奏），不要让它们在进出全屏的瞬间突变；卡片自身的 `backdrop-filter` 在全屏期间必须为 `none`，退场结束后再缓动恢复。编辑器外壳 `.tiptap-shell` 不能给 `background-color` 加过渡，否则全屏层的不透明底色会在退出后慢慢褪去，卡片闪黑。全屏的「退出」按钮固定在右上角、紧贴窗口三个按钮左侧（`--window-controls-width`），放在头部之外；头部右侧按 `--fs-controls-reserve` 与行宽自动避让，任何窗口宽度下都不重叠（`motion-polish.spec.mjs` 守护）。
-- 会横向滑动或有位移的内容放在滚动容器里时，容器要 `overflow-x: hidden`（日历），带位移的子元素外层加 `overflow: clip`，否则动画途中滚动条会闪一下。被 `.collapsible-inner` 等裁剪的卡片不要用悬停位移（`translate`），边框会被裁掉一边。
-- 「添加记录」的新板块放在 `.section-slot` 里（入场动画挂在 `.was-added` 上而不是 `.is-adding`：动画名一旦切回卡片的常规入场，浏览器会把它从头播放，看起来就是入场了两次），用行高 `0fr → 1fr` 生长，下方卡片随之平滑下移；页面用逐帧指数缓动跟随到新板块（用户滚轮/键盘介入即停止），动画结束后聚焦输入。
-- 非常驻（「激发」）板块的出现与消失：点「添加记录」只登记「手动添加」，**不写入任何数据**（数字板块显示默认值但不落盘），用户输入后才算有数据；空内容（含空文档）的板块不会被持久化。空的激发板块可点标签上的 × 关闭（`SectionTypeBadge`），右键「关闭板块」同效；有内容时右键「清空并关闭板块」必须先二次确认。关闭/清空时数据立即删除，卡片留在 `leavingSections` 里（显示原值）并以 `.is-removing` 折叠消失，槽位 `.section-slot` 的首尾边距按「缺席时少一个间隙」计算（`--slot-mt/--slot-mb`），否则插在中间时下方卡片会跳 16px。
-- 时间线预览里每个日期最多显示约 6 行文字：8 行及以上才折叠（6 到 7 行不值得折叠），折叠高度取第 6 行文字的底边（按 `Range` 测得的真实视觉行，不是行高乘 6，段距、列表、自动换行都计入），`ClampedBody` 用脚本在两个像素高度之间做过渡、展开后把高度还给 `auto`；底部的渐隐用注册属性 `--clamp-fade` 过渡。有搜索词时自动展开，避免高亮的命中被折叠。日期标题栏就是卡片的一部分，不吸顶（吸顶需要滚动容器没有上内边距、还要处理圆角与透明度，代价大于收益，已取消）。
+- 入场动画的填充模式用 `backwards`，不要用 `both`：`both` 会在动画结束后一直锁住 `transform: none`，让元素的 `:hover` 位移失效；对页面根元素等「全屏编辑器的祖先」更是致命，会让 `position: fixed` 的全屏层被圈在该元素内，不再铺满窗口（`tests/e2e/fullscreen-editor.spec.mjs` 守护）。全屏祖先上的入场动画用 `animation-duration: 0s` 让它失效，**不要写 `animation: none`**，否则动画名重新出现时入场会整段重播；更多全屏进出的约束见 `tests/e2e/motion-polish.spec.mjs` 开头的注释。
+- **雾化玻璃：玻璃元素（带 `backdrop-filter`）的任何祖先都不能带 `opacity < 1`、`filter` 或 `mask`，哪怕只是动画途中。** 否则浏览器只在该祖先内部取景，玻璃会在动画期间变成「平的」，动画一结束颜色突然跳变。含玻璃的容器（页面根、抽屉、设置卡片、弹窗遮罩）在该风格下只做位移（或高度）动画，淡入淡出放在玻璃元素自身或遮罩的伪元素上；见 `theme/appearanceSurfaces.css` 与 `tests/e2e/frosted-glass-motion.spec.mjs`。
+- 滚动容器用 `scrollbar-gutter: stable` 预留滚动条位置，否则内容变高时滚动条中途出现会让图表、编辑器宽度抖动几个像素。会横向滑动或有位移的内容放在滚动容器里时，容器要 `overflow-x: hidden`（日历），带位移的子元素外层加 `overflow: clip`，否则动画途中滚动条会闪一下；被 `.collapsible-inner` 等裁剪的卡片不要用悬停位移（`translate`），边框会被裁掉一边。
+- 通用动效件，优先复用，不要各写各的：`components/Collapsible.jsx`（高度展开 / 收起，时长随内容高度伸缩，自身不带透明度）、`utils/useFullscreenPresence.js`（全屏层退出时多停留一段时间以播放退场，使用它的页面要把「全屏祖先」样式保持到退场结束）、`utils/useScrollReveal.js`（列表项滚动进入视野时才播放入场并错峰，用 `data-reveal` 属性而不是 class，避免 React 重渲染把状态冲掉）、`utils/useDelayedFlag.js`（加载骨架屏只在加载确实变慢后才显示）。
 - 减少动态效果由全局 `prefers-reduced-motion` 规则统一处理，新增动画不需要单独写。
 - 评估动效时不要只凭肉眼：用 `requestAnimationFrame` 逐帧采样元素的 `opacity`/`transform` 和帧间隔（长帧即卡顿），并用 `tests/e2e/motion.spec.mjs` 守住行为（快速切日不空白、弹窗退场后卸载、侧栏与标签高亮跟随选中项）。
 
@@ -173,7 +166,7 @@ npm run check
 
 ### 对话框与键盘
 
-所有对话框用同一套键盘行为（`components/ModalFrame.jsx`、`utils/useModalA11y.js`，测试 `tests/e2e/dialogs.spec.mjs`）：打开时焦点进入对话框（`data-autofocus` 标记的控件，否则对话框本身）、关闭后回到打开它的控件；Tab 不会离开对话框；Esc 只关闭最上面的一个对话框，并且不会再传给下面的全屏编辑器或其他对话框；点遮罩关闭要求按下和松开都在遮罩上（在输入框里拖选文字拖到框外不算）。新增对话框优先用 `ModalFrame`；需要回答的问题用 `role="alertdialog"`，一个破坏性的问题默认聚焦在安全的选项上。`useConfirmDialog` 的 `confirm()` 对取消按钮返回 `false`，对 ✕、Esc、点遮罩返回 `dismissValue`（默认 `false`）：取消按钮本身有动作的调用方传 `dismissValue: null` 区分「返回」与「按了那个按钮」。倒数日不再用对话框：它是日历旁的非模态抽屉（`pages/Calendar/CountdownDrawer.jsx`），新建点一次「添加」即保存，已有项的改动在字段有效时立即保存；Esc 一次退一层（表单或编辑器，再抽屉），焦点回到打开它的按钮（日历下方「最近」条里的入口，页眉没有倒数日按钮）。这些部分会动：展开与合拢用 `components/Unfold.jsx`（高度在 0 与 auto 间过渡，依赖 `interpolate-size`，不要改回 `grid-template-rows` 的 0fr / 1fr，那样盒子与内容之间会在过渡中留出空隙），删除的条目留在原位合拢，不靠 `animationend`；含玻璃的元素只用位移和高度动画，`tests/e2e/frosted-glass-motion.spec.mjs` 会逐帧检查。
+所有对话框用同一套键盘行为（`components/ModalFrame.jsx`、`utils/useModalA11y.js`，测试 `tests/e2e/dialogs.spec.mjs`）：打开时焦点进入对话框（`data-autofocus` 标记的控件，否则对话框本身）、关闭后回到打开它的控件；Tab 不会离开对话框；Esc 只关闭最上面的一个对话框，并且不会再传给下面的全屏编辑器或其他对话框；点遮罩关闭要求按下和松开都在遮罩上（在输入框里拖选文字拖到框外不算）。新增对话框优先用 `ModalFrame`；需要回答的问题用 `role="alertdialog"`，一个破坏性的问题默认聚焦在安全的选项上。`useConfirmDialog` 的 `confirm()` 对取消按钮返回 `false`，对 ✕、Esc、点遮罩返回 `dismissValue`（默认 `false`）：取消按钮本身有动作的调用方传 `dismissValue: null` 区分「返回」与「按了那个按钮」。倒数日不用对话框，它是日历旁的非模态抽屉（`pages/Calendar/CountdownDrawer.jsx`），保存时机、Esc 逐层退出和动效的约束写在该文件开头的注释里。
 
 退出全屏编辑器的 Esc 把「某个浮层已打开」（斜杠菜单、右键菜单、各种对话框）视为 Esc 已有主人：新增会响应 Esc 的浮层时，把它的选择器加进 `utils/editorShortcuts.js` 的 `ESC_OWNERS`。
 
@@ -230,7 +223,7 @@ npx playwright test   # 已有最新构建时直接运行
 
 `npm run seed:dev` 会向开发数据目录写入示例数据（约 150 天记录、便签、倒数日和图表，含一个极端值用于测试热力图），可重复运行；脚本拒绝覆盖非空且不是它创建的目录，也拒绝触碰真实数据目录。确需用开发版读写真实数据时，才设置 `TESSERA_USE_REAL_DATA=1`，并先备份。显式的 `TESSERA_USER_DATA_DIR` / `TESSERA_DATA_DIR` 优先于以上默认值。
 
-未设置 `ELECTRON_RENDERER_URL`（仅 `electron-vite dev` 会注入）时，未打包的启动会加载构建产物而不是开发服务器。CI 在 `npm run check` 之后运行冒烟测试；它们不属于 `npm run check`，改动主进程、预加载桥接、编辑器保存或窗口生命周期时请在本地运行。
+未设置 `ELECTRON_RENDERER_URL`（仅 `electron-vite dev` 会注入）时，未打包的启动会加载构建产物而不是开发服务器。CI 在 `npm run check` 之后运行全量冒烟测试；它们不属于 `npm run check`。本地按影响面运行相关 spec（先 `npm run build`，再 `npx playwright test tests/e2e/<名称>.spec.mjs`），改动主进程、预加载桥接、打包配置或 Electron 依赖时才跑全量 `npm run test:e2e`。
 
 ### 安装程序与卸载程序（`build/*.nsh`）
 
@@ -246,23 +239,23 @@ npx playwright test   # 已有最新构建时直接运行
 
 ## 8. 合并与评审
 
-项目目前由单人维护，没有第二位评审人，因此不要求每次改动都创建 Pull Request。合并依据是：本地 `npm run check` 通过，且推送分支后 CI（对所有分支生效）成功。小改动（文档、文案、纯样式、仅补测试）本地检查通过即可合并。
+项目目前由单人维护，没有第二位评审人，因此不要求每次改动都创建 Pull Request。合并依据按风险分级，细则见根目录 `AGENTS.md`：小改动本地 `npm run check` 通过即可合并；常规改动在本地检查与相关 e2e 通过后推送分支、不等 CI 即可合并（CI 异步运行，结果在下一个任务开始时查看）；高风险改动等分支上的 CI 通过再合并。
 
 需要留痕、回看差异或改动较大时，可创建 Pull Request，说明：改了什么、为什么、如何验证、是否影响数据兼容或发布。自查重点依次为：数据安全、回归风险、测试证据、可维护性、界面细节。
 
-当前私有仓库套餐不支持 `main` 分支保护，因此流程约束需要人工遵守：只在 CI 通过后合并。若未来升级套餐、公开仓库或加入协作者，应开启 required status check（`Lint, test and build`），并恢复 Pull Request 加评审的流程。
+CI 只在非 `main` 分支的推送上运行，`main` 上不重复运行同一个提交；发布前对 `main` 手动触发一次（`gh workflow run ci.yml --ref main`）。当前私有仓库套餐不支持 `main` 分支保护，因此流程约束靠人工遵守。若未来升级套餐、公开仓库或加入协作者，应开启 required status check（`Lint, test and build`），恢复 `main` 上的 CI 与 Pull Request 加评审的流程。
 
 ## 9. 发布纪律
 
-1. `main` 的 CI 成功后才允许准备版本。
+1. 准备版本前，最近一次 CI 没有未处理的失败。
 2. 使用 `npm version <patch|minor|major> --no-git-tag-version` 同步两个包文件。
 3. 更新 README 当前版本徽章和「最近更新」、`CHANGELOG.md` 与 `RELEASE_NOTES.md`；`npm run verify:version` 会检查它们都含有这一版。
-4. 执行 `npm run check`。
-5. 提交并推送版本提交，等待 CI 成功。
+4. 执行 `npm run check:release`（`npm run check` 加依赖审计）。
+5. 提交并推送版本提交，然后对 `main` 手动触发 CI（`gh workflow run ci.yml --ref main`）并等待成功：`main` 上不会自动运行 CI。
 6. 创建统一的附注标签：`git tag -a vX.Y.Z -m "Tessera vX.Y.Z"`。
 7. 推送单个标签，等待发布工作流完成，并下载验证安装包。
 
-发布工作流会在打包前拒绝不在 `main` 上的标签，并依次运行 `npm run check`、完整的 Electron 冒烟测试、打包，再对打包出的 `release/win-unpacked/Tessera.exe` 运行 `smoke.spec.mjs`，全部通过才发布。
+发布工作流会在打包前拒绝不在 `main` 上的标签，并依次运行 `npm run check:release`（`check` 加依赖审计）、完整的 Electron 冒烟测试、打包，再对打包出的 `release/win-unpacked/Tessera.exe` 运行 `smoke.spec.mjs`，全部通过才发布。
 
 标签是不可变发布记录。已推送标签不得重打；失败时修复并增加 patch 版本。不要使用 `git push --tags`，避免误推本地旧标签。
 
@@ -287,7 +280,7 @@ npx playwright test   # 已有最新构建时直接运行
 - 公开仓库后请在 Settings → Actions → General 把「Fork pull request workflows from outside collaborators」设为需要所有外部协作者批准，并在 Settings → Code security 打开 Dependabot alerts、Secret scanning 与 Push protection；`main` 可以开启分支保护，把 `Lint, test and build` 设为必须通过的检查。
 - 用户可见的截图在 `docs/screenshots/`，由 `npm run screenshots` 用示例数据重新生成（隔离的临时目录，不碰真实数据）；界面大改后重新运行并提交即可。
 
-每月处理 Dependabot，运行 `npm audit`，优先修复运行时依赖中的 high/critical 问题。大版本升级一次只处理一个核心组件，并保留独立回滚提交。
+依赖审计由 `.github/workflows/audit.yml` 每周一次、依赖文件变更时运行，失败了优先修复运行时依赖中的 high/critical 问题；Dependabot 每月处理。大版本升级一次只处理一个核心组件，并保留独立回滚提交。
 
 安全问题不得包含真实用户数据、数据库、访问令牌或本机隐私路径。处理原则见 `SECURITY.md`。
 

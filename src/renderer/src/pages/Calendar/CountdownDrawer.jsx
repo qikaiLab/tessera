@@ -220,7 +220,14 @@ function NewCountdownForm({ initial, onAdd, onCancel, focusName }) {
  * The countdown days beside the calendar. Nothing here waits for a "save": a new countdown is stored
  * when it is added, and a change to an existing one is stored as soon as the field is valid.
  *
- *   countdowns       the stored list as readCountdowns reads it
+ * Esc steps back one layer (the form or the open editor first, then the drawer) and focus returns
+ * to the button that opened it: the entry in the strip under the calendar (the page header has
+ * none). What comes and goes uses components/Unfold.jsx (a direct height animation; a grid row
+ * 0fr <-> 1fr would leave a gap midway). A deleted row folds away where it stands, on timers
+ * rather than `animationend`. Anything holding glass only moves or changes height;
+ * tests/e2e/frosted-glass-motion.spec.mjs checks every frame.
+ *
+ *   countdowns      the stored list as readCountdowns reads it
  *   saveCountdowns   the app's writer (takes the new list, or a function of the stored one)
  *   today            the start of today
  *   intent           what to open: { type: 'new', date? } or { type: 'edit', key }, with a `nonce`

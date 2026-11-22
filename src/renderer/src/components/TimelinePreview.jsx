@@ -61,6 +61,16 @@ function measureTextLines(root) {
   return lines
 }
 
+/**
+ * The body of one day: it folds after about six lines (see CLAMP_LINES / CLAMP_MIN_LINES) and a
+ * button opens it. The folded height is the bottom of the sixth real line, measured with a Range
+ * (paragraph gaps, lists and wrapping all count), not six times the line height. The script moves
+ * the height between two pixel values and hands it back to `auto` once open; the fade at the
+ * bottom runs on the registered property `--clamp-fade`. A search term opens it from the start so
+ * a highlighted hit is never folded away. The date header is part of the card and does not stick:
+ * a sticky one needs a scroll container without top padding and care for corners and opacity,
+ * which cost more than it gave.
+ */
 function ClampedBody({ children, startOpen, label }) {
   const bodyRef = useRef(null)
   const innerRef = useRef(null)

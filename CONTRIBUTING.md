@@ -32,30 +32,11 @@ npm ci
 npm run check
 ```
 
-涉及主进程、预加载桥接、编辑器保存或窗口生命周期的改动，另外运行 Electron 冒烟测试（使用临时目录，不会触碰真实数据）：
-
-```bash
-npm run test:e2e
-```
+涉及界面、主进程、预加载桥接、编辑器保存或窗口生命周期的改动，另外运行相关的 Electron 冒烟测试（使用临时目录，不会触碰真实数据），例如 `npx playwright test tests/e2e/app-shell.spec.mjs`（需要先有最新构建）；全量 `npm run test:e2e` 只在改动主进程、预加载、打包或 Electron 依赖时才需要。
 
 ## 日常开发流程
 
-项目目前由单人维护，流程按改动风险分级，不要求每次都走完整的 PR 流程：
-
-| 级别 | 范围 | 流程 |
-| --- | --- | --- |
-| 小改动 | 文档、文案、注释、纯样式、仅补测试 | 分支 → `npm run check` → 合并到 `main` |
-| 常规改动 | 功能、普通缺陷修复、重构 | 分支 → `npm run check` → 推送分支 → CI 通过 → 合并 |
-| 高风险改动 | 数据层、备份恢复、IPC、依赖、打包、发布 | 同常规改动，另加回归测试与真实构建或隔离启动验证 |
-
-1. 从最新 `main` 创建分支。人工分支使用 `feat/`、`fix/`、`refactor/`、`test/`、`docs/` 或 `chore/` 前缀；AI 助手管理的分支使用 `codex/<type>-<name>`。
-2. 小步提交，提交信息采用 Conventional Commits，例如 `feat: add weekly summary`。
-3. CI 对所有分支的推送都会运行，因此推送分支并等待 CI 通过即可作为合并依据；Pull Request 可选，需要留痕或查看差异时再创建。CI 未通过时不得合并。
-4. 合并后删除本地和远端功能分支。
-
-紧急情况下可以直接更新 `main`，但必须先在本地通过 `npm run check`，并确认远端 CI 成功。
-
-用户已将常规 Git/GitHub 管理授权给 AI 助手：完成开发任务后自行执行检查、提交、推送、合并和分支清理。只有正式版本发布、共享历史改写、破坏性操作或范围不明确时需要额外确认。具体边界以根目录 `AGENTS.md` 为准。
+分支命名、提交规范、按风险分级的检查与合并流程、CI 的使用方式，以仓库根目录的 [`AGENTS.md`](AGENTS.md) 为唯一来源，这里不再重复。简要说：人工分支可以用 `feat/`、`fix/` 等前缀，AI 助手管理的分支用 `codex/<type>-<name>`；提交信息采用 Conventional Commits；合并后删除任务分支。
 
 ## 许可证
 
@@ -69,10 +50,9 @@ npm run test:e2e
 
 一项改动只有同时满足以下条件才算完成：
 
-- 行为符合需求，失败路径得到处理。
 - 新增或修复的纯逻辑包含自动化测试；涉及数据写入、导入、恢复或路径处理时必须有回归测试。
-- `npm run check` 全部通过且没有新增 ESLint 警告。
-- 用户可见行为、快捷键、存储格式或兼容性变化已更新文档。
+- `npm run check` 通过。
+- 文档同步：`CHANGELOG.md`「未发布」补一行用户能感知的变化；新增、改名或删除用户可见功能时，同一提交更新软件内的使用说明（`guideTopics.js`）；存储格式或兼容性变化另在工程指南里说明。
 - 不提交 `out/`、`release/`、日志、用户数据、数据库或密钥。
 
 ## 发布流程
@@ -84,20 +64,21 @@ git switch main
 git pull --ff-only
 npm version patch --no-git-tag-version
 # 同步 README.md（版本徽章与「最近更新」）、CHANGELOG.md 与 RELEASE_NOTES.md
-npm run check
+npm run check:release    # npm run check 加依赖漏洞审计
 git add package.json package-lock.json README.md CHANGELOG.md RELEASE_NOTES.md
 git commit -m "chore(release): vX.Y.Z"
 git push origin main
+gh workflow run ci.yml --ref main    # main 上不会自动跑 CI，打标签前手动触发并等它成功
 git tag -a vX.Y.Z -m "Tessera vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-必须先确认 `main` CI 成功，再创建并推送标签。发布标签一旦推送就不得删除、移动或复用；如果发布失败，修复后发布新的补丁版本。
+必须先等这次 `main` 上的 CI 成功，再创建并推送标签。发布标签一旦推送就不得删除、移动或复用；如果发布失败，修复后发布新的补丁版本。
 
 ## 依赖维护
 
 - 每月处理 Dependabot 提交，逐项合并，不一次性盲目升级所有主版本。
-- 合并依赖更新前执行 `npm run check` 和 `npm audit`。
+- 合并依赖更新前执行 `npm run check` 和 `npm run audit`（审计另有 CI 工作流 `audit.yml`：每周一次，以及依赖文件变更时运行）。
 - Electron、构建工具或编辑器的大版本升级应使用独立分支，并进行安装包启动、写入、备份和恢复测试。
 
 完整维护规则见 [工程化管理指南](docs/ENGINEERING_GUIDE.md)。

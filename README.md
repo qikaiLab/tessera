@@ -257,7 +257,7 @@ npm run screenshots  # 用示例数据重新生成 README 里的截图（docs/sc
 npm run check
 ```
 
-依次运行 ESLint、Vitest、依赖漏洞审计、版本一致性检查和生产构建。涉及界面或主进程的改动还应运行 `npm run test:e2e`（Electron 端到端测试，默认在屏幕外静默运行，使用临时数据目录）。随机化的模糊测试在 `tests/fuzz/`，随 `npm test` 一起运行；失败时会打印随机种子，用 `FUZZ_SEED=<数字>` 可以重放，`FUZZ_RUNS=<数字>` 可以加大次数。分支、提交、依赖维护与发布规则见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [工程化管理指南](docs/ENGINEERING_GUIDE.md)。
+依次运行 ESLint、Vitest、版本一致性检查和生产构建；依赖漏洞审计 `npm run audit` 单独运行（CI 每周及依赖文件变更时也会运行，发布前随 `npm run check:release` 一起执行）。涉及界面或主进程的改动还应运行相关的端到端测试，如 `npx playwright test tests/e2e/app-shell.spec.mjs`（需要先有最新构建；Electron 端到端测试默认在屏幕外静默运行，使用临时数据目录），只有改动主进程、预加载或打包时才需要全量的 `npm run test:e2e`。随机化的模糊测试在 `tests/fuzz/`，随 `npm test` 一起运行；失败时会打印随机种子，用 `FUZZ_SEED=<数字>` 可以重放，`FUZZ_RUNS=<数字>` 可以加大次数。分支、提交、依赖维护与发布规则见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [工程化管理指南](docs/ENGINEERING_GUIDE.md)。
 
 ### 发布新版本（CI/CD 自动化）
 
@@ -266,12 +266,13 @@ npm run check
 ```bash
 npm version patch --no-git-tag-version
 # 更新 README.md（版本徽章与「最近更新」）、CHANGELOG.md 与 RELEASE_NOTES.md 后执行完整门禁
-npm run check
+npm run check:release
 git add package.json package-lock.json README.md CHANGELOG.md RELEASE_NOTES.md
 git commit -m "chore(release): vX.Y.Z"
 git push origin main
 
-# 确认 main 的 CI 成功后创建附注标签，并只推送这一个标签
+# main 上不会自动跑 CI：手动触发一次，等它成功后再创建附注标签，并只推送这一个标签
+gh workflow run ci.yml --ref main
 git tag -a vX.Y.Z -m "Tessera vX.Y.Z"
 git push origin vX.Y.Z
 ```
