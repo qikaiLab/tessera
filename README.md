@@ -7,7 +7,7 @@
 **一款本地优先的 Windows 个人记录软件**<br>
 写日记、记数字、回看历史、画趋势图——数据只存在你自己的电脑上。
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/qikaiLab/tessera/releases)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/qikaiLab/tessera/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-lightgrey.svg)](#-下载与安装)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/qikaiLab/tessera?include_prereleases)](https://github.com/qikaiLab/tessera/releases)
@@ -174,6 +174,12 @@ Get-FileHash .\Tessera-Setup-*.exe -Algorithm SHA256
 ## 📝 最近更新
 
 完整的版本历史见 **[CHANGELOG.md](CHANGELOG.md)**，每个版本的安装包见 [Releases](https://github.com/qikaiLab/tessera/releases)。
+
+### v1.1.0 *(2026-11-22)*
+
+- **倒数日重做**：改成日历右侧的抽屉，新建一步保存、已有的点开就能改并自动保存；支持每周、每月、每年或隔几周 / 几个月 / 几年重复（生日选「每年」即可）；日历下方新增「最近」条，一天有多个倒数日时月、周、年视图都能看到，各部分都有动画。
+- 雾化玻璃新增三张**内置壁纸**（暮光、森林、海洋），在设置里点选即换，玻璃层和点缀色自动适配。
+- 修复雾化玻璃亮色主题下对话框难以辨认、右键菜单被格式工具栏盖住等可读性问题。已有数据原样保留，无需迁移。
 
 ### v1.0.0 *(2026-11-14)*
 
