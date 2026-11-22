@@ -21,7 +21,14 @@ describe('context menu and the editor format toolbar', () => {
 
   it('frosts whatever shows through the semi-transparent menu', () => {
     expect(menuCss).toMatch(/\.app-context-menu\s*\{[^}]*backdrop-filter:\s*var\(--context-menu-backdrop\)/s)
-    expect(readSource('src/renderer/src/styles/tokens.css')).toMatch(/--context-menu-backdrop:\s*blur\(/)
+    const tokens = readSource('src/renderer/src/styles/tokens.css')
+    expect(tokens).toMatch(/--context-menu-backdrop:\s*blur\(/)
+    // Mostly opaque in the default style, so the frost reads as one surface.
+    for (const theme of ['dark', 'light']) {
+      const block = tokens.match(new RegExp(`\\[data-interface-style='default'\\]\\[data-theme='${theme}'\\]\\s*\\{([^}]*)\\}`))?.[1] ?? ''
+      const alpha = Number(block.match(/--context-menu-background:\s*rgba\([^)]*,\s*([\d.]+)\)/)?.[1])
+      expect(alpha).toBeGreaterThanOrEqual(0.9)
+    }
   })
 
   it('hides the toolbar while the menu is open', () => {

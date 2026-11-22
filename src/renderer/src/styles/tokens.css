@@ -73,7 +73,7 @@
   --context-menu-background-image: none;
   --context-menu-background-size: auto;
   /* A little frost behind the semi-transparent surface keeps the text underneath from showing through. */
-  --context-menu-backdrop: blur(14px) saturate(1.1);
+  --context-menu-backdrop: blur(22px) saturate(1.15);
   --context-menu-border: var(--border-hover);
   --context-menu-text: var(--text-primary);
   --context-menu-shortcut-text: var(--text-tertiary);
@@ -244,6 +244,16 @@
 
   --scrollbar-thumb: rgba(0,0,0,0.12);
   --scrollbar-thumb-hover: rgba(0,0,0,0.2);
+}
+
+/* The default style's context menu is more opaque than the other floating glass: enough frost to
+   read as one surface, with only a faint ghost of what is behind it. */
+[data-interface-style='default'][data-theme='dark'] {
+  --context-menu-background: rgba(28, 28, 28, 0.93);
+}
+
+[data-interface-style='default'][data-theme='light'] {
+  --context-menu-background: rgba(255, 255, 255, 0.93);
 }
 
 /* The calendar's days that hold records. In the default light style the pale grey of --bg-surface-2
