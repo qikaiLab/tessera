@@ -103,7 +103,11 @@
 .cal-day:hover { background: var(--bg-hover); }
 
 .cal-day.other-month .cal-day-num { color: var(--text-muted); }
-.cal-day.has-data { background: var(--bg-surface-2); }
+.cal-day.has-data {
+  background: var(--calendar-day-data-background, var(--bg-surface-2));
+  border-color: var(--calendar-day-data-border, transparent);
+  box-shadow: var(--calendar-day-data-shadow, none);
+}
 .cal-day.today { border-color: var(--accent); }
 .cal-day.today .cal-day-num { color: var(--accent); font-weight: 700; }
 .cal-day.selected { background: var(--accent-light); border-color: var(--accent); }

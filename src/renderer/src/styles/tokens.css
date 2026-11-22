@@ -246,6 +246,14 @@
   --scrollbar-thumb-hover: rgba(0,0,0,0.2);
 }
 
+/* The calendar's days that hold records. In the default light style the pale grey of --bg-surface-2
+   all but vanishes on the page, so such a day is a white card with a hairline edge instead. */
+[data-interface-style='default'][data-theme='light'] {
+  --calendar-day-data-background: var(--bg-surface);
+  --calendar-day-data-border: var(--border-hover);
+  --calendar-day-data-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
 /* ─── Default style accent presets ─────────────────────────────────────── */
 [data-interface-style='default'][data-theme='dark'][data-theme-accent='ocean'] {
   --accent: #5b8cff;
