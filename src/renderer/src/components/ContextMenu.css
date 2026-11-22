@@ -13,6 +13,8 @@
   background-image: var(--context-menu-background-image);
   background-size: var(--context-menu-background-size);
   background-position: center;
+  backdrop-filter: var(--context-menu-backdrop);
+  -webkit-backdrop-filter: var(--context-menu-backdrop);
   box-shadow: var(--context-menu-shadow), var(--context-menu-inset-shadow);
   color: var(--context-menu-text);
   font-family: var(--font-sans);

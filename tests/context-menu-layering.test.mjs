@@ -19,6 +19,11 @@ describe('context menu and the editor format toolbar', () => {
     expect(menu).toContain('createPortal(')
   })
 
+  it('frosts whatever shows through the semi-transparent menu', () => {
+    expect(menuCss).toMatch(/\.app-context-menu\s*\{[^}]*backdrop-filter:\s*var\(--context-menu-backdrop\)/s)
+    expect(readSource('src/renderer/src/styles/tokens.css')).toMatch(/--context-menu-backdrop:\s*blur\(/)
+  })
+
   it('hides the toolbar while the menu is open', () => {
     expect(menu).toContain('setContextMenuOpen(Boolean(request))')
     expect(toolbar).toContain('useContextMenuOpen()')

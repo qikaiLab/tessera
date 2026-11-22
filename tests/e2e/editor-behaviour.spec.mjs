@@ -168,6 +168,8 @@ test('the format toolbar steps aside while the context menu is open, and returns
       return el.contains(hit)
     })
     expect(onTop).toBe(true)
+    // Text behind the translucent menu is blurred, not just dimmed.
+    expect(await menu.evaluate(el => getComputedStyle(el).backdropFilter)).toContain('blur(')
 
     // Closing the menu leaves the selection alone, so the toolbar comes back.
     await window.keyboard.press('Escape')

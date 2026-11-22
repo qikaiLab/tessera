@@ -72,6 +72,8 @@
   --context-menu-background: var(--bg-glass);
   --context-menu-background-image: none;
   --context-menu-background-size: auto;
+  /* A little frost behind the semi-transparent surface keeps the text underneath from showing through. */
+  --context-menu-backdrop: blur(14px) saturate(1.1);
   --context-menu-border: var(--border-hover);
   --context-menu-text: var(--text-primary);
   --context-menu-shortcut-text: var(--text-tertiary);
