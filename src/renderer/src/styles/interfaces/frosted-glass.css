@@ -2,7 +2,6 @@
   --font-style-stack: var(--font-modern-sans-stack);
   --frosted-background-blur: 8px;
   --frosted-background-bleed: 12px;
-  --frosted-preview-blur: 4px;
   --frosted-background-fallback: #202124;
   --frosted-shell-overlay: transparent;
   --frosted-fullscreen-overlay: transparent;

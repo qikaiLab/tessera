@@ -93,6 +93,8 @@ npm run check
 - 过亮的壁纸在深色主题下叠一层压暗（`--frosted-dark-scrim`），过暗的壁纸在浅色主题下叠一层提亮（`--frosted-light-scrim`），保证文字可读。
 - 调整算法时，用几类典型图片（灰色雨窗、雪景、霓虹、夜景、米色纸、森林）对照输出，而不是只看一张。
 
+内置壁纸（系统默认、暮光、森林、海洋，登记在 `theme/frostedGlassWallpapers.js`）和导入的图片走同一套取色，不单独写死颜色。当前选择保存在配置项 `frostedWallpaper`（`default` / `dusk` / `forest` / `ocean` / `custom`）；`resolveFrostedWallpaperId` 决定实际显示哪一张：没有保存过选择而已有导入图片时显示导入图片（旧版本升级不改变外观），选了导入图片但文件已不在时回到默认。选内置壁纸不会删除导入的图片，只有「移除图片」才会。新增内置壁纸时：把图转成约 100 KB 的 WebP 放进 `assets/themes/`，在登记表和 `appearanceMessages.js` 里加一项，并在 `tests/e2e/appearance.spec.mjs` 的循环里补上它。
+
 ## 6. 代码结构与拆分约定
 
 目标：加功能或改行为时，只需要打开一两个小文件。

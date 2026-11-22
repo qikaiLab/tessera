@@ -13,8 +13,10 @@ import {
 import { applyFrostedGlassBackground } from '../theme/frostedGlassBackground'
 import {
   FROSTED_BACKGROUND_BLUR,
+  FROSTED_WALLPAPER_IDS,
   applyFrostedBackgroundBlur,
-  normalizeFrostedBackgroundBlur
+  normalizeFrostedBackgroundBlur,
+  resolveFrostedWallpaperId
 } from '../theme/frostedGlassPreferences'
 import {
   INTERFACE_FONT_IDS,
@@ -28,7 +30,7 @@ import {
 
 /**
  * Everything about how the interface looks: light / dark, interface style, accent colour, the
- * frosted-glass background and blur, zoom, font and weight. Each change is applied to the page
+ * frosted-glass wallpaper and blur, zoom, font and weight. Each change is applied to the page
  * at once and saved to the app config; `loadAppearance(config)` applies the saved config on
  * startup.
  */
@@ -36,7 +38,9 @@ export function useAppearance() {
   const [theme, setTheme] = useState('dark')
   const [interfaceStyle, setInterfaceStyle] = useState(INTERFACE_STYLE_IDS.DEFAULT)
   const [themeAccent, setThemeAccent] = useState(THEME_ACCENT_IDS.VIOLET)
+  // The imported picture as a data URL (null when none), and which wallpaper is showing.
   const [frostedBackgroundUrl, setFrostedBackgroundUrl] = useState(null)
+  const [frostedWallpaper, setFrostedWallpaper] = useState(FROSTED_WALLPAPER_IDS.DEFAULT)
   const [frostedBackgroundBlur, setFrostedBackgroundBlur] = useState(FROSTED_BACKGROUND_BLUR.DEFAULT)
   const [interfaceZoom, setInterfaceZoom] = useState(INTERFACE_ZOOM.DEFAULT)
   const [interfaceFont, setInterfaceFont] = useState(INTERFACE_FONT_IDS.THEME)
@@ -67,23 +71,39 @@ export function useAppearance() {
     window.api.config.set('themeAccent', next)
   }, [interfaceStyle, theme])
 
+  const showFrostedWallpaper = useCallback(async (wallpaperId, customDataUrl) => {
+    setFrostedWallpaper(wallpaperId)
+    window.api.config.set('frostedWallpaper', wallpaperId)
+    await applyFrostedGlassBackground(root(), { wallpaperId, customDataUrl })
+  }, [])
+
+  const selectFrostedWallpaper = useCallback(async (value) => {
+    // Showing the imported picture needs one to exist; picking a bundled wallpaper keeps it for later.
+    if (value === FROSTED_WALLPAPER_IDS.CUSTOM && !frostedBackgroundUrl) return
+    const next = resolveFrostedWallpaperId(value, Boolean(frostedBackgroundUrl))
+    await showFrostedWallpaper(next, frostedBackgroundUrl)
+  }, [frostedBackgroundUrl, showFrostedWallpaper])
+
   const importFrostedBackground = useCallback(async () => {
     const result = await window.api.appearanceBackground.import()
     if (result.ok && !result.canceled && result.background?.dataUrl) {
       setFrostedBackgroundUrl(result.background.dataUrl)
-      await applyFrostedGlassBackground(root(), result.background.dataUrl)
+      await showFrostedWallpaper(FROSTED_WALLPAPER_IDS.CUSTOM, result.background.dataUrl)
     }
     return result
-  }, [])
+  }, [showFrostedWallpaper])
 
+  // Deletes the imported picture. If it was showing, the default wallpaper takes its place.
   const clearFrostedBackground = useCallback(async () => {
     const result = await window.api.appearanceBackground.clear()
     if (result.ok) {
       setFrostedBackgroundUrl(null)
-      await applyFrostedGlassBackground(root())
+      if (frostedWallpaper === FROSTED_WALLPAPER_IDS.CUSTOM) {
+        await showFrostedWallpaper(FROSTED_WALLPAPER_IDS.DEFAULT, null)
+      }
     }
     return result
-  }, [])
+  }, [frostedWallpaper, showFrostedWallpaper])
 
   const updateFrostedBackgroundBlur = useCallback((value) => {
     const next = applyFrostedBackgroundBlur(root(), value)
@@ -153,8 +173,10 @@ export function useAppearance() {
 
     const backgroundResult = await window.api.appearanceBackground.get()
     const savedBackground = backgroundResult.ok ? backgroundResult.background?.dataUrl ?? null : null
+    const savedWallpaper = resolveFrostedWallpaperId(config.frostedWallpaper, Boolean(savedBackground))
     setFrostedBackgroundUrl(savedBackground)
-    await applyFrostedGlassBackground(root(), savedBackground)
+    setFrostedWallpaper(savedWallpaper)
+    await applyFrostedGlassBackground(root(), { wallpaperId: savedWallpaper, customDataUrl: savedBackground })
     window.api.zoom.setFactor(savedZoom / 100)
   }, [])
 
@@ -162,7 +184,8 @@ export function useAppearance() {
     theme, toggleTheme,
     interfaceStyle, updateInterfaceStyle,
     themeAccent, updateThemeAccent,
-    frostedBackgroundUrl, importFrostedBackground, clearFrostedBackground,
+    frostedBackgroundUrl, frostedWallpaper, selectFrostedWallpaper,
+    importFrostedBackground, clearFrostedBackground,
     frostedBackgroundBlur, updateFrostedBackgroundBlur,
     interfaceZoom, updateInterfaceZoom, adjustInterfaceZoom,
     interfaceFont, updateInterfaceFont,

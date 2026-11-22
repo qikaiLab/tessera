@@ -1,8 +1,9 @@
-import defaultFrostedBackground from '../assets/themes/frosted-glass-background.webp'
 import {
   DEFAULT_FROSTED_PALETTE,
   deriveAdaptiveFrostedPalette
 } from './frostedGlassPalette'
+import { FROSTED_WALLPAPER_IDS } from './frostedGlassPreferences'
+import { defaultFrostedBackground, getFrostedWallpaperSource } from './frostedGlassWallpapers'
 
 let latestApplication = 0
 let activeObjectUrl = null
@@ -50,26 +51,37 @@ async function extractPaletteFromImage(source) {
   return deriveAdaptiveFrostedPalette(context.getImageData(0, 0, canvas.width, canvas.height).data)
 }
 
-export async function applyFrostedGlassBackground(root, customDataUrl = null) {
-  const applicationId = ++latestApplication
-  let objectUrl = null
+// The colours of a bundled wallpaper never change, so each is measured once.
+const presetPalettes = new Map()
 
-  if (customDataUrl) {
-    try {
-      objectUrl = await createObjectUrlFromDataUrl(customDataUrl)
-    } catch {
-      objectUrl = null
-    }
-    if (applicationId !== latestApplication) {
-      releaseObjectUrl(objectUrl)
-      return DEFAULT_FROSTED_PALETTE
-    }
+async function paletteOfPreset(id, source) {
+  if (id === FROSTED_WALLPAPER_IDS.DEFAULT) return DEFAULT_FROSTED_PALETTE
+  if (presetPalettes.has(id)) return presetPalettes.get(id)
+  try {
+    const palette = await extractPaletteFromImage(source)
+    presetPalettes.set(id, palette)
+    return palette
+  } catch {
+    return DEFAULT_FROSTED_PALETTE
+  }
+}
+
+async function applyCustomBackground(root, customDataUrl, applicationId) {
+  let objectUrl = null
+  try {
+    objectUrl = await createObjectUrlFromDataUrl(customDataUrl)
+  } catch {
+    objectUrl = null
+  }
+  if (applicationId !== latestApplication) {
+    releaseObjectUrl(objectUrl)
+    return DEFAULT_FROSTED_PALETTE
   }
 
   const previousObjectUrl = activeObjectUrl
   activeObjectUrl = objectUrl
   root.style.setProperty('--frosted-background-image', toCssImageUrl(objectUrl || defaultFrostedBackground))
-  root.setAttribute('data-frosted-background', objectUrl ? 'custom' : 'default')
+  root.setAttribute('data-frosted-background', objectUrl ? FROSTED_WALLPAPER_IDS.CUSTOM : FROSTED_WALLPAPER_IDS.DEFAULT)
   setPaletteProperties(root, DEFAULT_FROSTED_PALETTE)
   releaseObjectUrl(previousObjectUrl)
 
@@ -82,6 +94,33 @@ export async function applyFrostedGlassBackground(root, customDataUrl = null) {
   } catch {
     return DEFAULT_FROSTED_PALETTE
   }
+}
+
+/**
+ * Shows the chosen wallpaper behind the glass and sets the glass colours to match it.
+ * `wallpaperId` is one of FROSTED_WALLPAPER_IDS; the imported picture (`custom`) needs its data
+ * URL, and without one the default wallpaper is shown instead.
+ */
+export async function applyFrostedGlassBackground(root, { wallpaperId = FROSTED_WALLPAPER_IDS.DEFAULT, customDataUrl = null } = {}) {
+  const applicationId = ++latestApplication
+
+  if (wallpaperId === FROSTED_WALLPAPER_IDS.CUSTOM && customDataUrl) {
+    return applyCustomBackground(root, customDataUrl, applicationId)
+  }
+
+  const id = wallpaperId === FROSTED_WALLPAPER_IDS.CUSTOM ? FROSTED_WALLPAPER_IDS.DEFAULT : wallpaperId
+  const source = getFrostedWallpaperSource(id)
+  // The colours are ready before the picture is shown, so the glass never flashes the old tint.
+  const palette = await paletteOfPreset(id, source)
+  if (applicationId !== latestApplication) return palette
+
+  const previousObjectUrl = activeObjectUrl
+  activeObjectUrl = null
+  root.style.setProperty('--frosted-background-image', toCssImageUrl(source))
+  root.setAttribute('data-frosted-background', id)
+  setPaletteProperties(root, palette)
+  releaseObjectUrl(previousObjectUrl)
+  return palette
 }
 
 export { defaultFrostedBackground }

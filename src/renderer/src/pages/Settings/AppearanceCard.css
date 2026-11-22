@@ -163,102 +163,135 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-preview) 48%, transparent);
 }
 
-.appearance-background-panel {
+/* Frosted Glass wallpaper: same shape as the accent panel, copy on the left and choices on the right. */
+.appearance-wallpaper-panel {
   padding: var(--spacing-4);
-  display: grid;
-  grid-template-columns: minmax(180px, 0.72fr) minmax(0, 1.28fr);
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-4);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--bg-surface-2);
   box-shadow: var(--material-inset-shadow);
 }
 
-.appearance-background-preview {
-  position: relative;
-  min-height: 132px;
-  overflow: hidden;
-  border: 1px solid var(--border-hover);
-  border-radius: var(--radius-md);
-  background: var(--bg-app);
-}
-
-.appearance-background-preview img {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  inset: 0;
-  object-fit: cover;
-  filter: blur(var(--frosted-preview-blur));
-  transform: scale(1.06);
-  transition: filter var(--transition-base);
-}
-
-.appearance-background-glass-sample {
-  position: absolute;
-  inset: 22px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--border-hover);
-  border-radius: var(--radius-md);
-  background-color: var(--bg-glass);
-  background-image: var(--surface-material-image);
-  color: var(--text-primary);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-shadow: 0 1px 2px color-mix(in srgb, var(--text-inverse) 24%, transparent);
-  box-shadow: var(--material-surface-shadow), var(--material-inset-shadow);
-  backdrop-filter: var(--glass-backdrop-elevated);
-  -webkit-backdrop-filter: var(--glass-backdrop-elevated);
-}
-
-.appearance-background-content,
-.appearance-background-copy {
-  min-width: 0;
+.appearance-wallpaper-row {
   display: flex;
-  flex-direction: column;
-}
-
-.appearance-background-content {
+  align-items: center;
   justify-content: space-between;
   gap: var(--spacing-4);
 }
 
-.appearance-background-copy {
-  gap: 4px;
-}
-
-.appearance-background-status {
-  margin-top: var(--spacing-1);
-  color: var(--accent);
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-control);
-}
-
-.appearance-background-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
-}
-
-.appearance-background-blur-control {
-  padding-top: var(--spacing-3);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.8fr);
-  align-items: end;
-  gap: var(--spacing-4);
+.appearance-wallpaper-row + .appearance-wallpaper-row {
+  padding-top: var(--spacing-4);
   border-top: 1px solid var(--border);
 }
 
-.appearance-background-blur-copy {
-  min-width: 0;
+.appearance-wallpaper-options {
+  width: min(100%, 520px);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--spacing-2);
 }
 
-.appearance-background-blur-slider-row {
+.appearance-wallpaper-choices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-2);
+}
+
+.appearance-wallpaper-option {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 var(--spacing-3) 0 var(--spacing-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.appearance-wallpaper-option:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.appearance-wallpaper-option:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.appearance-wallpaper-option.selected {
+  color: var(--text-primary);
+  border-color: var(--accent);
+  background: var(--accent-light);
+  box-shadow: 0 0 0 1px var(--accent-light);
+}
+
+.appearance-wallpaper-option.selected::after {
+  content: '✓';
+  margin-left: auto;
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.appearance-wallpaper-thumb {
+  width: 34px;
+  height: 22px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-primary) 18%, transparent);
+  pointer-events: none;
+}
+
+.appearance-wallpaper-custom {
+  /* The imported picture takes the row below the four bundled wallpapers. */
+  grid-column: 1 / -1;
+}
+
+.appearance-wallpaper-import {
+  width: 100%;
+  border-style: dashed;
+  background: transparent;
+}
+
+.appearance-wallpaper-import small {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.appearance-wallpaper-plus {
+  display: grid;
+  place-items: center;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.appearance-wallpaper-custom-actions {
+  margin: var(--spacing-1) calc(var(--spacing-2) * -1) 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+}
+
+.appearance-wallpaper-custom-actions .btn {
+  padding: var(--spacing-1) var(--spacing-2);
+  font-size: var(--text-xs);
+}
+
+.appearance-wallpaper-blur {
+  width: min(100%, 520px);
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(110px, 1fr) 42px;
@@ -266,13 +299,13 @@
   gap: var(--spacing-2);
 }
 
-.appearance-background-blur-slider {
+.appearance-wallpaper-blur-slider {
   width: 100%;
   accent-color: var(--accent);
   cursor: pointer;
 }
 
-.appearance-background-blur-value {
+.appearance-wallpaper-blur-value {
   color: var(--text-primary);
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
@@ -303,11 +336,17 @@
     width: 100%;
   }
 
-  .appearance-background-panel {
-    grid-template-columns: 1fr;
+  .appearance-wallpaper-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  .appearance-background-blur-control {
-    grid-template-columns: 1fr;
+  .appearance-wallpaper-options,
+  .appearance-wallpaper-blur {
+    width: 100%;
+  }
+
+  .appearance-wallpaper-choices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

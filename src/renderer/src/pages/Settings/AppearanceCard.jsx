@@ -6,8 +6,8 @@ import {
   THEME_ACCENT_OPTIONS
 } from '../../theme/appearanceRegistry'
 import { APPEARANCE_MESSAGE_KEYS, appearanceText } from '../../theme/appearanceMessages'
-import { defaultFrostedBackground } from '../../theme/frostedGlassBackground'
-import { FROSTED_BACKGROUND_BLUR } from '../../theme/frostedGlassPreferences'
+import { FROSTED_BACKGROUND_BLUR, FROSTED_WALLPAPER_IDS } from '../../theme/frostedGlassPreferences'
+import { FROSTED_WALLPAPER_PRESETS } from '../../theme/frostedGlassWallpapers'
 import defaultStylePreview from '../../assets/themes/default-preview.webp'
 import linenStylePreview from '../../assets/themes/linen-preview.webp'
 import jadeStylePreview from '../../assets/themes/jade-preview.webp'
@@ -89,13 +89,16 @@ function AccentPanel() {
   )
 }
 
-// The background picture and its blur, for Frosted Glass.
+// The wallpaper behind the glass and its blur, for Frosted Glass. Picking a wallpaper shows it
+// at once; the page itself is the preview.
 function FrostedBackgroundPanel() {
   const {
-    frostedBackgroundUrl, importFrostedBackground, clearFrostedBackground,
+    frostedBackgroundUrl, frostedWallpaper, selectFrostedWallpaper,
+    importFrostedBackground, clearFrostedBackground,
     frostedBackgroundBlur, updateFrostedBackgroundBlur, showToast
   } = useApp()
   const [busy, setBusy] = useState(false)
+  const customSelected = frostedWallpaper === FROSTED_WALLPAPER_IDS.CUSTOM
 
   const handleImport = async () => {
     setBusy(true)
@@ -108,76 +111,114 @@ function FrostedBackgroundPanel() {
     }
   }
 
-  const handleClear = async () => {
+  const handleRemove = async () => {
     setBusy(true)
     try {
       const result = await clearFrostedBackground()
-      if (result.ok) showToast('已恢复系统默认背景', 'success')
-      else showToast(result.error || '恢复默认背景失败', 'error')
+      if (result.ok) showToast('已移除我的图片', 'success')
+      else showToast(result.error || '移除图片失败', 'error')
     } finally {
       setBusy(false)
     }
   }
 
+  const customLabel = appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundCustomName)
+
   return (
-    <div className="appearance-background-panel">
-      <div className="appearance-background-preview">
-        <img
-          src={frostedBackgroundUrl || defaultFrostedBackground}
-          alt=""
-          draggable="false"
-        />
-        <span className="appearance-background-glass-sample" aria-hidden="true">
-          Tessera
-        </span>
-      </div>
-      <div className="appearance-background-content">
-        <div className="appearance-background-copy">
+    <div className="appearance-wallpaper-panel">
+      <div className="appearance-wallpaper-row">
+        <div className="appearance-accent-copy">
           <span className="appearance-accent-title">
             {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundTitle)}
           </span>
           <span className="appearance-accent-description">
             {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundDescription)}
           </span>
-          <span className="appearance-background-status">
-            {appearanceText(frostedBackgroundUrl
-              ? APPEARANCE_MESSAGE_KEYS.frostedBackgroundCustom
-              : APPEARANCE_MESSAGE_KEYS.frostedBackgroundDefault)}
+          {frostedBackgroundUrl ? (
+            <span className="appearance-wallpaper-custom-actions">
+              <button type="button" className="btn btn-ghost" disabled={busy} onClick={handleImport}>
+                {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundReplace)}
+              </button>
+              <button type="button" className="btn btn-ghost" disabled={busy} onClick={handleRemove}>
+                {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundRemove)}
+              </button>
+            </span>
+          ) : null}
+        </div>
+        <div className="appearance-wallpaper-options">
+          <div
+            className="appearance-wallpaper-choices"
+            role="radiogroup"
+            aria-label={appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundTitle)}
+          >
+            {FROSTED_WALLPAPER_PRESETS.map(preset => {
+              const label = appearanceText(preset.labelKey)
+              const selected = preset.id === frostedWallpaper
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`appearance-wallpaper-option ${selected ? 'selected' : ''}`}
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => selectFrostedWallpaper(preset.id)}
+                >
+                  <img className="appearance-wallpaper-thumb" src={preset.source} alt="" draggable="false" />
+                  <span>{label}</span>
+                </button>
+              )
+            })}
+            {frostedBackgroundUrl ? (
+              <button
+                type="button"
+                className={`appearance-wallpaper-option appearance-wallpaper-custom ${customSelected ? 'selected' : ''}`}
+                role="radio"
+                aria-checked={customSelected}
+                onClick={() => selectFrostedWallpaper(FROSTED_WALLPAPER_IDS.CUSTOM)}
+              >
+                <img className="appearance-wallpaper-thumb" src={frostedBackgroundUrl} alt="" draggable="false" />
+                <span>{customLabel}</span>
+              </button>
+            ) : null}
+          </div>
+          {frostedBackgroundUrl ? null : (
+            <button
+              type="button"
+              className="appearance-wallpaper-option appearance-wallpaper-import"
+              disabled={busy}
+              onClick={handleImport}
+            >
+              <span className="appearance-wallpaper-thumb appearance-wallpaper-plus" aria-hidden="true">+</span>
+              <span>{appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundImport)}</span>
+              <small>{appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundImportHint)}</small>
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="appearance-wallpaper-row">
+        <div className="appearance-accent-copy">
+          <span className="appearance-accent-title">
+            {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBlurTitle)}
+          </span>
+          <span className="appearance-accent-description">
+            {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBlurDescription)}
           </span>
         </div>
-        <div className="appearance-background-actions">
-          <button type="button" className="btn btn-secondary" disabled={busy} onClick={handleImport}>
-            {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundImport)}
-          </button>
-          <button type="button" className="btn btn-ghost" disabled={busy || !frostedBackgroundUrl} onClick={handleClear}>
-            {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBackgroundRestore)}
-          </button>
-        </div>
-        <div className="appearance-background-blur-control">
-          <div className="appearance-background-blur-copy">
-            <span className="appearance-accent-title">
-              {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBlurTitle)}
-            </span>
-            <span className="appearance-accent-description">
-              {appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBlurDescription)}
-            </span>
-          </div>
-          <div className="appearance-background-blur-slider-row">
-            <input
-              className="appearance-background-blur-slider"
-              type="range"
-              min={FROSTED_BACKGROUND_BLUR.MIN}
-              max={FROSTED_BACKGROUND_BLUR.MAX}
-              step={FROSTED_BACKGROUND_BLUR.STEP}
-              value={frostedBackgroundBlur}
-              onChange={event => updateFrostedBackgroundBlur(event.currentTarget.value)}
-              aria-label={appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBlurTitle)}
-              aria-valuetext={frostedBackgroundBlur === 0 ? '不虚化' : `${frostedBackgroundBlur} 像素`}
-            />
-            <output className="appearance-background-blur-value" aria-live="polite">
-              {frostedBackgroundBlur === 0 ? '无' : `${frostedBackgroundBlur}px`}
-            </output>
-          </div>
+        <div className="appearance-wallpaper-blur">
+          <input
+            className="appearance-wallpaper-blur-slider"
+            type="range"
+            min={FROSTED_BACKGROUND_BLUR.MIN}
+            max={FROSTED_BACKGROUND_BLUR.MAX}
+            step={FROSTED_BACKGROUND_BLUR.STEP}
+            value={frostedBackgroundBlur}
+            onChange={event => updateFrostedBackgroundBlur(event.currentTarget.value)}
+            aria-label={appearanceText(APPEARANCE_MESSAGE_KEYS.frostedBlurTitle)}
+            aria-valuetext={frostedBackgroundBlur === 0 ? '不虚化' : `${frostedBackgroundBlur} 像素`}
+          />
+          <output className="appearance-wallpaper-blur-value" aria-live="polite">
+            {frostedBackgroundBlur === 0 ? '无' : `${frostedBackgroundBlur}px`}
+          </output>
         </div>
       </div>
     </div>

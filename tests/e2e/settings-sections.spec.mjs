@@ -153,12 +153,13 @@ test('the appearance card shows the controls of the chosen style', async ({ sand
   try {
     // The default style offers accent colours; frosted glass offers a background instead.
     await expect(window.locator('.appearance-accent-panel')).toBeVisible()
-    await expect(window.locator('.appearance-background-panel')).toHaveCount(0)
+    await expect(window.locator('.appearance-wallpaper-panel')).toHaveCount(0)
 
     await window.getByRole('radio', { name: /雾化玻璃/ }).click()
-    await expect(window.locator('.appearance-background-panel')).toBeVisible()
+    await expect(window.locator('.appearance-wallpaper-panel')).toBeVisible()
     await expect(window.locator('.appearance-accent-panel')).toHaveCount(0)
-    await expect(window.locator('.appearance-background-blur-slider')).toBeVisible()
+    await expect(window.locator('.appearance-wallpaper-blur-slider')).toBeVisible()
+    await expect(window.getByRole('radio', { name: '系统默认' })).toBeVisible()
 
     // The display card keeps zoom, font and weight together.
     await expect(window.locator('.interface-zoom-slider')).toBeVisible()
