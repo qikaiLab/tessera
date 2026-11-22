@@ -1,6 +1,20 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { daysUntil, describeCountdown } from '../../src/renderer/src/utils/countdowns.js'
+import { addDays, addMinutes, addMonths, startOfDay } from 'date-fns'
+import {
+  MAX_REPEAT_EVERY,
+  countdownStatus,
+  daysUntil,
+  describeCountdown,
+  groupCountdowns,
+  keyCountdowns,
+  nextOccurrence,
+  occursOn,
+  readCountdown,
+  readCountdowns,
+  removeCountdown,
+  updateCountdown
+} from '../../src/renderer/src/utils/countdowns.js'
 import { formatRangeLabel, getPresetRange } from '../../src/renderer/src/utils/timelineRange.js'
 import { buildChartData, formatAxisDate, formatTooltipDate, getChartSeries, getDateRange } from '../../src/renderer/src/utils/analyticsData.js'
 import { getHeatmapDays, getHeatmapRangeStart, normalizeSeries } from '../../src/renderer/src/utils/analyticsCard.js'
@@ -72,6 +86,105 @@ describe('countdowns', () => {
       if (days === null) expect(text).toBe('')
       else expect(text).toMatch(days > 0 ? /^还有 \d+ 天$/ : days === 0 ? /^今天！$/ : /^已过 \d+ 天$/)
     }), fuzzParams({ numRuns: 1000 }))
+  })
+})
+
+describe('repeating countdowns', () => {
+  // Month ends and leap days are where "the same day next month" goes wrong, so they are over-represented.
+  const baseDay = fc.oneof(
+    { weight: 4, arbitrary: someDay },
+    { weight: 2, arbitrary: fc.constantFrom('1996-02-29', '2000-03-31', '2020-02-29', '2023-08-31', '2024-01-31', '2024-02-29', '2025-12-31', '2026-10-31') }
+  )
+  const repeat = fc.oneof(
+    fc.record({ unit: fc.constant('week'), every: fc.integer({ min: 1, max: 12 }) }),
+    fc.record({ unit: fc.constant('month'), every: fc.integer({ min: 1, max: 12 }) }),
+    fc.record({ unit: fc.constant('year'), every: fc.integer({ min: 1, max: 3 }) })
+  )
+  const localMidnight = (text) => {
+    const [year, month, day] = text.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+  // The plain way to find the next occurrence: walk the series from its first date until it reaches today.
+  function walkToToday(base, rule, now) {
+    const today = startOfDay(now)
+    for (let index = 0; index < 20_000; index += 1) {
+      const day = rule.unit === 'week' ? addDays(base, 7 * rule.every * index) : addMonths(base, (rule.unit === 'year' ? 12 : 1) * rule.every * index)
+      if (day >= today) return { day, index }
+    }
+    throw new Error('the series never reached today')
+  }
+
+  // "Now" is mostly a few years either side of the first date (so the walk above stays short), and
+  // sometimes up to a century away.
+  const moments = fc.tuple(
+    baseDay,
+    fc.oneof({ weight: 6, arbitrary: fc.integer({ min: -800, max: 4000 }) }, { weight: 1, arbitrary: fc.integer({ min: -40_000, max: 40_000 }) }),
+    fc.integer({ min: 0, max: 24 * 60 - 1 })
+  ).map(([text, offset, minute]) => ({ text, now: addMinutes(addDays(localMidnight(text), offset), minute) }))
+
+  it('find the next occurrence the way walking the series does, in every zone', () => {
+    for (const zone of ZONES) {
+      inZone(zone, () => {
+        fc.assert(fc.property(moments, repeat, ({ text, now }, rule) => {
+          const countdown = readCountdown({ date: text, repeat: rule }, 'k')
+          const expected = walkToToday(localMidnight(text), rule, now)
+          const found = nextOccurrence(countdown, now)
+          expect(found && { date: localDateString(found.day), index: found.index }, `${zone} ${now.toISOString()} ${text} ${JSON.stringify(rule)}`)
+            .toEqual({ date: localDateString(expected.day), index: expected.index })
+          // It falls on that day, and the days to it are plain calendar days.
+          expect(occursOn(countdown, found.day)).toBe(true)
+          const status = countdownStatus(countdown, now)
+          expect(status.days).toBe(localDayNumber(found.day) - localDayNumber(now))
+          expect(status.ended).toBe(false)
+          // It falls on no day between today and then. (A plain loop: this is the hot spot of the test.)
+          const today = startOfDay(now)
+          const early = []
+          for (let ahead = 0; ahead < status.days && early.length === 0; ahead += 1) {
+            if (occursOn(countdown, addDays(today, ahead))) early.push(ahead)
+          }
+          expect(early, `${zone} ${text} ${JSON.stringify(rule)} came earlier than it should`).toEqual([])
+        }), fuzzParams({ numRuns: 40 }))
+      })
+    }
+  }, 60_000)
+
+  it('never fall on a day before the one they start from', () => {
+    fc.assert(fc.property(baseDay, repeat, fc.integer({ min: 1, max: 4000 }), (text, rule, before) => {
+      const countdown = readCountdown({ date: text, repeat: rule }, 'k')
+      expect(occursOn(countdown, addDays(localMidnight(text), -before))).toBe(false)
+      expect(occursOn(countdown, localMidnight(text))).toBe(true)
+    }), fuzzParams({ numRuns: 400 }))
+  })
+})
+
+describe('a stored countdown list of any shape', () => {
+  it('is read without throwing, keeps every entry, and gives each one its own key', () => {
+    fc.assert(fc.property(fc.array(fc.anything(), { maxLength: 12 }), someMoment, (stored, now) => {
+      const list = readCountdowns(stored)
+      expect(list).toHaveLength(stored.length)
+      expect(new Set(list.map(item => item.key)).size).toBe(list.length)
+      const { upcoming, ended, unreadable } = groupCountdowns(list, now)
+      expect(upcoming.length + ended.length + unreadable.length).toBe(list.length)
+      for (const item of list) {
+        expect(typeof item.name).toBe('string')
+        expect(item.repeat === null || (Number.isInteger(item.repeat.every) && item.repeat.every >= 1 && item.repeat.every <= MAX_REPEAT_EVERY)).toBe(true)
+        expect(item.color === null || /^#[0-9a-fA-F]{3,8}$/.test(item.color)).toBe(true)
+        expect(typeof countdownStatus(item, now).text).toBe('string')
+      }
+    }), fuzzParams({ numRuns: 600 }))
+  })
+
+  it('can be edited and trimmed by key without touching the other entries', () => {
+    fc.assert(fc.property(fc.array(fc.anything(), { minLength: 1, maxLength: 8 }), fc.nat(), anyText, (stored, pick, name) => {
+      const keys = keyCountdowns(stored)
+      const at = pick % stored.length
+      const edited = updateCountdown(stored, keys[at], { name, repeat: { unit: 'week', every: 2 } })
+      expect(edited).toHaveLength(stored.length)
+      stored.forEach((item, index) => { if (index !== at) expect(edited[index]).toBe(item) })
+      const removed = removeCountdown(stored, keys[at])
+      expect(removed).toHaveLength(stored.length - 1)
+      expect(removed).toEqual(stored.filter((_, index) => index !== at))
+    }), fuzzParams({ numRuns: 400 }))
   })
 })
 

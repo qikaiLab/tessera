@@ -1,7 +1,28 @@
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isSameMonth, startOfMonth, startOfWeek } from 'date-fns'
-import { WEEKDAYS, cellDelay } from './calendarViews'
+import { WEEKDAYS, cellDelay, countdownColor, countdownLabel } from './calendarViews'
 
-export default function MonthView({ cursor, getDayStatus, onDayClick }) {
+const MAX_BARS = 3
+
+// A day with one countdown carries its name; with several, one short bar of each colour (the title
+// lists them all), so a busy day stays readable inside a small cell.
+function CountdownMarkers({ countdowns }) {
+  if (countdowns.length === 0) return null
+  const title = countdowns.map(countdown => `⏱ ${countdownLabel(countdown)}`).join('\n')
+  if (countdowns.length === 1) {
+    return (
+      <span className="cal-countdown-tag cal-countdown-tag--mini" style={{ background: countdownColor(countdowns[0]) }} title={title}>
+        {countdownLabel(countdowns[0])}
+      </span>
+    )
+  }
+  return (
+    <span className="cal-bars" title={title}>
+      {countdowns.slice(0, MAX_BARS).map(countdown => <i key={countdown.key} style={{ background: countdownColor(countdown) }} />)}
+    </span>
+  )
+}
+
+export default function MonthView({ cursor, getDayStatus, onDayClick, onDayContextMenu }) {
   const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 })
   const end = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 })
   const days = eachDayOfInterval({ start, end })
@@ -20,18 +41,11 @@ export default function MonthView({ cursor, getDayStatus, onDayClick }) {
               className={`cal-day ${isSameMonth(day, cursor) ? '' : 'other-month'} ${today ? 'today' : ''} ${selected ? 'selected' : ''} ${hasData ? 'has-data' : ''}`}
               style={cellDelay(Math.floor(i / 7), i % 7)}
               onClick={() => onDayClick(day)}
+              onContextMenu={event => onDayContextMenu(day, event)}
             >
               <span className="cal-day-num">{format(day, 'd')}</span>
               {hasData && <span className="cal-dot" />}
-              {countdowns.length > 0 && (
-                <span
-                  className="cal-countdown-tag cal-countdown-tag--mini"
-                  style={{ background: countdowns[0].color || 'var(--accent)' }}
-                  title={countdowns.map(c => c.name).join(', ')}
-                >
-                  {countdowns[0].name.length > 4 ? countdowns[0].name.slice(0, 3) + '…' : countdowns[0].name}
-                </span>
-              )}
+              <CountdownMarkers countdowns={countdowns} />
             </button>
           )
         })}

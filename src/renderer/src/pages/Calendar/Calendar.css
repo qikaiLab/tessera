@@ -1,8 +1,22 @@
+/* The calendar and, when it is open, the countdown drawer beside it. */
 .calendar-page {
   display: flex;
-  flex-direction: column;
   height: 100%;
   overflow: hidden;
+}
+
+.cal-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+/* With the drawer open the year's four columns would be too narrow to read. */
+.calendar-page.with-drawer .year-view {
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-5);
 }
 
 .cal-nav {
@@ -150,15 +164,26 @@
 }
 .cal-day.week-day:hover { border-color: var(--border-hover); }
 
-/* Week view: today — accent left border + light bg */
+/* Week view: today — an even accent border and a light tint, and a small "今天" pill. */
 .cal-day.week-day.today {
   border-color: var(--accent);
   background: var(--accent-light);
-  border-left: 3px solid var(--accent);
 }
 .cal-day.week-day.today .cal-day-num { color: var(--accent); font-weight: 700; }
 
-/* Week view: selected — solid accent fill to distinguish from today */
+.cal-today-pill {
+  margin-top: 2px;
+  padding: 3px 7px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-contrast, white);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Week view: selected — solid accent fill to distinguish from today; today and selected at once
+ * is the same fill (the pill is the only thing left to say it is today). */
 .cal-day.week-day.selected {
   background: var(--accent);
   border-color: var(--accent);
@@ -167,12 +192,7 @@
 .cal-day.week-day.selected .cal-weekday-label { color: rgba(255,255,255,0.75); }
 .cal-day.week-day.selected .cal-month-label { color: rgba(255,255,255,0.65); }
 .cal-day.week-day.selected .cal-dot { background: white; }
-
-/* When both today and selected — show a special combined style */
-.cal-day.week-day.today.selected {
-  background: var(--accent);
-  border-left: 3px solid white;
-}
+.cal-day.week-day.selected .cal-today-pill { background: rgba(255,255,255,0.28); color: white; }
 .cal-weekday-label {
   font-size: var(--text-xs);
   color: var(--text-muted);
@@ -193,6 +213,35 @@
   border-radius: var(--radius-full);
   font-weight: 600;
   margin-top: 2px;
+}
+
+/* Week view: every countdown of the day, one under the other. */
+.week-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  margin-top: auto;
+}
+.cal-day.week-day .cal-countdown-tag {
+  max-width: 100%;
+  margin-top: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Month view: several countdowns on one day are short bars, one colour each. */
+.cal-bars {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+}
+.cal-bars i {
+  width: 10px;
+  height: 4px;
+  border-radius: 2px;
 }
 
 /* Mini countdown tag for month view */
@@ -261,55 +310,83 @@
 .year-day.today { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .year-day.selected { background: var(--accent); color: white; }
 
-/* Year view countdown indicator — colored bottom border */
-.year-day.has-countdown {
-  position: relative;
-  box-shadow: inset 0 -2px 0 var(--cd-color, var(--accent));
+/* Year view countdown indicator — a small dot of the countdown's colour under the number. */
+.year-day.has-countdown { position: relative; }
+.year-day.has-countdown::after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--cd-color, var(--accent));
 }
+.year-day.selected.has-countdown::after { background: white; }
 .year-day.has-countdown.other-month { opacity: 0.25; }
 
-/* Countdown legend */
-.countdown-legend {
+/* Header entry of the countdown drawer, with how many there are. */
+.cd-entry { gap: 6px; }
+.cd-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Under the calendar: the nearest countdowns, and the way into the drawer. */
+.cd-strip {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-3);
+  align-items: center;
+  gap: var(--spacing-2);
   padding: var(--spacing-3) var(--spacing-6);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
-}
-.countdown-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   font-size: var(--text-xs);
 }
-.countdown-dot {
+.cd-strip-label { margin-right: 4px; color: var(--text-tertiary); }
+.cd-strip-none { color: var(--text-muted); }
+.cd-strip-grow { flex: 1; }
+.cd-more { color: var(--text-tertiary); }
+.cd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+.cd-chip:hover { background: var(--bg-hover); border-color: var(--border-hover); }
+.cd-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cd-chip i {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.countdown-name { color: var(--text-primary); font-weight: 500; }
-.countdown-diff { color: var(--text-secondary); }
-
-/* Countdown modal */
-/* Many countdowns scroll inside the dialog; its title and buttons stay in reach. */
-.countdown-list {
-  max-height: 40vh;
-  overflow-y: auto;
+.cd-chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.countdown-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface-2);
-}
-.cd-name { font-size: var(--text-sm); font-weight: 500; flex: 1; color: var(--text-primary); }
-.cd-date { font-size: var(--text-xs); color: var(--text-secondary); }
-.cd-diff { font-size: var(--text-xs); color: var(--accent); min-width: 80px; text-align: right; }
+.cd-chip-days { flex-shrink: 0; color: var(--text-secondary); }
+.cd-chip.is-today .cd-chip-days { color: var(--accent); font-weight: 700; }
 
 /* ─── Motion ──────────────────────────────────────────────────────────────── */
 /* The page slides from the side the calendar moved from (a transform only: containers that

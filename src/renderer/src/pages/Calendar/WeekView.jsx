@@ -1,8 +1,8 @@
 import { eachDayOfInterval, endOfWeek, format, startOfWeek } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { WEEKDAYS, cellDelay } from './calendarViews'
+import { WEEKDAYS, cellDelay, countdownColor, countdownLabel } from './calendarViews'
 
-export default function WeekView({ cursor, getDayStatus, onDayClick }) {
+export default function WeekView({ cursor, getDayStatus, onDayClick, onDayContextMenu }) {
   const start = startOfWeek(cursor, { weekStartsOn: 1 })
   const end = endOfWeek(cursor, { weekStartsOn: 1 })
   const days = eachDayOfInterval({ start, end })
@@ -18,16 +18,22 @@ export default function WeekView({ cursor, getDayStatus, onDayClick }) {
               className={`cal-day week-day ${today ? 'today' : ''} ${selected ? 'selected' : ''} ${hasData ? 'has-data' : ''}`}
               style={cellDelay(0, i * 2)}
               onClick={() => onDayClick(day)}
+              onContextMenu={event => onDayContextMenu(day, event)}
             >
               <span className="cal-weekday-label">{WEEKDAYS[i]}</span>
               <span className="cal-day-num large">{format(day, 'd')}</span>
               <span className="cal-month-label">{format(day, 'MM月', { locale: zhCN })}</span>
+              {today && <span className="cal-today-pill">今天</span>}
               {hasData && <span className="cal-dot" />}
-              {countdowns.map(cd => (
-                <span key={cd.id} className="cal-countdown-tag" style={{ background: cd.color || 'var(--accent)' }}>
-                  {cd.name}
+              {countdowns.length > 0 && (
+                <span className="week-tags">
+                  {countdowns.map(countdown => (
+                    <span key={countdown.key} className="cal-countdown-tag" style={{ background: countdownColor(countdown) }} title={countdownLabel(countdown)}>
+                      {countdownLabel(countdown)}
+                    </span>
+                  ))}
                 </span>
-              ))}
+              )}
             </button>
           )
         })}

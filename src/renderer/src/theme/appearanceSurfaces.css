@@ -79,7 +79,10 @@
   .modal,
   .onboarding-modal,
   .dropdown-menu,
-  .slash-menu
+  .slash-menu,
+  .cd-item.is-open,
+  .cd-new.is-open,
+  .cd-chip
 ) {
   background-color: var(--bg-surface);
   background-image: var(--surface-material-image);
@@ -94,7 +97,8 @@
   .backup-list-title,
   .stat-item,
   .timeline-manage-bar,
-  .countdown-row,
+  .cd-rep,
+  .cd-seg,
   .card-editor,
   .segmented-control,
   .notes-date-link-type,
@@ -172,7 +176,9 @@
   .onboarding-modal,
   .dropdown-menu,
   .slash-menu,
-  .app-context-menu
+  .app-context-menu,
+  .cd-item.is-open,
+  .cd-new.is-open
 ) {
   backdrop-filter: var(--glass-backdrop-elevated);
   -webkit-backdrop-filter: var(--glass-backdrop-elevated);

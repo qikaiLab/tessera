@@ -175,7 +175,10 @@ function createNotes() {
 function createMetadata() {
   const countdowns = [
     { id: 1, name: '期末考试', date: dateParts(-20).iso, color: '#f87171' },
-    { id: 2, name: '旅行出发', date: dateParts(-45).iso, color: '#34d399' }
+    { id: 2, name: '旅行出发', date: dateParts(-45).iso, color: '#34d399' },
+    { id: 3, name: '项目截止', date: dateParts(14).iso, color: '#60a5fa', note: '提前一天交' },
+    { id: 4, name: '妈妈生日', date: `1965-${dateParts(12).iso.slice(5)}`, color: '#f472b6', repeat: { unit: 'year', every: 1 } },
+    { id: 5, name: '周例会', date: dateParts(-3).iso, color: '#fbbf24', repeat: { unit: 'week', every: 1 } }
   ]
   const analytics = [
     {

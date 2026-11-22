@@ -2,9 +2,9 @@ import {
   eachDayOfInterval, eachMonthOfInterval, endOfMonth, endOfWeek, endOfYear, format,
   isSameMonth, startOfMonth, startOfWeek, startOfYear
 } from 'date-fns'
-import { WEEKDAYS, cellDelay } from './calendarViews'
+import { WEEKDAYS, cellDelay, countdownColor, countdownLabel } from './calendarViews'
 
-export default function YearView({ cursor, getDayStatus, onDayClick }) {
+export default function YearView({ cursor, getDayStatus, onDayClick, onDayContextMenu }) {
   const months = eachMonthOfInterval({ start: startOfYear(cursor), end: endOfYear(cursor) })
 
   return (
@@ -22,13 +22,16 @@ export default function YearView({ cursor, getDayStatus, onDayClick }) {
               {days.map((day, i) => {
                 const { today, selected, hasData, countdowns } = getDayStatus(day)
                 const hasCountdown = countdowns.length > 0
+                const names = countdowns.map(countdownLabel)
                 return (
                   <button
                     key={i}
                     className={`year-day ${isSameMonth(day, month) ? '' : 'other-month'} ${today ? 'today' : ''} ${selected ? 'selected' : ''} ${hasData ? 'has-data' : ''} ${hasCountdown ? 'has-countdown' : ''}`}
                     onClick={() => onDayClick(day)}
-                    title={hasCountdown ? countdowns.map(c => `⏱ ${c.name}`).join('\n') : undefined}
-                    style={hasCountdown ? { '--cd-color': countdowns[0].color || 'var(--accent)' } : {}}
+                    onContextMenu={event => onDayContextMenu(day, event)}
+                    title={hasCountdown ? names.map(name => `⏱ ${name}`).join('\n') : undefined}
+                    aria-label={hasCountdown ? `${format(day, 'M月d日')}，倒数日：${names.join('、')}` : undefined}
+                    style={hasCountdown ? { '--cd-color': countdownColor(countdowns[0]) } : undefined}
                   >
                     {format(day, 'd')}
                   </button>
