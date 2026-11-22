@@ -43,7 +43,7 @@ jobs:
         run: npm ci
 
       - name: Run Quality Gate
-        run: npm run check
+        run: npm run check:release
 
       - name: Run Electron smoke tests
         run: npx playwright test

@@ -1,12 +1,17 @@
 name: CI
 
+# Each branch push runs the gate once. `main` is not run again after a fast-forward merge (the same
+# commit has just been through it); before a release tag, run it there by hand:
+#   gh workflow run ci.yml --ref main
+# The dependency audit is not part of this gate; see audit.yml.
 on:
   push:
-    branches:
-      - '**'
+    branches-ignore:
+      - main
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -1,0 +1,40 @@
+name: Dependency audit
+
+# `npm audit` needs the network and reports advisories that have nothing to do with the change at
+# hand, so it is not in `npm run check`. It runs weekly, whenever the dependencies change, by hand,
+# and as part of `npm run check:release` in the release workflow.
+on:
+  schedule:
+    - cron: '0 1 * * 1'
+  push:
+    branches:
+      - '**'
+    paths:
+      - package.json
+      - package-lock.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Audit dependencies
+        run: npm run audit
