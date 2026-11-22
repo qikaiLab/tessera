@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   activateContextMenuItem,
+  setContextMenuOpen,
   subscribeContextMenu
 } from '../utils/contextMenu'
 import {
@@ -43,6 +45,11 @@ export default function ContextMenu() {
     setPosition(estimatePosition(nextRequest))
     setActiveIndex(nextEnabledMenuIndex(nextRequest.items, -1, 1))
   }), [])
+
+  useEffect(() => {
+    setContextMenuOpen(Boolean(request))
+  }, [request])
+  useEffect(() => () => setContextMenuOpen(false), [])
 
   useLayoutEffect(() => {
     if (!request || !menuRef.current) return
@@ -116,7 +123,9 @@ export default function ContextMenu() {
     void activateContextMenuItem(request, item)
   }
 
-  return (
+  // In document.body, like the editor's floating toolbar: inside the app shell (an isolated
+  // stacking context) no z-index could lift the menu above a layer that lives in the body.
+  return createPortal(
     <div
       ref={menuRef}
       className="app-context-menu"
@@ -145,6 +154,7 @@ export default function ContextMenu() {
           {item.shortcut && <span className="app-context-menu-shortcut">{item.shortcut}</span>}
         </button>
       ))}
-    </div>
+    </div>,
+    document.body
   )
 }

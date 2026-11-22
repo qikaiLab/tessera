@@ -145,3 +145,36 @@ test('the fullscreen bar counts characters and changes width and font size, and 
     await app.close()
   }
 })
+
+test('the format toolbar steps aside while the context menu is open, and returns when it closes', async ({ sandbox }) => {
+  const { app, window, problems } = await openToday(sandbox)
+  try {
+    const editor = firstEditor(window)
+    await editor.click()
+    await window.keyboard.type('右键互斥')
+    await window.keyboard.press('Shift+Home')
+    const toolbar = window.locator('.bubble-toolbar.is-visible')
+    await expect(toolbar).toBeVisible()
+
+    // Right-click inside the selected text: only the menu is left on screen.
+    await editor.locator('p').first().click({ button: 'right', position: { x: 20, y: 10 } })
+    const menu = window.locator('.app-context-menu')
+    await expect(menu).toBeVisible()
+    await expect(toolbar).toHaveCount(0)
+    // The menu is the topmost thing at its own centre.
+    const onTop = await menu.evaluate(el => {
+      const box = el.getBoundingClientRect()
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+      return el.contains(hit)
+    })
+    expect(onTop).toBe(true)
+
+    // Closing the menu leaves the selection alone, so the toolbar comes back.
+    await window.keyboard.press('Escape')
+    await expect(menu).toHaveCount(0)
+    await expect(toolbar).toBeVisible()
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

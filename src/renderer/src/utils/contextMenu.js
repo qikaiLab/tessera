@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { normalizeContextMenuItems } from './contextMenuModel'
 import { TEXT_MENU_SELECTOR, captureEditableSelection, executeTextRole } from './editableText'
 
@@ -39,6 +39,26 @@ function ensureNativeCommandBridge() {
   window.api.contextMenu.onCommand(({ id, context }) => {
     dispatchContextMenuCommand(id, context)
   })
+}
+
+// Whether the menu is on screen, for floating UI that must not be drawn under or over it.
+let contextMenuOpen = false
+const openStateListeners = new Set()
+
+export function setContextMenuOpen(open) {
+  if (contextMenuOpen === open) return
+  contextMenuOpen = open
+  openStateListeners.forEach(listener => listener())
+}
+
+export function useContextMenuOpen() {
+  return useSyncExternalStore(
+    listener => {
+      openStateListeners.add(listener)
+      return () => openStateListeners.delete(listener)
+    },
+    () => contextMenuOpen
+  )
 }
 
 export function subscribeContextMenu(listener) {

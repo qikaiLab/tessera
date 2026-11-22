@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { AllSelection, TextSelection } from '@tiptap/pm/state'
+import { useContextMenuOpen } from '../../utils/contextMenu'
 
 // editor.isActive() reports false for list nodes when the whole document is selected
 // (Ctrl+A), so derive the state from the textblocks inside the selection instead.
@@ -51,6 +52,9 @@ function toggleList(editor, command) {
  */
 export function BubbleToolbar({ editor }) {
   const [visible, setVisible]   = useState(false)
+  // The right-click menu and this toolbar never share the screen: while the menu is open the toolbar
+  // steps aside, and it returns by itself if the selection is still there when the menu closes.
+  const contextMenuOpen         = useContextMenuOpen()
   const [pos, setPos]           = useState({ top: 0, left: 0 })
   const toolbarRef              = useRef(null)
   // Cache the toolbar size so we don't need a DOM read every time
@@ -184,12 +188,13 @@ export function BubbleToolbar({ editor }) {
   const toolbar = (
     <div
       ref={toolbarRef}
-      className={`bubble-toolbar ${visible ? 'is-visible' : ''}`}
+      className={`bubble-toolbar ${visible && !contextMenuOpen ? 'is-visible' : ''}`}
       style={{
         position:      'fixed',
         top:           pos.top,
         left:          pos.left,
-        zIndex:        99999,
+        // Above the app shell, which holds the fullscreen editor, but below the context menu (1100).
+        zIndex:        1050,
       }}
     >
       {btn(<b>B</b>, () => editor.chain().focus().toggleBold().run(),      editor.isActive('bold'),               '加粗 (Ctrl+B)')}
