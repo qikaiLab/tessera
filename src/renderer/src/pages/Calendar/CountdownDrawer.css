@@ -60,6 +60,7 @@
   gap: var(--spacing-3);
   padding: var(--spacing-5) var(--spacing-5) var(--spacing-3);
   flex-shrink: 0;
+  animation: contentIn 320ms var(--ease-out) 90ms backwards;
 }
 .cd-drawer-head h2 {
   margin: 0;
@@ -86,6 +87,7 @@
   font-size: var(--text-sm);
   line-height: 1.6;
   text-align: center;
+  animation: contentIn 360ms var(--ease-out) 160ms backwards;
 }
 
 /* ─── The list ──────────────────────────────────────────────────────────── */
@@ -103,23 +105,65 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-align: left;
+  animation: contentIn 320ms var(--ease-out) 60ms backwards;
 }
-.cd-group-toggle { cursor: pointer; }
+.cd-group-toggle { cursor: pointer; transition: color var(--transition-fast); }
 .cd-group-toggle:hover { color: var(--text-primary); }
 .cd-group-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: var(--radius-sm); }
-.cd-group-caret { width: 10px; font-size: 10px; }
+/* One arrow that turns, rather than two that swap. */
+.cd-group-caret {
+  display: inline-block;
+  width: 10px;
+  font-size: 10px;
+  transition: transform var(--transition-base);
+}
+.cd-group-toggle[aria-expanded='true'] .cd-group-caret { transform: rotate(90deg); }
 
-.cd-item { border-radius: var(--radius-lg); }
-.cd-item.is-open {
+/* A row's height can run to nothing and back (a new one grows open, a deleted one folds away), so
+ * what it holds is clipped to it (its own ring and glow are drawn outside the clip). */
+.cd-item {
+  interpolate-size: allow-keywords;
+  border-radius: var(--radius-lg);
+  overflow: clip;
+  transition:
+    background-color var(--transition-base),
+    box-shadow var(--transition-base),
+    margin-bottom var(--transition-base);
+}
+/* Open: while its editor is there, which includes the moment it is folding shut. */
+.cd-item.is-open,
+.cd-item:has(.presence) {
   background: var(--bg-surface);
   box-shadow: 0 0 0 1px var(--border-hover);
   margin-bottom: var(--spacing-2);
 }
-/* The countdown that was just added says so with a short glow (no opacity: the rows hold glass). */
-.cd-item.is-new { animation: cdItemNew 1.6s ease-out; }
+/* The countdown that was just added grows open and says so with a short glow (no opacity: the rows
+ * hold glass). */
+.cd-item.is-new {
+  animation:
+    cdItemGrow 380ms var(--ease-travel) backwards,
+    cdItemNew 1.6s ease-out;
+}
+@keyframes cdItemGrow {
+  from { height: 0; }
+}
 @keyframes cdItemNew {
   0%, 55% { box-shadow: 0 0 0 2px var(--accent); }
   100% { box-shadow: 0 0 0 2px transparent; }
+}
+/* One that was deleted slides out sideways and folds shut, and the rows below close up. */
+.cd-item.is-removing {
+  margin-bottom: 0;
+  pointer-events: none;
+  animation: cdItemOut 300ms var(--ease-travel) forwards;
+}
+.cd-item.is-removing .cd-row { animation: cdRowOut 240ms var(--ease-travel) forwards; }
+@keyframes cdItemOut {
+  to { height: 0; }
+}
+@keyframes cdRowOut {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateX(18px); }
 }
 
 .cd-row {
@@ -136,11 +180,20 @@
   font-family: var(--font-sans);
   text-align: left;
   cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  /* Rows rise into place; while the drawer is opening they follow one another (see is-entering). */
+  animation: cdRowIn 340ms var(--ease-out) var(--cd-delay, 0ms) backwards;
+}
+.cd-drawer.is-entering .cd-row { --cd-delay: calc(var(--cd-i, 0) * 30ms + 110ms); }
+@keyframes cdRowIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 .cd-row:hover { background: var(--bg-hover); }
+.cd-row:active { transform: scale(0.992); }
 .cd-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.cd-item.is-open .cd-row { border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: transparent; }
+.cd-item.is-open .cd-row,
+.cd-item:has(.presence) .cd-row { border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: transparent; }
 .cd-dot {
   width: 10px;
   height: 10px;
@@ -204,11 +257,18 @@
 .cd-days.is-unknown { color: var(--text-muted); }
 
 /* ─── The editor under an open row ──────────────────────────────────────── */
+/* It opens inside an Unfold (the height is that one's); the editor itself slides down into the room
+ * that opens (a transform, not opacity: it holds glass). */
 .cd-edit {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
   padding: 2px var(--spacing-4) var(--spacing-4);
+  animation: cdSlideDown 340ms var(--ease-out) backwards;
+}
+@keyframes cdSlideDown {
+  from { transform: translateY(-12px); }
+  to { transform: none; }
 }
 .cd-edit-foot {
   display: flex;
@@ -219,16 +279,37 @@
   flex: 1;
   color: var(--text-tertiary);
   font-size: var(--text-xs);
+  transition: color var(--transition-base);
 }
 .cd-saved.is-saved { color: var(--success); }
+/* Each save puts a fresh tick in, which springs in. */
+.cd-tick {
+  display: inline-block;
+  animation: cdTick 440ms cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
+}
+@keyframes cdTick {
+  from { opacity: 0; transform: scale(0.3); }
+  to { opacity: 1; transform: none; }
+}
 .cd-delete { color: var(--error); }
 .cd-delete:hover { background: var(--error-light); color: var(--error); }
+/* The buttons that take each other's place (删除 and its two-step confirm) slide in. */
+.cd-swap-in { animation: cdSwapIn 220ms var(--ease-out) backwards; }
+@keyframes cdSwapIn {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: none; }
+}
 
 /* ─── The new-countdown entry and form ──────────────────────────────────── */
+/* The slot of the button is the one that stays at the top of the scrolling list. */
+.cd-new-slot {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
 .cd-new {
   display: block;
   width: 100%;
-  margin-top: var(--spacing-1);
   padding: 11px 12px;
   border: 1px dashed var(--border-hover);
   border-radius: var(--radius-lg);
@@ -240,14 +321,10 @@
   cursor: pointer;
   transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
-/* However long the list, the way to add one stays in reach at the top of the scrolling list. */
-.cd-new:not(.is-open) {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--bg-sidebar);
-}
+/* However long the list, the way to add one stays in reach at the top of it, so it is opaque. */
+.cd-new:not(.is-open) { background: var(--bg-sidebar); }
 .cd-new:hover { background: var(--bg-hover); border-color: var(--accent); color: var(--accent); }
+.cd-new:active { transform: scale(0.99); }
 .cd-new:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .cd-new.is-open {
@@ -261,6 +338,7 @@
   color: var(--text-primary);
   text-align: left;
   cursor: default;
+  animation: cdSlideDown 340ms var(--ease-out) backwards;
 }
 .cd-new-title { color: var(--text-primary); font-size: var(--text-sm); font-weight: 700; }
 .cd-new-foot {
@@ -290,6 +368,11 @@
   margin: 0;
   color: var(--error);
   font-size: var(--text-xs);
+  animation: cdErrorIn 240ms var(--ease-out) backwards;
+}
+@keyframes cdErrorIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
 }
 
 .cd-seg {
@@ -343,9 +426,12 @@
   transition: box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 .cd-swatch:hover { transform: scale(1.12); }
+.cd-swatch:active { transform: scale(0.92); }
 .cd-swatch.on { box-shadow: 0 0 0 2px var(--bg-surface), 0 0 0 4px var(--swatch); }
 .cd-swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
+/* Reduced motion: the global rule already makes every animation and transition instant; these are
+ * the ones that would still have the drawer slide and the glow of a new row. */
 @media (prefers-reduced-motion: reduce) {
   .cd-drawer, .presence.is-leaving > .cd-drawer, .cd-item.is-new { animation: none; }
 }

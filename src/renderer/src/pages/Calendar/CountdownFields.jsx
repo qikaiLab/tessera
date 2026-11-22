@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
+import Unfold from '../../components/Unfold'
 import { COUNTDOWN_COLORS, MAX_DATE, MAX_NAME_LENGTH, MAX_NOTE_LENGTH, MIN_DATE } from '../../utils/countdowns'
 import { useSlidingThumb } from '../../utils/useSlidingThumb'
 import { cleanEvery } from './countdownDraft'
@@ -87,22 +88,25 @@ export default function CountdownFields({ draft, problems, onChange, onFieldBlur
             </button>
           ))}
         </div>
-        {draft.unit && (
-          <div className="cd-every">
-            <span>每</span>
-            <input
-              className="input cd-every-input"
-              inputMode="numeric"
-              aria-label="重复间隔"
-              value={draft.every}
-              aria-invalid={problems.every ? 'true' : undefined}
-              aria-describedby={problems.every ? ids('every-error') : undefined}
-              onChange={event => onChange({ every: cleanEvery(event.target.value) })}
-              onBlur={() => onFieldBlur?.('every')}
-            />
-            <span>{EVERY_UNIT_TEXT[draft.unit]}重复一次</span>
-          </div>
-        )}
+        {/* The step opens under the options once something repeats, and folds away again. */}
+        <Unfold show={Boolean(draft.unit)} duration={220}>
+          {draft.unit && (
+            <div className="cd-every">
+              <span>每</span>
+              <input
+                className="input cd-every-input"
+                inputMode="numeric"
+                aria-label="重复间隔"
+                value={draft.every}
+                aria-invalid={problems.every ? 'true' : undefined}
+                aria-describedby={problems.every ? ids('every-error') : undefined}
+                onChange={event => onChange({ every: cleanEvery(event.target.value) })}
+                onBlur={() => onFieldBlur?.('every')}
+              />
+              <span>{EVERY_UNIT_TEXT[draft.unit]}重复一次</span>
+            </div>
+          )}
+        </Unfold>
         <FieldError id={ids('every-error')} message={problems.every} />
       </div>
 

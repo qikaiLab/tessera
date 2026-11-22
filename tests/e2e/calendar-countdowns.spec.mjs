@@ -39,7 +39,7 @@ function isoDate(daysFromToday) {
 }
 
 const openDrawer = async (window) => {
-  await window.locator('.cd-entry').click()
+  await window.locator('.cd-strip-manage').click()
   const drawer = window.locator('aside.cd-drawer')
   await expect(drawer).toBeVisible()
   return drawer
@@ -48,6 +48,11 @@ const openDrawer = async (window) => {
 test('a countdown is added with one click on 添加 and is already saved', async ({ sandbox }) => {
   const { app, window, problems } = await openCalendar(sandbox)
   try {
+    // The way in is under the calendar, and only there: the page header has no countdown button.
+    await expect(window.locator('.page-header').getByRole('button', { name: /倒数日/ })).toHaveCount(0)
+    await expect(window.locator('.cd-strip')).toContainText('还没有倒数日')
+    await expect(window.locator('.cd-strip-manage')).toHaveText('添加倒数日')
+
     const drawer = await openDrawer(window)
     // With nothing there yet the form is already open, on its first field.
     await expect(drawer.getByLabel('名称')).toBeFocused()
@@ -162,7 +167,7 @@ test('a countdown can repeat every N weeks, months or years, and falls on each o
     await expect(marked).toHaveText(expected)
 
     // Yearly with the date far in the past still comes round: the birthday marks its day this year.
-    await window.locator('.cd-entry').click()
+    await window.locator('.cd-strip-manage').click()
     await drawer.locator('.cd-row').first().click()
     await drawer.locator('.cd-edit input[type="date"]').fill(`2000-${pad(today.getMonth() + 1)}-15`)
     await drawer.locator('.cd-edit').getByRole('radio', { name: '每年' }).click()
@@ -260,7 +265,7 @@ test('Esc backs out of the drawer one step at a time, and focus goes back to its
   await seedCountdowns(sandbox, [{ id: 1, name: '旅行', date: isoDate(5), color: '#34d399' }])
   const { app, window, problems } = await openCalendar(sandbox)
   try {
-    const opener = window.locator('.cd-entry')
+    const opener = window.locator('.cd-strip-manage')
     await opener.focus()
     await opener.click()
     const drawer = window.locator('aside.cd-drawer')
@@ -352,6 +357,77 @@ test('countdowns the file holds badly are listed, can be repaired, and nothing i
     await drawer.locator('.cd-edit input[type="date"]').fill(isoDate(8))
     await expect.poll(async () => (await savedCountdowns(sandbox))[0]?.date).toBe(isoDate(8))
     expect((await savedCountdowns(sandbox))[0]).toMatchObject({ id: 'c-bad', title: '坏日期', extra: 1 })
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
+test('the drawer, its editors and rows, the strip and the marks move into and out of place instead of jumping', async ({ sandbox }) => {
+  await seedCountdowns(sandbox, [
+    { id: 1, name: '旅行', date: isoDate(5), color: '#34d399' },
+    { id: 2, name: '考试', date: isoDate(9), color: '#f87171' },
+    { id: 3, name: '出发', date: isoDate(0), color: '#60a5fa' }
+  ])
+  const { app, window, problems } = await openCalendar(sandbox)
+  try {
+    // The mark on a day arrives with a motion of its own.
+    const mark = window.locator('.month-grid .cal-day.today .cal-countdown-tag')
+    await expect(mark).toHaveText('出发')
+    expect(await mark.evaluate(el => getComputedStyle(el).animationName)).toBe('markerPop')
+
+    // Opening the drawer folds the strip away; closing it brings the strip back.
+    const strip = window.locator('.cd-strip-wrap')
+    await expect(strip).not.toHaveClass(/is-hidden/)
+    const drawer = await openDrawer(window)
+    await expect(strip).toHaveClass(/is-hidden/)
+    await expect(window.locator('.cd-strip-manage')).toBeHidden()
+
+    // What goes is watched from the page, since a fold lasts only a moment.
+    await window.evaluate(() => {
+      window.__seen = { removing: false, folding: false }
+      new MutationObserver(() => {
+        if (document.querySelector('.cd-item.is-removing')) window.__seen.removing = true
+        if (document.querySelector('.cd-item .presence.is-leaving > .unfold')) window.__seen.folding = true
+      }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] })
+    })
+
+    // An editor unfolds to its full height and nothing inside it is left scrolled or cut off.
+    await drawer.locator('.cd-row', { hasText: '旅行' }).click()
+    const editor = drawer.locator('.cd-edit')
+    await expect(editor).toBeVisible()
+    await expect.poll(() => editor.evaluate(el => {
+      const clip = el.closest('.unfold')
+      return clip.getBoundingClientRect().height >= el.getBoundingClientRect().height && clip.scrollTop === 0
+    })).toBe(true)
+
+    // The step of a repeat opens under the options and folds away again.
+    await editor.getByRole('radio', { name: '每周' }).click()
+    await expect(editor.getByLabel('重复间隔')).toBeVisible()
+    await editor.getByRole('radio', { name: '不重复' }).click()
+    await expect(editor.getByLabel('重复间隔')).toHaveCount(0)
+
+    // A deleted countdown's data goes at once, its row folds away after, and the editor folds with it.
+    await editor.getByRole('button', { name: '删除', exact: true }).click()
+    await editor.getByRole('button', { name: '确认删除' }).click()
+    await expect.poll(async () => (await savedCountdowns(sandbox)).map(item => item.name)).toEqual(['考试', '出发'])
+    await expect.poll(() => window.evaluate(() => window.__seen)).toEqual({ removing: true, folding: true })
+    await expect(drawer.locator('.cd-item.is-removing')).toHaveCount(0)
+    await expect(drawer.locator('.cd-row')).toHaveCount(2)
+
+    // A new one grows into its place and is marked as new for a moment.
+    await drawer.getByRole('button', { name: '＋ 新建倒数日' }).click()
+    await drawer.getByLabel('名称').fill('聚餐')
+    await drawer.locator('input[type="date"]').fill(isoDate(3))
+    await drawer.getByRole('button', { name: '添加', exact: true }).click()
+    await expect(drawer.locator('.cd-item.is-new')).toContainText('聚餐')
+    await expect(drawer.locator('.cd-row')).toHaveCount(3)
+    await expect(drawer.getByRole('form', { name: '新建倒数日' })).toHaveCount(0)
+
+    await drawer.getByRole('button', { name: '关闭倒数日' }).click()
+    await expect(drawer).toHaveCount(0)
+    await expect(strip).not.toHaveClass(/is-hidden/)
+    await expect(window.locator('.cd-strip-manage')).toBeVisible()
     expect(problems).toEqual([])
   } finally {
     await app.close()

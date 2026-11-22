@@ -173,7 +173,7 @@ npm run check
 
 ### 对话框与键盘
 
-所有对话框用同一套键盘行为（`components/ModalFrame.jsx`、`utils/useModalA11y.js`，测试 `tests/e2e/dialogs.spec.mjs`）：打开时焦点进入对话框（`data-autofocus` 标记的控件，否则对话框本身）、关闭后回到打开它的控件；Tab 不会离开对话框；Esc 只关闭最上面的一个对话框，并且不会再传给下面的全屏编辑器或其他对话框；点遮罩关闭要求按下和松开都在遮罩上（在输入框里拖选文字拖到框外不算）。新增对话框优先用 `ModalFrame`；需要回答的问题用 `role="alertdialog"`，一个破坏性的问题默认聚焦在安全的选项上。`useConfirmDialog` 的 `confirm()` 对取消按钮返回 `false`，对 ✕、Esc、点遮罩返回 `dismissValue`（默认 `false`）：取消按钮本身有动作的调用方传 `dismissValue: null` 区分「返回」与「按了那个按钮」。倒数日不再用对话框：它是日历旁的非模态抽屉（`pages/Calendar/CountdownDrawer.jsx`），新建点一次「添加」即保存，已有项的改动在字段有效时立即保存；Esc 一次退一层（表单或编辑器，再抽屉），焦点回到页眉的按钮。
+所有对话框用同一套键盘行为（`components/ModalFrame.jsx`、`utils/useModalA11y.js`，测试 `tests/e2e/dialogs.spec.mjs`）：打开时焦点进入对话框（`data-autofocus` 标记的控件，否则对话框本身）、关闭后回到打开它的控件；Tab 不会离开对话框；Esc 只关闭最上面的一个对话框，并且不会再传给下面的全屏编辑器或其他对话框；点遮罩关闭要求按下和松开都在遮罩上（在输入框里拖选文字拖到框外不算）。新增对话框优先用 `ModalFrame`；需要回答的问题用 `role="alertdialog"`，一个破坏性的问题默认聚焦在安全的选项上。`useConfirmDialog` 的 `confirm()` 对取消按钮返回 `false`，对 ✕、Esc、点遮罩返回 `dismissValue`（默认 `false`）：取消按钮本身有动作的调用方传 `dismissValue: null` 区分「返回」与「按了那个按钮」。倒数日不再用对话框：它是日历旁的非模态抽屉（`pages/Calendar/CountdownDrawer.jsx`），新建点一次「添加」即保存，已有项的改动在字段有效时立即保存；Esc 一次退一层（表单或编辑器，再抽屉），焦点回到打开它的按钮（日历下方「最近」条里的入口，页眉没有倒数日按钮）。这些部分会动：展开与合拢用 `components/Unfold.jsx`（高度在 0 与 auto 间过渡，依赖 `interpolate-size`，不要改回 `grid-template-rows` 的 0fr / 1fr，那样盒子与内容之间会在过渡中留出空隙），删除的条目留在原位合拢，不靠 `animationend`；含玻璃的元素只用位移和高度动画，`tests/e2e/frosted-glass-motion.spec.mjs` 会逐帧检查。
 
 退出全屏编辑器的 Esc 把「某个浮层已打开」（斜杠菜单、右键菜单、各种对话框）视为 Esc 已有主人：新增会响应 Esc 的浮层时，把它的选择器加进 `utils/editorShortcuts.js` 的 `ESC_OWNERS`。
 

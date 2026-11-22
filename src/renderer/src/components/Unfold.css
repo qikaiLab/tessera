@@ -1,0 +1,26 @@
+/* The height runs 0 <-> auto (interpolate-size lets it). The box is `overflow: clip`, not `hidden`:
+ * a hidden box can be scrolled by a focus or a scrollIntoView inside it and would stay shifted; a
+ * clipped one cannot. */
+.unfold {
+  interpolate-size: allow-keywords;
+  /* Sideways room for the rings of what is inside, given back so the content keeps its width. */
+  margin-inline: -4px;
+  overflow: clip;
+  animation: unfoldOpen var(--unfold-ms, 260ms) var(--ease-travel) backwards;
+}
+
+.unfold.is-still { animation: none; }
+
+.unfold-body { padding: 3px 4px; }
+
+.presence.is-leaving > .unfold {
+  animation: unfoldShut var(--unfold-ms, 260ms) var(--ease-travel) forwards;
+}
+
+@keyframes unfoldOpen {
+  from { height: 0; }
+}
+
+@keyframes unfoldShut {
+  to { height: 0; }
+}

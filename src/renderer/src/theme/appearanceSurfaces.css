@@ -81,6 +81,7 @@
   .dropdown-menu,
   .slash-menu,
   .cd-item.is-open,
+  .cd-item:has(.presence),
   .cd-new.is-open,
   .cd-chip
 ) {
@@ -178,6 +179,7 @@
   .slash-menu,
   .app-context-menu,
   .cd-item.is-open,
+  .cd-item:has(.presence),
   .cd-new.is-open
 ) {
   backdrop-filter: var(--glass-backdrop-elevated);

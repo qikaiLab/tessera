@@ -23,6 +23,7 @@ const VIEW_COMPONENTS = { month: MonthView, week: WeekView, year: YearView }
 const EDIT_PREFIX = 'edit-countdown:'
 const MENU_NAME_LIMIT = 12
 const MENU_COUNTDOWN_LIMIT = 5
+const DRAWER_EXIT_MS = 220 // the drawer's own exit animation lasts 200
 
 function headerTitle(view, cursor) {
   if (view === 'month') return format(cursor, 'yyyy年MM月', { locale: zhCN })
@@ -103,14 +104,6 @@ export default function Calendar() {
               </button>
             ))}
           </div>
-          <button
-            className="btn btn-ghost btn-sm cd-entry"
-            aria-expanded={drawerOpen}
-            onClick={() => (drawerOpen ? setDrawerOpen(false) : openDrawer())}
-          >
-            <span aria-hidden="true">⏱</span> 倒数日
-            {countdowns.length > 0 && <span className="cd-count">{countdowns.length}</span>}
-          </button>
         </div>
 
         <div className="cal-nav">
@@ -130,17 +123,16 @@ export default function Calendar() {
           </div>
         </div>
 
-        {!drawerOpen && (
-          <CountdownStrip
-            countdowns={countdowns}
-            today={today}
-            onOpen={key => openDrawer({ type: 'edit', key })}
-            onManage={() => openDrawer()}
-          />
-        )}
+        <CountdownStrip
+          countdowns={countdowns}
+          today={today}
+          hidden={drawerOpen}
+          onOpen={key => openDrawer({ type: 'edit', key })}
+          onManage={() => openDrawer()}
+        />
       </div>
 
-      <Presence>{drawerOpen && (
+      <Presence duration={DRAWER_EXIT_MS}>{drawerOpen && (
         <CountdownDrawer
           countdowns={countdowns}
           saveCountdowns={saveCountdowns}

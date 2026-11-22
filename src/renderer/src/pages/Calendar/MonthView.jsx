@@ -17,7 +17,7 @@ function CountdownMarkers({ countdowns }) {
   }
   return (
     <span className="cal-bars" title={title}>
-      {countdowns.slice(0, MAX_BARS).map(countdown => <i key={countdown.key} style={{ background: countdownColor(countdown) }} />)}
+      {countdowns.slice(0, MAX_BARS).map((countdown, index) => <i key={countdown.key} style={{ background: countdownColor(countdown), '--k': index }} />)}
     </span>
   )
 }

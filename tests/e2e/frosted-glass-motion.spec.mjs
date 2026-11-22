@@ -118,3 +118,45 @@ test('glass stays intact in the calendar, in fullscreen and while notes load', a
     await app.close()
   }
 })
+
+test('glass stays intact while the countdown drawer, its editors, rows and the strip move', async ({ sandbox }) => {
+  const { app, window, problems } = await openFrosted(sandbox)
+  try {
+    await window.locator('.nav-item', { hasText: '日历' }).click()
+    await expect(window.locator('.cal-slide')).toBeVisible()
+    await window.waitForTimeout(700)
+    const watched = async (label, ms, action) => {
+      await window.evaluate(span => { window.__glass = window.__watchGlass(span) }, ms)
+      await action()
+      expect(await window.evaluate(() => window.__glass), label).toEqual([])
+    }
+    const drawer = window.locator('aside.cd-drawer')
+
+    await watched('opening the drawer (the strip folds away)', 800, () => window.locator('.cd-strip-manage').click())
+    await expect(drawer.getByLabel('名称')).toBeVisible()
+    await drawer.getByLabel('名称').fill('考试')
+    await drawer.locator('input[type="date"]').fill('2099-05-20')
+    await watched('adding one (the form folds shut, the row grows open)', 800, () => drawer.getByRole('button', { name: '添加', exact: true }).click())
+    await expect(drawer.locator('.cd-row')).toHaveCount(1)
+    await window.waitForTimeout(500)
+
+    await watched('opening an editor', 800, () => drawer.locator('.cd-row').click())
+    await watched('opening the step of a repeat', 600, () => drawer.getByRole('radio', { name: '每周' }).click())
+    await watched('closing the step of a repeat', 600, () => drawer.getByRole('radio', { name: '不重复' }).click())
+    await watched('closing an editor', 800, () => window.keyboard.press('Escape'))
+    await expect(drawer.locator('.cd-edit')).toHaveCount(0)
+
+    await drawer.locator('.cd-row').click()
+    await expect(drawer.locator('.cd-edit')).toBeVisible()
+    await window.waitForTimeout(500)
+    await drawer.getByRole('button', { name: '删除', exact: true }).click()
+    await watched('deleting one (the row folds away)', 900, () => drawer.getByRole('button', { name: '确认删除' }).click())
+    await expect(drawer.locator('.cd-row')).toHaveCount(0)
+
+    await watched('closing the drawer (the strip comes back)', 800, () => drawer.getByRole('button', { name: '关闭倒数日' }).click())
+    await expect(drawer).toHaveCount(0)
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})

@@ -27,8 +27,8 @@ export default function WeekView({ cursor, getDayStatus, onDayClick, onDayContex
               {hasData && <span className="cal-dot" />}
               {countdowns.length > 0 && (
                 <span className="week-tags">
-                  {countdowns.map(countdown => (
-                    <span key={countdown.key} className="cal-countdown-tag" style={{ background: countdownColor(countdown) }} title={countdownLabel(countdown)}>
+                  {countdowns.map((countdown, index) => (
+                    <span key={countdown.key} className="cal-countdown-tag" style={{ background: countdownColor(countdown), '--k': index }} title={countdownLabel(countdown)}>
                       {countdownLabel(countdown)}
                     </span>
                   ))}
