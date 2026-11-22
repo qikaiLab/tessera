@@ -108,6 +108,8 @@
   border-color: var(--calendar-day-data-border, transparent);
   box-shadow: var(--calendar-day-data-shadow, none);
 }
+/* The rule above is later than the plain :hover, so a day with records needs its own hover. */
+.cal-day.has-data:not(.selected, .week-day):hover { background: var(--bg-hover); }
 .cal-day.today { border-color: var(--accent); }
 .cal-day.today .cal-day-num { color: var(--accent); font-weight: 700; }
 .cal-day.selected { background: var(--accent-light); border-color: var(--accent); }
@@ -255,6 +257,7 @@
 .year-day:hover { background: var(--bg-hover); }
 .year-day.other-month { color: var(--text-muted); opacity: 0.4; }
 .year-day.has-data { background: var(--accent-light); }
+.year-day.has-data:not(.selected):hover { background: var(--accent-light-hover); }
 .year-day.today { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .year-day.selected { background: var(--accent); color: white; }
 
