@@ -11,7 +11,9 @@ describe('calendar days with records', () => {
   })
 
   it('stands out from the page in the default light style with a white card and a hairline edge', () => {
-    const block = tokens.match(/\[data-interface-style='default'\]\[data-theme='light'\]\s*\{([^}]*)\}/)?.[1] ?? ''
+    // Other tokens may share the selector, so read every block that has it.
+    const block = [...tokens.matchAll(/\[data-interface-style='default'\]\[data-theme='light'\]\s*\{([^}]*)\}/g)]
+      .map(match => match[1]).join('\n')
     expect(block).toContain('--calendar-day-data-background: var(--bg-surface)')
     expect(block).toContain('--calendar-day-data-border: var(--border-hover)')
   })
