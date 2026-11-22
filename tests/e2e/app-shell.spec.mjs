@@ -199,6 +199,53 @@ test('the about button opens a tabbed dialog with the version, author, links and
   }
 })
 
+test('in frosted glass light the dialogs keep an opaque enough pane and a light dimming layer', async ({ sandbox }) => {
+  const { app, window, problems } = await openApp(sandbox)
+  try {
+    await window.evaluate(async () => {
+      await window.api.config.set('interfaceStyle', 'frosted-glass')
+      await window.api.config.set('theme', 'light')
+      await window.api.config.set('frostedWallpaper', 'forest')
+    })
+    await window.reload()
+    await window.waitForSelector('.sidebar')
+
+    // A faint white tint over a dark dimming layer left dark text unreadable (a dark wallpaper made
+    // it worst), so the panes of the dialogs and the guide must stay mostly opaque.
+    const alphaOf = (selector, pseudo = null) => window.locator(selector).evaluate((element, pseudoElement) => {
+      const style = getComputedStyle(element, pseudoElement)
+      const match = style.backgroundColor.match(/rgba?\(([^)]+)\)/)
+      if (!match) throw new Error(`unreadable background colour: ${style.backgroundColor}`)
+      const channels = match[1].split(/[\s,/]+/).filter(Boolean)
+      return { alpha: channels.length > 3 ? Number(channels[3]) : 1, color: style.backgroundColor }
+    }, pseudo)
+
+    await window.locator('.sidebar-about').click()
+    await expect(window.locator('.about-modal')).toBeVisible()
+    expect((await alphaOf('.about-modal')).alpha).toBeGreaterThanOrEqual(0.7)
+    expect((await alphaOf('.modal-overlay', '::before')).alpha).toBeLessThanOrEqual(0.4)
+    await window.keyboard.press('Escape')
+    await expect(window.locator('.about-modal')).toHaveCount(0)
+
+    await window.keyboard.press('F1')
+    await expect(window.locator('.onboarding-modal')).toBeVisible()
+    expect((await alphaOf('.onboarding-modal')).alpha).toBeGreaterThanOrEqual(0.7)
+    expect((await alphaOf('.onboarding-overlay', '::before')).alpha).toBeLessThanOrEqual(0.4)
+
+    // The dark theme keeps its own, already readable, glass.
+    await window.keyboard.press('Escape')
+    await window.evaluate(() => window.api.config.set('theme', 'dark'))
+    await window.reload()
+    await window.waitForSelector('.sidebar')
+    await window.locator('.sidebar-about').click()
+    await expect(window.locator('.about-modal')).toBeVisible()
+    expect((await alphaOf('.modal-overlay', '::before')).alpha).toBeGreaterThanOrEqual(0.5)
+    expect(problems).toEqual([])
+  } finally {
+    await app.close()
+  }
+})
+
 test('a first launch opens light in pine green and keeps it after one setting changes', async ({ sandbox }) => {
   const { app, window, problems } = await launchApp(sandbox)
   try {

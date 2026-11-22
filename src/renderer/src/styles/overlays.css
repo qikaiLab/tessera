@@ -44,6 +44,20 @@
   outline: none;
 }
 
+/* Frosted glass, light theme: the page's glass is only a faint white tint, which over the usual
+ * 60% black dimming turns a dialog into a murky grey-green slab with dark text on it. A lighter
+ * dimming and a pane that is mostly (not fully) opaque keep the frost but make the text legible
+ * over any wallpaper; the pane's tint follows the wallpaper like the other surfaces. */
+:root[data-interface-style='frosted-glass'][data-theme='light'] .modal-overlay::before {
+  background: rgba(8, 12, 20, 0.3);
+}
+
+/* (.modal-overlay > keeps this above the shared surface-material rule in appearanceSurfaces.css,
+ * which would otherwise win by coming later.) */
+:root[data-interface-style='frosted-glass'][data-theme='light'] .modal-overlay > .modal {
+  background-color: hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 97% / 0.8);
+}
+
 /* <Presence> keeps a closing dialog or menu mounted just long enough to play these. */
 .presence {
   display: contents;

@@ -32,6 +32,15 @@
   animation: modalIn var(--transition-spring) both;
 }
 
+/* Frosted glass, light theme: same readable pane and lighter dimming as .modal (see overlays.css). */
+:root[data-interface-style='frosted-glass'][data-theme='light'] .onboarding-overlay::before {
+  background: rgba(8, 12, 20, 0.3);
+}
+
+:root[data-interface-style='frosted-glass'][data-theme='light'] .onboarding-overlay > .onboarding-modal {
+  background-color: hsl(var(--frosted-accent-h) calc(30% * var(--frosted-tint-k)) 97% / 0.8);
+}
+
 .onboarding-title {
   font-size: var(--text-lg);
   font-weight: 700;
